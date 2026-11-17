@@ -120,29 +120,27 @@
       throw new Error("Your profile details were not found. Please contact NAF POS support.");
     }
 
-    const { error: profileError } = await client.from("profiles").upsert({
-      id: user.id, full_name: fullName, phone
+    // Create the profile and restaurant through a server-side SECURITY DEFINER RPC.
+    // The RPC derives the owner from auth.uid(); the browser never supplies owner_id.
+    const { data: restaurantId, error: createError } = await client.rpc("create_my_restaurant", {
+      p_full_name: fullName,
+      p_phone: phone,
+      p_restaurant_name: restaurantName
     });
-    if (profileError) throw profileError;
-
-    const { data: restaurant, error: restaurantError } = await client
-      .from("restaurants")
-      .insert({ name: restaurantName, owner_id: user.id, currency: "SAR" })
-      .select("id").single();
-    if (restaurantError) throw restaurantError;
+    if (createError) throw createError;
 
     if (selectedLogo) {
       const ext = selectedLogo.name.split(".").pop().toLowerCase();
-      const path = `${restaurant.id}/logo.${ext}`;
+      const path = `${restaurantId}/logo.${ext}`;
       const { error: uploadError } = await client.storage.from("restaurant-logos")
         .upload(path, selectedLogo, { upsert: true, contentType: selectedLogo.type });
       if (uploadError) throw uploadError;
       const { data: publicData } = client.storage.from("restaurant-logos").getPublicUrl(path);
       const { error: updateError } = await client.from("restaurants")
-        .update({ logo_url: publicData.publicUrl }).eq("id", restaurant.id);
+        .update({ logo_url: publicData.publicUrl }).eq("id", restaurantId);
       if (updateError) throw updateError;
     }
-    return restaurant.id;
+    return restaurantId;
   }
 
   $("signupForm").addEventListener("submit", async (event) => {
