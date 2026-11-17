@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101a2c">
+  <title>NAF POS | Restaurant Management System</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root{--navy:#101a2c;--navy2:#17243a;--gold:#e5b94f;--gold2:#f3d783;--bg:#f4f6fa;--ink:#182235;--muted:#758197;--line:#e5e9f0;--white:#fff;--danger:#c23b48;--green:#21865b}
+    *{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#101a2c 0%,#1d2c45 55%,#283750 100%);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--ink);min-height:100vh;display:grid;place-items:center;padding:24px}
+    .shell{width:min(1080px,100%);min-height:660px;background:var(--white);border-radius:24px;overflow:hidden;display:grid;grid-template-columns: .95fr 1.05fr;box-shadow:0 28px 90px #0005}
+    .brand{background:radial-gradient(circle at 15% 10%,#34445e 0,#1b2940 42%,#101a2c 100%);color:white;padding:48px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
+    .brand:after{content:"";position:absolute;width:360px;height:360px;border:1px solid #e5b94f44;border-radius:50%;right:-150px;bottom:-140px;box-shadow:0 0 0 35px #e5b94f0c,0 0 0 75px #e5b94f08}
+    .logo{display:flex;align-items:center;gap:13px;position:relative;z-index:1}.mark{width:48px;height:48px;border-radius:15px;background:var(--gold);color:var(--navy);display:grid;place-items:center;font-size:25px;font-weight:900}.brandname{font-size:25px;font-weight:850;letter-spacing:2px}.brandname small{display:block;font-size:10px;letter-spacing:3px;color:var(--gold2);font-weight:650;margin-top:3px}
+    .hero{position:relative;z-index:1;margin:70px 0}.hero h1{font-size:clamp(32px,4vw,48px);line-height:1.08;margin:0 0 18px}.hero h1 span{color:var(--gold)}.hero p{color:#c5cedb;line-height:1.7;max-width:390px;margin:0}.features{display:grid;gap:15px;position:relative;z-index:1;color:#d9e0e9;font-size:14px}.feature{display:flex;align-items:center;gap:12px}.tick{width:25px;height:25px;border-radius:8px;background:#e5b94f20;color:var(--gold);display:grid;place-items:center;font-weight:800}
+    .panel{padding:42px clamp(25px,5vw,64px);display:flex;flex-direction:column;justify-content:center}.mobilebrand{display:none}.tabs{display:flex;background:#f0f2f6;border-radius:12px;padding:5px;gap:5px;margin-bottom:30px}.tab{border:0;background:transparent;padding:12px 18px;border-radius:9px;flex:1;font-weight:750;color:#68758a;cursor:pointer}.tab.active{background:white;color:var(--navy);box-shadow:0 2px 9px #18223512}
+    h2{font-size:28px;margin:0 0 8px;color:var(--navy)}.sub{color:var(--muted);font-size:14px;margin:0 0 25px;line-height:1.5}.field{margin:0 0 15px}.field label{display:block;font-size:12px;font-weight:750;color:#4d5a6e;margin-bottom:7px}.field input{width:100%;height:47px;border:1px solid #dce2eb;border-radius:10px;padding:0 13px;font:inherit;font-size:14px;outline:none;background:#fff}.field input:focus{border-color:var(--gold);box-shadow:0 0 0 3px #e5b94f22}.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.btn{width:100%;border:0;border-radius:10px;padding:14px 18px;background:var(--gold);color:#1a2435;font-weight:850;letter-spacing:.3px;cursor:pointer;margin-top:7px}.btn:hover{background:var(--gold2)}.btn:disabled{opacity:.6;cursor:wait}.link{border:0;background:none;color:#9b751b;font-weight:750;cursor:pointer;padding:0}.between{display:flex;justify-content:flex-end;margin:-3px 0 16px;font-size:13px}.notice{display:none;padding:12px 14px;border-radius:10px;margin:0 0 16px;font-size:13px;line-height:1.5}.notice.show{display:block}.notice.error{background:#fff0f0;color:#a52e3b}.notice.ok{background:#eaf8f0;color:#176b46}.foot{text-align:center;color:#929bad;font-size:11px;margin-top:22px}.upload{border:1.5px dashed #cbd3df;border-radius:11px;padding:15px;display:flex;align-items:center;gap:12px;background:#fafbfc}.upload input{height:auto;border:0;padding:0;font-size:12px}.preview{width:48px;height:48px;border-radius:10px;object-fit:cover;background:#edf0f5;display:grid;place-items:center;color:#8792a4;font-size:22px;flex:none}.hidden{display:none!important}.smallnote{font-size:11px;color:#8792a4;line-height:1.5;margin-top:7px}
+    @media(max-width:760px){body{padding:12px}.shell{grid-template-columns:1fr;min-height:0;border-radius:18px}.brand{display:none}.panel{padding:27px 22px}.mobilebrand{display:flex;align-items:center;gap:10px;margin-bottom:25px}.mobilebrand .mark{width:40px;height:40px}.mobilebrand b{color:var(--navy);letter-spacing:1.5px}.mobilebrand small{display:block;color:#9b751b;font-size:9px;letter-spacing:2px}.row2{grid-template-columns:1fr}.tabs{margin-bottom:24px}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <aside class="brand">
+      <div class="logo"><div class="mark">N</div><div class="brandname">NAF POS<small>RESTAURANT MANAGEMENT</small></div></div>
+      <div class="hero"><h1>Run your restaurant.<br><span>With confidence.</span></h1><p>One simple workspace for orders, sales, menu management and your restaurant team.</p></div>
+      <div class="features">
+        <div class="feature"><span class="tick">✓</span> Smart point of sale and order management</div>
+        <div class="feature"><span class="tick">✓</span> Restaurant team and cashier accounts</div>
+        <div class="feature"><span class="tick">✓</span> Secure cloud data with Supabase</div>
+      </div>
+    </aside>
+    <section class="panel">
+      <div class="mobilebrand"><div class="mark">N</div><div><b>NAF POS</b><small>RESTAURANT MANAGEMENT</small></div></div>
+      <div class="tabs">
+        <button class="tab active" id="loginTab" type="button">Login</button>
+        <button class="tab" id="signupTab" type="button">Create Account</button>
+      </div>
+      <div id="notice" class="notice"></div>
+
+      <form id="loginForm">
+        <h2>Welcome back</h2><p class="sub">Sign in to manage your restaurant.</p>
+        <div class="field"><label for="loginEmail">EMAIL ADDRESS</label><input id="loginEmail" type="email" autocomplete="email" placeholder="you@example.com" required></div>
+        <div class="field"><label for="loginPassword">PASSWORD</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Enter your password" required></div>
+        <div class="between"><button class="link" id="forgotBtn" type="button">Forgot password?</button></div>
+        <button class="btn" type="submit">SIGN IN</button>
+        <p class="smallnote">New to NAF POS? Choose Create Account above to register your restaurant.</p>
+      </form>
+
+      <form id="signupForm" class="hidden">
+        <h2>Create your account</h2><p class="sub">Set up your owner profile and restaurant.</p>
+        <div class="row2">
+          <div class="field"><label for="fullName">FULL NAME</label><input id="fullName" autocomplete="name" placeholder="Your full name" required></div>
+          <div class="field"><label for="phone">PHONE NUMBER</label><input id="phone" type="tel" autocomplete="tel" placeholder="+966 5X XXX XXXX" required></div>
+        </div>
+        <div class="field"><label for="signupEmail">EMAIL ADDRESS</label><input id="signupEmail" type="email" autocomplete="email" placeholder="you@example.com" required></div>
+        <div class="field"><label for="signupPassword">PASSWORD</label><input id="signupPassword" type="password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters" required></div>
+        <div class="field"><label for="restaurantName">RESTAURANT NAME</label><input id="restaurantName" placeholder="Your restaurant name" required></div>
+        <div class="field"><label for="restaurantLogo">RESTAURANT LOGO</label><div class="upload"><img id="logoPreview" class="preview" alt="Logo preview" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='10' fill='%23edf0f5'/%3E%3Cpath d='M15 31h18M18 27V17h12v10M21 17v-3h6v3' stroke='%238792a4' stroke-width='2' fill='none'/%3E%3C/svg%3E"><input id="restaurantLogo" type="file" accept="image/png,image/jpeg,image/webp"></div><div class="smallnote">Optional. PNG, JPG or WEBP, maximum 2 MB.</div></div>
+        <button class="btn" type="submit">CREATE RESTAURANT ACCOUNT</button>
+        <p class="smallnote">By creating an account, you agree to use NAF POS responsibly. Your account may require email verification.</p>
+      </form>
+      <div class="foot">© 2026 NAF POS · Secure Restaurant Management</div>
+    </section>
+  </main>
+
+<script>
+(() => {
+  const SUPABASE_URL = "https://ymdvlkbzrzcmshnvjspk.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_TXD6VPmdBNzHeWS-LEsndg_fmFWyP5Q";
+  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const $ = (id) => document.getElementById(id);
+  const notice = $("notice");
+  let selectedLogo = null;
+
+  function showNotice(message, type="ok") {
+    notice.textContent = message;
+    notice.className = `notice show ${type}`;
+  }
+  function clearNotice(){ notice.className = "notice"; notice.textContent = ""; }
+  function setBusy(form, busy) {
+    const button = form.querySelector("button[type=submit]");
+    button.disabled = busy;
+    button.textContent = busy ? "PLEASE WAIT..." : (form.id === "loginForm" ? "SIGN IN" : "CREATE RESTAURANT ACCOUNT");
+  }
+  function switchTab(tab) {
+    clearNotice();
+    const login = tab === "login";
+    $("loginForm").classList.toggle("hidden", !login);
+    $("signupForm").classList.toggle("hidden", login);
+    $("loginTab").classList.toggle("active", login);
+    $("signupTab").classList.toggle("active", !login);
+  }
+  $("loginTab").addEventListener("click", () => switchTab("login"));
+  $("signupTab").addEventListener("click", () => switchTab("signup"));
+
+  $("restaurantLogo").addEventListener("change", (event) => {
+    const file = event.target.files[0];
+    selectedLogo = file || null;
+    if (!file) return;
+    if (!["image/png","image/jpeg","image/webp"].includes(file.type) || file.size > 2*1024*1024) {
+      selectedLogo = null; event.target.value = "";
+      showNotice("Please choose a PNG, JPG or WEBP image smaller than 2 MB.", "error");
+      return;
+    }
+    $("logoPreview").src = URL.createObjectURL(file);
+    clearNotice();
+  });
+
+  async function finishOwnerSetup(user, metadata) {
+    const { data: existing, error: checkError } = await client
+      .from("restaurants").select("id").eq("owner_id", user.id).limit(1);
+    if (checkError) throw checkError;
+    if (existing && existing.length) return existing[0].id;
+
+    const fullName = metadata.full_name || user.user_metadata?.full_name || "";
+    const phone = metadata.phone || user.user_metadata?.phone || "";
+    const restaurantName = metadata.restaurant_name || user.user_metadata?.restaurant_name || "";
+    if (!fullName || !restaurantName) {
+      throw new Error("Your profile details were not found. Please contact NAF POS support.");
+    }
+
+    const { error: profileError } = await client.from("profiles").upsert({
+      id: user.id, full_name: fullName, phone
+    });
+    if (profileError) throw profileError;
+
+    const { data: restaurant, error: restaurantError } = await client
+      .from("restaurants")
+      .insert({ name: restaurantName, owner_id: user.id, currency: "SAR" })
+      .select("id").single();
+    if (restaurantError) throw restaurantError;
+
+    if (selectedLogo) {
+      const ext = selectedLogo.name.split(".").pop().toLowerCase();
+      const path = `${restaurant.id}/logo.${ext}`;
+      const { error: uploadError } = await client.storage.from("restaurant-logos")
+        .upload(path, selectedLogo, { upsert: true, contentType: selectedLogo.type });
+      if (uploadError) throw uploadError;
+      const { data: publicData } = client.storage.from("restaurant-logos").getPublicUrl(path);
+      const { error: updateError } = await client.from("restaurants")
+        .update({ logo_url: publicData.publicUrl }).eq("id", restaurant.id);
+      if (updateError) throw updateError;
+    }
+    return restaurant.id;
+  }
+
+  $("signupForm").addEventListener("submit", async (event) => {
+    event.preventDefault(); clearNotice();
+    const form = event.currentTarget; setBusy(form, true);
+    const fullName = $("fullName").value.trim();
+    const phone = $("phone").value.trim();
+    const email = $("signupEmail").value.trim().toLowerCase();
+    const password = $("signupPassword").value;
+    const restaurantName = $("restaurantName").value.trim();
+    try {
+      const { data, error } = await client.auth.signUp({
+        email, password,
+        options: {
+          data: { full_name: fullName, phone, restaurant_name: restaurantName },
+          emailRedirectTo: window.location.origin
+        }
+      });
+      if (error) throw error;
+      if (data.session && data.user) {
+        await finishOwnerSetup(data.user, { full_name: fullName, phone, restaurant_name: restaurantName });
+        showNotice("Your NAF POS account and restaurant have been created. You can now sign in.", "ok");
+        form.reset(); selectedLogo = null;
+        $("logoPreview").removeAttribute("src");
+        switchTab("login");
+      } else {
+        showNotice("Registration received. Please verify your email, then sign in with the same account. Restaurant setup will finish after your first verified login.", "ok");
+      }
+    } catch (error) {
+      showNotice(error.message || "Could not create account. Please try again.", "error");
+    } finally { setBusy(form, false); }
+  });
+
+  $("loginForm").addEventListener("submit", async (event) => {
+    event.preventDefault(); clearNotice();
+    const form = event.currentTarget; setBusy(form, true);
+    try {
+      const { data, error } = await client.auth.signInWithPassword({
+        email: $("loginEmail").value.trim().toLowerCase(),
+        password: $("loginPassword").value
+      });
+      if (error) throw error;
+      const user = data.user;
+      const metadata = user.user_metadata || {};
+      const { data: restaurants, error: lookupError } = await client
+        .from("restaurants").select("id,name").eq("owner_id", user.id).limit(1);
+      if (lookupError) throw lookupError;
+      if (!restaurants || !restaurants.length) {
+        await finishOwnerSetup(user, metadata);
+      }
+      showNotice("Login successful. Authentication is connected. Dashboard pages are the next build step.", "ok");
+    } catch (error) {
+      showNotice(error.message || "Login failed. Check your email and password.", "error");
+    } finally { setBusy(form, false); }
+  });
+
+  $("forgotBtn").addEventListener("click", async () => {
+    clearNotice();
+    const email = $("loginEmail").value.trim().toLowerCase();
+    if (!email) { showNotice("Enter your email address first, then choose Forgot password.", "error"); return; }
+    try {
+      const { error } = await client.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin
+      });
+      if (error) throw error;
+      showNotice("If this email is registered, a password reset link has been sent.", "ok");
+    } catch (error) { showNotice(error.message || "Could not send reset email.", "error"); }
+  });
+
+  client.auth.onAuthStateChange((event, session) => {
+    if (event === "PASSWORD_RECOVERY") showNotice("Enter your new password after the password reset page is added.", "ok");
+  });
+})();
+</script>
+</body>
+</html>
