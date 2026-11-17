@@ -39,7 +39,7 @@
     .welcome{background:linear-gradient(110deg,#17243a,#263a58);color:white;border-radius:16px;padding:25px 27px;margin-bottom:23px;position:relative;overflow:hidden}
     .welcome:after{content:"";position:absolute;width:220px;height:220px;border:1px solid #e5b94f44;border-radius:50%;right:-70px;top:-105px;box-shadow:0 0 0 28px #e5b94f0c,0 0 0 58px #e5b94f08}
     .welcome h2{color:white;font-size:23px;margin:0 0 7px;position:relative;z-index:1}.welcome p{color:#c7d1df;font-size:13px;margin:0;position:relative;z-index:1}
-    .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px;margin-bottom:23px}
+    .stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:23px}
     .stat{background:white;border:1px solid var(--line);border-radius:14px;padding:18px;min-width:0}
     .stathead{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:12px;font-weight:700}.staticon{width:33px;height:33px;border-radius:10px;background:#fbf3df;color:#9b751b;display:grid;place-items:center;font-size:16px}
     .statvalue{font-size:24px;font-weight:850;color:var(--navy);margin-top:13px;overflow-wrap:anywhere}.statnote{font-size:11px;color:#929bad;margin-top:5px}
@@ -47,7 +47,8 @@
     .dashcard h3{font-size:15px;margin:0 0 7px;color:var(--navy)}.dashcard p{font-size:12px;color:var(--muted);line-height:1.6;margin:0}
     .empty{margin-top:20px;padding:16px;border:1px dashed #d9dfe8;border-radius:10px;text-align:center;color:var(--muted);font-size:12px}
     .appnotice{display:none;background:#fff4e1;color:#805d13;border:1px solid #f2dfb2;padding:11px 13px;border-radius:9px;font-size:12px;margin-bottom:16px}.appnotice.show{display:block}
-    @media(max-width:1000px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:1100px){.stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+    @media(max-width:850px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
     @media(max-width:720px){.app-shell.visible{display:block}.sidebar{width:100%;padding:12px 14px}.sidebrand{padding:2px 4px 12px}.navlabel,.sidebottom{display:none}.navlist{display:flex;overflow-x:auto;padding-top:12px}.navitem{white-space:nowrap;padding:9px 11px}.mainarea{padding:20px 14px}.topbar{align-items:flex-start}.userbox{gap:7px}.usertext{display:none}.stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.stat{padding:14px}.statvalue{font-size:20px}.lowergrid{grid-template-columns:1fr}.pageheading{font-size:24px}}
 
   </style>
@@ -131,10 +132,11 @@
         <p>Your restaurant overview. Your live business figures will appear here as you record transactions.</p>
       </section>
       <section class="stats">
-        <article class="stat"><div class="stathead">Total Sales <span class="staticon">↗</span></div><div class="statvalue" id="totalSales">SAR 0.00</div><div class="statnote">Recorded sales</div></article>
+        <article class="stat"><div class="stathead">Budget <span class="staticon">◈</span></div><div class="statvalue" id="totalBudget">SAR 0.00</div><div class="statnote">Total allocated budget</div></article>
         <article class="stat"><div class="stathead">Purchase Cost <span class="staticon">▣</span></div><div class="statvalue" id="purchaseCost">SAR 0.00</div><div class="statnote">Recorded purchases</div></article>
-        <article class="stat"><div class="stathead">Expenses <span class="staticon">↘</span></div><div class="statvalue" id="totalExpenses">SAR 0.00</div><div class="statnote">Recorded expenses</div></article>
-        <article class="stat"><div class="stathead">Net Profit <span class="staticon">◈</span></div><div class="statvalue" id="netProfit">SAR 0.00</div><div class="statnote">Sales minus purchases and expenses (basic estimate)</div></article>
+        <article class="stat"><div class="stathead">Expense <span class="staticon">↘</span></div><div class="statvalue" id="totalExpenses">SAR 0.00</div><div class="statnote">Recorded expenses</div></article>
+        <article class="stat"><div class="stathead">Budget Balance <span class="staticon">◉</span></div><div class="statvalue" id="budgetBalance">SAR 0.00</div><div class="statnote">Budget − purchases − expenses</div></article>
+        <article class="stat"><div class="stathead">Total Sale <span class="staticon">↗</span></div><div class="statvalue" id="totalSales">SAR 0.00</div><div class="statnote">Completed orders only</div></article>
       </section>
       <section class="lowergrid">
         <article class="dashcard"><h3>Recent Activity</h3><p>Your recent sales will appear here.</p><div class="empty" id="recentSales">No sales recorded yet.</div></article>
@@ -189,27 +191,47 @@
     $("appShell").classList.add("visible");
 
     const rid = restaurant.id;
-    const [salesRes, purchasesRes, expensesRes] = await Promise.all([
-      client.from("sales").select("total_amount,created_at,invoice_number").eq("restaurant_id", rid).order("created_at", {ascending:false}).limit(8),
+    const currency = restaurant.currency || "SAR";
+    const formatMoney = (value) => currency + " " + Number(value || 0).toLocaleString("en-SA", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+
+    // Dashboard totals are restricted to this restaurant.
+    // Only Completed orders are included in Total Sale.
+    const [budgetsRes, salesRes, purchasesRes, expensesRes, recentSalesRes] = await Promise.all([
+      client.from("budgets").select("amount").eq("restaurant_id", rid),
+      client.from("sales").select("total_amount").eq("restaurant_id", rid).ilike("order_status", "completed"),
       client.from("purchases").select("total_amount").eq("restaurant_id", rid),
-      client.from("expenses").select("amount").eq("restaurant_id", rid)
+      client.from("expenses").select("amount").eq("restaurant_id", rid),
+      client.from("sales").select("total_amount,created_at,invoice_number")
+        .eq("restaurant_id", rid).ilike("order_status", "completed")
+        .order("created_at", {ascending:false}).limit(5)
     ]);
-    const failed = [salesRes, purchasesRes, expensesRes].find(r => r.error);
+
+    const failed = [budgetsRes, salesRes, purchasesRes, expensesRes, recentSalesRes].find(r => r.error);
     if (failed) {
       showAppNotice("Dashboard opened, but some totals could not load: " + failed.error.message);
       return;
     }
-    const sales = salesRes.data || [];
+
+    const budgetTotal = (budgetsRes.data || []).reduce((sum, row) => sum + Number(row.amount || 0), 0);
     const purchaseTotal = (purchasesRes.data || []).reduce((sum, row) => sum + Number(row.total_amount || 0), 0);
     const expenseTotal = (expensesRes.data || []).reduce((sum, row) => sum + Number(row.amount || 0), 0);
-    const salesTotal = sales.reduce((sum, row) => sum + Number(row.total_amount || 0), 0);
-    $("totalSales").textContent = money(salesTotal);
-    $("purchaseCost").textContent = money(purchaseTotal);
-    $("totalExpenses").textContent = money(expenseTotal);
-    $("netProfit").textContent = money(salesTotal - purchaseTotal - expenseTotal);
-    $("recentSales").textContent = sales.length
-      ? sales.slice(0,5).map(row => `${row.invoice_number || "Sale"} · ${money(row.total_amount)}`).join("  |  ")
-      : "No sales recorded yet.";
+    const salesTotal = (salesRes.data || []).reduce((sum, row) => sum + Number(row.total_amount || 0), 0);
+    const balance = budgetTotal - purchaseTotal - expenseTotal;
+
+    $("totalBudget").textContent = formatMoney(budgetTotal);
+    $("purchaseCost").textContent = formatMoney(purchaseTotal);
+    $("totalExpenses").textContent = formatMoney(expenseTotal);
+    $("budgetBalance").textContent = formatMoney(balance);
+    $("budgetBalance").style.color = balance < 0 ? "#b42318" : "#16804a";
+    $("totalSales").textContent = formatMoney(salesTotal);
+
+    const recentSales = recentSalesRes.data || [];
+    $("recentSales").textContent = recentSales.length
+      ? recentSales.map(row => `${row.invoice_number || "Sale"} · ${formatMoney(row.total_amount)}`).join("  |  ")
+      : "No completed sales recorded yet.";
   }
 
   $("logoutBtn").addEventListener("click", async () => {
