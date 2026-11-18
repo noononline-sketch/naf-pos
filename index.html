@@ -332,7 +332,7 @@
       </section>
       <section id="suppliersPage" class="pagepanel"><div class="module-card"><h3 id="supplierPageTitle">Suppliers</h3><p class="module-note">Supplier records are shared with the Purchases module.</p><form id="supplierPageForm"><div class="module-form"><div class="module-field"><label>SUPPLIER NAME</label><input id="supplierPageName" required maxlength="120"></div></div><div class="module-actions"><button class="menu-btn" id="supplierPageSave">ADD SUPPLIER</button><button class="menu-btn secondary" id="supplierPageCancel" type="button" hidden>Cancel</button></div></form></div><div class="module-card"><div class="module-toolbar"><h3>Supplier List</h3><input id="supplierPageSearch" placeholder="Search suppliers"></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>SUPPLIER</th><th>ACTIONS</th></tr></thead><tbody id="supplierPageRows"></tbody></table></div></div></section>
       <section id="reportsPage" class="pagepanel"><div class="module-card"><div class="module-toolbar"><h3>Business Reports</h3><label>From <input id="reportFrom" type="date"></label><label>To <input id="reportTo" type="date"></label><button class="menu-btn" id="runReport">RUN REPORT</button></div><div class="extra-grid"><div class="extra-stat"><small>Sales</small><b id="reportSales">SAR 0.00</b></div><div class="extra-stat"><small>Purchases</small><b id="reportPurchases">SAR 0.00</b></div><div class="extra-stat"><small>Expenses</small><b id="reportExpenses">SAR 0.00</b></div><div class="extra-stat"><small>Gross Difference (Sales − Purchases − Expenses)</small><b id="reportNet">SAR 0.00</b></div></div><p class="module-note">This is a cash-flow summary, not an accounting-certified net profit calculation.</p></div></section>
-      <section id="cashier-managementPage" class="pagepanel"><div class="module-card"><h3 id="cashierFormTitle">Cashier Management</h3><p class="module-note">Manage cashier staff records here. This form does not create Supabase Auth login accounts. Login invitations require a secured server-side Edge Function.</p><form id="cashierForm"><div class="module-form"><div class="module-field"><label>CASHIER NAME</label><input id="cashierName" required></div><div class="module-field"><label>EMAIL</label><input id="cashierEmail" type="email" required></div><div class="module-field"><label>PHONE</label><input id="cashierPhone"></div><div class="module-field"><label>STATUS</label><select id="cashierStatus"><option value="active">Active</option><option value="inactive">Inactive</option></select></div></div><div class="module-actions"><button class="menu-btn" id="cashierSave">ADD CASHIER</button><button class="menu-btn secondary" id="cashierCancel" type="button" hidden>Cancel</button></div></form></div><div class="module-card"><div class="module-toolbar"><h3>Cashier List</h3><input id="cashierSearch" placeholder="Search cashiers"></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>NAME</th><th>EMAIL</th><th>PHONE</th><th>STATUS</th><th>ACTIONS</th></tr></thead><tbody id="cashierRows"></tbody></table></div></div></section>
+      <section id="cashier-managementPage" class="pagepanel"><div class="module-card"><h3 id="cashierFormTitle">Cashier Management</h3><p class="module-note">Create a cashier login using a temporary password. Cashiers can access POS and their own Sales History only.</p><form id="cashierForm"><div class="module-form"><div class="module-field"><label>CASHIER NAME</label><input id="cashierName" required></div><div class="module-field"><label>EMAIL</label><input id="cashierEmail" type="email" required></div><div class="module-field"><label>PHONE</label><input id="cashierPhone"></div><div class="module-field"><label>PASSWORD (minimum 8 characters)</label><input id="cashierPassword" type="password" minlength="8" autocomplete="new-password" required></div><div class="module-field"><label>STATUS</label><select id="cashierStatus"><option value="active">Active</option><option value="inactive">Deactive</option></select></div></div><div class="module-actions"><button class="menu-btn" id="cashierSave">ADD CASHIER</button><button class="menu-btn secondary" id="cashierCancel" type="button" hidden>Cancel</button></div></form></div><div class="module-card"><div class="module-toolbar"><h3>Cashier List</h3><input id="cashierSearch" placeholder="Search cashiers"></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>NAME</th><th>PHONE</th><th>EMAIL</th><th>ROLE</th><th>STATUS</th><th>ACTIONS</th></tr></thead><tbody id="cashierRows"></tbody></table></div></div></section>
       <section id="super-adminPage" class="pagepanel"><div class="module-card"><h3>Super Admin</h3><p class="module-note">Protected system administration. Your signed-in account must be manually authorized in the naf_super_admins table. This page does not grant admin access.</p><div class="module-toolbar"><b>Restaurant Accounts</b><button class="menu-btn secondary" id="refreshAdminRestaurants">REFRESH</button></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>RESTAURANT</th><th>CURRENCY</th><th>OWNER ID</th><th>CREATED</th></tr></thead><tbody id="adminRestaurantRows"><tr><td colspan="4">Press Refresh to load authorized data.</td></tr></tbody></table></div></div></section>
       <section id="employeesPage" class="pagepanel">
         <div class="module-card"><h3 id="employeeFormTitle">Add Employee</h3><form id="employeeForm"><div class="module-form">
@@ -365,6 +365,7 @@
 
   let selectedLogo = null;
   let activeRestaurant = null;
+  let currentCashier = null;
   let menuItemsCache = [];
   let menuCategoriesCache = [];
   let editingMenuItemId = null;
@@ -384,6 +385,39 @@
 
   async function openDashboard(user) {
     const metadata = user.user_metadata || {};
+    // Cashier accounts are mapped to a restaurant by the secure server-side function.
+    const { data: cashierRecord, error: cashierLookupError } = await client
+      .from("naf_cashiers").select("id,restaurant_id,name,email,phone,status,auth_user_id")
+      .eq("auth_user_id", user.id).maybeSingle();
+    if (cashierLookupError) throw cashierLookupError;
+    if (cashierRecord) {
+      if (cashierRecord.status !== "active") {
+        await client.auth.signOut();
+        throw new Error("Your cashier account is deactivated. Please contact the restaurant owner.");
+      }
+      const { data: cashierRestaurant, error: cashierRestaurantError } = await client
+        .from("restaurants").select("id,name,logo_url,currency,tax_rate")
+        .eq("id", cashierRecord.restaurant_id).single();
+      if (cashierRestaurantError) throw cashierRestaurantError;
+      currentCashier = cashierRecord;
+      activeRestaurant = cashierRestaurant;
+      document.body.classList.add("app-mode");
+      document.querySelector(".shell").classList.add("hidden");
+      $("appShell").classList.add("visible");
+      $("dashUserName").textContent = cashierRecord.name;
+      $("dashRestaurantName").textContent = cashierRestaurant.name;
+      $("welcomeTitle").textContent = "Welcome, " + cashierRecord.name;
+      $("userAvatar").textContent = (cashierRecord.name || "C").trim().charAt(0).toUpperCase();
+      $("restaurantInfo").textContent = cashierRestaurant.name + " · Cashier";
+      document.querySelectorAll(".navitem[data-page]").forEach(el => {
+        const allowed = ["pos", "sales-history"].includes(el.dataset.page);
+        el.hidden = !allowed;
+      });
+      showPage("pos");
+      return;
+    }
+    currentCashier = null;
+    document.querySelectorAll(".navitem[data-page]").forEach(el => { el.hidden = false; });
     const { data: restaurants, error } = await client
       .from("restaurants").select("id,name,logo_url,currency,tax_rate")
       .eq("owner_id", user.id).limit(1);
@@ -928,6 +962,7 @@
       const invoiceNumber = createInvoiceNumber();
       const salePayload = {
         restaurant_id: activeRestaurant.id,
+        cashier_id: currentCashier ? currentCashier.auth_user_id : null,
         invoice_number: invoiceNumber,
         subtotal: totals.subtotal,
         discount: totals.discount,
@@ -1074,7 +1109,7 @@
   $("cancelExpenseEdit").addEventListener("click",resetExpense);
   $("expenseForm").addEventListener("submit",async e=>{e.preventDefault();const payload={restaurant_id:activeRestaurant.id,title:$("expenseTitle").value.trim(),category:$("expenseCategory").value,amount:Number($("expenseAmount").value),description:$("expenseDescription").value.trim()||null,expense_date:$("expenseDate").value||todayISO()};try{const result=editingExpenseId?await client.from("expenses").update(payload).eq("id",editingExpenseId).eq("restaurant_id",activeRestaurant.id):await client.from("expenses").insert(payload);if(result.error)throw result.error;showAppNotice(editingExpenseId?"Expense updated.":"Expense saved.");resetExpense();await loadExpenses();await refreshDashboardTotals();}catch(err){moduleError("Could not save expense",err)}});
 
-  async function loadSalesHistory(){if(!activeRestaurant)return;let query=client.from("sales").select("id,invoice_number,subtotal,discount,tax,total_amount,payment_method,payment_status,order_status,created_at").eq("restaurant_id",activeRestaurant.id).order("created_at",{ascending:false}).limit(500);if($("salesFrom").value)query=query.gte("created_at",$("salesFrom").value+"T00:00:00");if($("salesTo").value)query=query.lte("created_at",$("salesTo").value+"T23:59:59");const {data,error}=await query;if(error){moduleError("Could not load sales history",error);return;}window.nafSales=data||[];renderSalesHistory();}
+  async function loadSalesHistory(){if(!activeRestaurant)return;let query=client.from("sales").select("id,invoice_number,subtotal,discount,tax,total_amount,payment_method,payment_status,order_status,created_at").eq("restaurant_id",activeRestaurant.id).order("created_at",{ascending:false}).limit(500);if($("salesFrom").value)query=query.gte("created_at",$("salesFrom").value+"T00:00:00");if($("salesTo").value)query=query.lte("created_at",$("salesTo").value+"T23:59:59");if(currentCashier)query=query.eq("cashier_id",currentCashier.auth_user_id);const {data,error}=await query;if(error){moduleError("Could not load sales history",error);return;}window.nafSales=data||[];renderSalesHistory();}
   function renderSalesHistory(){const q=($("salesSearch").value||"").toLowerCase();const rows=(window.nafSales||[]).filter(x=>(x.invoice_number||"").toLowerCase().includes(q));$("salesRows").innerHTML=rows.map(x=>`<tr><td>${safeText(new Date(x.created_at).toLocaleString())}</td><td>${safeText(x.invoice_number||"")}</td><td>${safeText(x.payment_method||"")}</td><td>${safeText(x.order_status||x.payment_status||"")}</td><td>${money(x.total_amount)}</td><td><button class="edit" data-view-sale="${safeText(x.id)}">View / Print</button></td></tr>`).join("")||'<tr><td colspan="6" class="muted-empty">No sales found.</td></tr>';}
   $("salesSearch").addEventListener("input",renderSalesHistory);$("salesFilterBtn").addEventListener("click",loadSalesHistory);$("salesRefreshBtn").addEventListener("click",loadSalesHistory);
   $("salesRows").addEventListener("click",async e=>{const b=e.target.closest("[data-view-sale]");if(!b)return;const sale=(window.nafSales||[]).find(x=>x.id===b.dataset.viewSale);if(!sale)return;const {data:items,error}=await client.from("sale_items").select("item_name,quantity,unit_price,total_price").eq("sale_id",sale.id);if(error){moduleError("Could not load invoice items",error);return;}const invoice={...sale,tax_rate:sale.subtotal>sale.discount?Math.round((Number(sale.tax||0)/(Number(sale.subtotal||0)-Number(sale.discount||0)))*10000)/100:0,items:items||[]};printInvoice(invoice);});
@@ -1098,12 +1133,36 @@
   // Reports from saved sales, purchases and expenses.
   async function runReports(){const from=$('reportFrom').value,to=$('reportTo').value;let sq=client.from('sales').select('total_amount,created_at').eq('restaurant_id',activeRestaurant.id).ilike('order_status','completed');let pq=client.from('purchases').select('total_amount,purchase_date').eq('restaurant_id',activeRestaurant.id);let eq=client.from('expenses').select('amount,expense_date').eq('restaurant_id',activeRestaurant.id);if(from){sq=sq.gte('created_at',from+'T00:00:00');pq=pq.gte('purchase_date',from);eq=eq.gte('expense_date',from);}if(to){sq=sq.lte('created_at',to+'T23:59:59');pq=pq.lte('purchase_date',to);eq=eq.lte('expense_date',to);}const [s,p,x]=await Promise.all([sq,pq,eq]);for(const r of [s,p,x])if(r.error){moduleError('Could not generate report',r.error);return;}const sales=(s.data||[]).reduce((a,r)=>a+Number(r.total_amount||0),0),purchases=(p.data||[]).reduce((a,r)=>a+Number(r.total_amount||0),0),expenses=(x.data||[]).reduce((a,r)=>a+Number(r.amount||0),0);$('reportSales').textContent=money(sales);$('reportPurchases').textContent=money(purchases);$('reportExpenses').textContent=money(expenses);$('reportNet').textContent=money(sales-purchases-expenses);}
   $('runReport').addEventListener('click',runReports);
-  // Cashier staff records; actual login creation is intentionally server-side only.
-  async function loadCashiers(){const {data,error}=await client.from('naf_cashiers').select('id,name,email,phone,status,created_at').eq('restaurant_id',activeRestaurant.id).order('created_at',{ascending:false});if(error){moduleError('Could not load cashiers. Run the supplied SQL setup first.',error);return;}window.nafCashiers=data||[];const q=($('cashierSearch').value||'').toLowerCase();$('cashierRows').innerHTML=window.nafCashiers.filter(x=>[x.name,x.email,x.phone].join(' ').toLowerCase().includes(q)).map(x=>`<tr><td>${safeText(x.name)}</td><td>${safeText(x.email)}</td><td>${safeText(x.phone||'')}</td><td>${safeText(x.status)}</td><td><button class="edit" data-cashier-edit="${safeText(x.id)}">Edit</button> <button class="del" data-cashier-del="${safeText(x.id)}">Delete</button></td></tr>`).join('')||'<tr><td colspan="5">No cashier records.</td></tr>';}
+  // Cashier accounts are created/managed only through the authenticated Edge Function.
+  async function callCashierFunction(body){
+    const {data:{session}}=await client.auth.getSession();
+    if(!session) throw new Error("Please sign in again.");
+    const {data,error}=await client.functions.invoke("manage-cashier",{body,headers:{Authorization:"Bearer "+session.access_token}});
+    if(error) throw new Error(error.message||"Cashier function failed");
+    if(data?.error) throw new Error(data.error);
+    return data;
+  }
+  async function loadCashiers(){
+    const {data,error}=await client.from('naf_cashiers').select('id,name,email,phone,status,created_at,auth_user_id').eq('restaurant_id',activeRestaurant.id).order('created_at',{ascending:false});
+    if(error){moduleError('Could not load cashiers',error);return;}
+    window.nafCashiers=data||[];const q=($('cashierSearch').value||'').toLowerCase();
+    $('cashierRows').innerHTML=window.nafCashiers.filter(x=>[x.name,x.email,x.phone].join(' ').toLowerCase().includes(q)).map(x=>`<tr><td>${safeText(x.name)}</td><td>${safeText(x.phone||'')}</td><td>${safeText(x.email)}</td><td>Cashier</td><td>${safeText(x.status==='active'?'Active':'Deactive')}</td><td><button class="edit" data-cashier-edit="${safeText(x.id)}">Edit</button> <button class="edit" data-cashier-toggle="${safeText(x.id)}">${x.status==='active'?'Deactive':'Activate'}</button> <button class="del" data-cashier-del="${safeText(x.id)}">Delete</button></td></tr>`).join('')||'<tr><td colspan="6">No cashier records.</td></tr>';
+  }
   $('cashierSearch').addEventListener('input',loadCashiers);
-  $('cashierRows').addEventListener('click',async e=>{const ed=e.target.closest('[data-cashier-edit]'),dl=e.target.closest('[data-cashier-del]');if(ed){const x=window.nafCashiers.find(v=>v.id===ed.dataset.cashierEdit);editingCashierId=x.id;$('cashierName').value=x.name;$('cashierEmail').value=x.email;$('cashierPhone').value=x.phone||'';$('cashierStatus').value=x.status;$('cashierSave').textContent='UPDATE CASHIER';$('cashierCancel').hidden=false;}if(dl&&confirm('Delete cashier record?')){const {error}=await client.from('naf_cashiers').delete().eq('id',dl.dataset.cashierDel).eq('restaurant_id',activeRestaurant.id);if(error)moduleError('Could not delete cashier',error);else loadCashiers();}});
-  $('cashierForm').addEventListener('submit',async e=>{e.preventDefault();const payload={restaurant_id:activeRestaurant.id,name:$('cashierName').value.trim(),email:$('cashierEmail').value.trim(),phone:$('cashierPhone').value.trim()||null,status:$('cashierStatus').value};const q=editingCashierId?client.from('naf_cashiers').update(payload).eq('id',editingCashierId).eq('restaurant_id',activeRestaurant.id):client.from('naf_cashiers').insert(payload);const {error}=await q;if(error)moduleError('Could not save cashier',error);else{editingCashierId=null;$('cashierForm').reset();$('cashierSave').textContent='ADD CASHIER';$('cashierCancel').hidden=true;showAppNotice('Cashier staff record saved.');loadCashiers();}});
-  $('cashierCancel').addEventListener('click',()=>{editingCashierId=null;$('cashierForm').reset();$('cashierSave').textContent='ADD CASHIER';$('cashierCancel').hidden=true;});
+  $('cashierRows').addEventListener('click',async e=>{
+    const ed=e.target.closest('[data-cashier-edit]'),dl=e.target.closest('[data-cashier-del]'),tg=e.target.closest('[data-cashier-toggle]');
+    try{
+      if(ed){const x=window.nafCashiers.find(v=>v.id===ed.dataset.cashierEdit);if(!x)return;editingCashierId=x.id;$('cashierName').value=x.name;$('cashierEmail').value=x.email;$('cashierPhone').value=x.phone||'';$('cashierStatus').value=x.status;$('cashierPassword').required=false;$('cashierPassword').value='';$('cashierSave').textContent='UPDATE CASHIER';$('cashierCancel').hidden=false;return;}
+      if(tg){const x=window.nafCashiers.find(v=>v.id===tg.dataset.cashierToggle);if(!x)return;await callCashierFunction({action:'set_status',cashier_id:x.id,status:x.status==='active'?'inactive':'active'});showAppNotice('Cashier status updated.');await loadCashiers();return;}
+      if(dl&&confirm('Delete cashier and disable their login account?')){await callCashierFunction({action:'delete',cashier_id:dl.dataset.cashierDel});showAppNotice('Cashier deleted and login disabled.');await loadCashiers();}
+    }catch(err){moduleError('Cashier action failed',err);}
+  });
+  $('cashierForm').addEventListener('submit',async e=>{
+    e.preventDefault();const payload={action:editingCashierId?'update':'create',cashier_id:editingCashierId,restaurant_id:activeRestaurant.id,name:$('cashierName').value.trim(),email:$('cashierEmail').value.trim().toLowerCase(),phone:$('cashierPhone').value.trim()||null,status:$('cashierStatus').value,password:$('cashierPassword').value};
+    try{await callCashierFunction(payload);editingCashierId=null;$('cashierForm').reset();$('cashierPassword').required=true;$('cashierSave').textContent='ADD CASHIER';$('cashierCancel').hidden=true;showAppNotice(payload.action==='create'?'Cashier login created. Share the password securely with the cashier.':'Cashier updated.');await loadCashiers();}
+    catch(err){moduleError('Could not save cashier',err);}
+  });
+  $('cashierCancel').addEventListener('click',()=>{editingCashierId=null;$('cashierForm').reset();$('cashierPassword').required=true;$('cashierSave').textContent='ADD CASHIER';$('cashierCancel').hidden=true;});
   async function loadAdminRestaurants(){const {data:auth}=await client.auth.getUser();const {data:allowed,error:roleError}=await client.from('naf_super_admins').select('user_id').eq('user_id',auth.user.id).maybeSingle();if(roleError||!allowed){moduleError('Access denied: this account is not registered as a Super Admin.',roleError||new Error('Not authorized'));return;}const {data,error}=await client.from('restaurants').select('id,name,currency,owner_id,created_at').order('created_at',{ascending:false}).limit(500);if(error){moduleError('Could not load restaurant accounts',error);return;}$('adminRestaurantRows').innerHTML=(data||[]).map(x=>`<tr><td>${safeText(x.name)}</td><td>${safeText(x.currency||'')}</td><td>${safeText(x.owner_id||'')}</td><td>${safeText(x.created_at?new Date(x.created_at).toLocaleDateString():'')}</td></tr>`).join('')||'<tr><td colspan="4">No restaurant accounts.</td></tr>';}
   $('refreshAdminRestaurants').addEventListener('click',loadAdminRestaurants);
 
