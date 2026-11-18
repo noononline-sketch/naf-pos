@@ -119,6 +119,10 @@
     .invoice-print .totals{margin:18px 0 0 auto;max-width:300px}.invoice-print .totals div{display:flex;justify-content:space-between;padding:5px 0}
     @media print{body{background:#fff!important;padding:0!important}.invoice-print{padding:0}}
 
+
+
+    .module-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.module-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:15px}.module-card h3{margin:0 0 14px;color:var(--navy);font-size:16px}.module-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.module-field label{display:block;font-size:11px;font-weight:800;color:#526077;margin-bottom:6px}.module-field input,.module-field select,.module-field textarea{width:100%;min-height:40px;border:1px solid #dce2eb;border-radius:8px;padding:8px 10px;font:inherit;font-size:13px;background:#fff}.module-field.full{grid-column:1/-1}.module-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.module-table-wrap{overflow:auto}.module-table{width:100%;border-collapse:collapse;min-width:650px}.module-table th,.module-table td{padding:10px;border-bottom:1px solid var(--line);font-size:12px;text-align:left}.module-table th{color:var(--muted);background:#fafbfc}.module-table td{color:var(--ink)}.module-table button{border:0;border-radius:7px;padding:6px 9px;cursor:pointer;font-weight:750}.module-table .edit{background:#edf0f5;color:var(--navy)}.module-table .del{background:#fff0f0;color:#a52e3b}.module-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}.module-summary .stat{padding:13px}.module-summary .statvalue{font-size:19px}.module-toolbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:12px}.module-toolbar input{height:39px;border:1px solid var(--line);border-radius:8px;padding:0 10px}.module-note{font-size:11px;color:var(--muted);margin-top:7px;line-height:1.5}
+    @media(max-width:650px){.module-grid,.module-form{grid-template-columns:1fr}.module-field.full{grid-column:auto}.module-summary{grid-template-columns:1fr 1fr}}
   </style>
 </head>
 <body>
@@ -289,6 +293,55 @@
           </div>
         </section>
       </section>
+
+      <section id="purchasesPage" class="pagepanel">
+        <div class="module-card"><h3>New Purchase</h3><form id="purchaseForm">
+          <div class="module-form">
+            <div class="module-field"><label>SUPPLIER</label><select id="purchaseSupplier"><option value="">Select supplier (optional)</option></select></div>
+            <div class="module-field"><label>INVOICE NUMBER</label><input id="purchaseInvoice" placeholder="Supplier invoice number"></div>
+            <div class="module-field"><label>PURCHASE DATE</label><input id="purchaseDate" type="date" required></div>
+            <div class="module-field"><label>STATUS</label><select id="purchaseStatus"><option value="received">Received</option><option value="pending">Pending</option></select></div>
+          </div>
+          <div class="module-card" style="padding:12px;margin:14px 0 0;background:#fafbfc"><div class="module-toolbar"><b>Purchase items</b><button class="menu-btn secondary" type="button" id="addPurchaseLine">+ Add item</button></div><div id="purchaseLines"></div></div>
+          <div class="module-actions"><button class="menu-btn" type="submit" id="savePurchaseBtn">SAVE PURCHASE</button></div>
+        </form></div>
+        <div class="module-card"><div class="module-toolbar"><h3 style="margin:0">Purchase History</h3><input id="purchaseSearch" placeholder="Search invoice or supplier"></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>DATE</th><th>INVOICE</th><th>SUPPLIER</th><th>TOTAL</th><th>STATUS</th></tr></thead><tbody id="purchaseRows"></tbody></table></div></div>
+      </section>
+
+      <section id="expensesPage" class="pagepanel">
+        <div class="module-card"><h3 id="expenseFormTitle">Add Expense</h3><form id="expenseForm"><div class="module-form">
+          <div class="module-field"><label>EXPENSE TITLE</label><input id="expenseTitle" required maxlength="120" placeholder="e.g. Electricity bill"></div>
+          <div class="module-field"><label>CATEGORY</label><select id="expenseCategory"><option>Rent</option><option>Utilities</option><option>Salary</option><option>Transport</option><option>Maintenance</option><option>Supplies</option><option>Other</option></select></div>
+          <div class="module-field"><label>AMOUNT (SAR)</label><input id="expenseAmount" type="number" min="0.01" step="0.01" required></div>
+          <div class="module-field"><label>DATE</label><input id="expenseDate" type="date" required></div>
+          <div class="module-field full"><label>DESCRIPTION</label><textarea id="expenseDescription" rows="2"></textarea></div>
+        </div><div class="module-actions"><button class="menu-btn" type="submit" id="saveExpenseBtn">SAVE EXPENSE</button><button class="menu-btn secondary" id="cancelExpenseEdit" type="button" hidden>Cancel</button></div></form></div>
+        <div class="module-card"><div class="module-toolbar"><h3 style="margin:0">Expense History</h3><input id="expenseSearch" placeholder="Search expenses"></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>DATE</th><th>TITLE</th><th>CATEGORY</th><th>AMOUNT</th><th>ACTIONS</th></tr></thead><tbody id="expenseRows"></tbody></table></div></div>
+      </section>
+
+      <section id="salesHistoryPage" class="pagepanel">
+        <div class="module-card"><div class="module-toolbar"><h3 style="margin:0">Invoice History</h3><input id="salesSearch" placeholder="Search invoice number"><label class="module-note">From <input id="salesFrom" type="date"></label><label class="module-note">To <input id="salesTo" type="date"></label><button class="menu-btn secondary" id="salesFilterBtn" type="button">Filter</button><button class="menu-btn secondary" id="salesRefreshBtn" type="button">Refresh</button></div>
+          <div class="module-table-wrap"><table class="module-table"><thead><tr><th>DATE</th><th>INVOICE</th><th>PAYMENT</th><th>STATUS</th><th>TOTAL</th><th>ACTIONS</th></tr></thead><tbody id="salesRows"></tbody></table></div></div>
+      </section>
+
+      <section id="employeesPage" class="pagepanel">
+        <div class="module-card"><h3 id="employeeFormTitle">Add Employee</h3><form id="employeeForm"><div class="module-form">
+          <div class="module-field"><label>FULL NAME</label><input id="employeeName" required maxlength="120"></div><div class="module-field"><label>ROLE</label><select id="employeeRole"><option>Manager</option><option>Cashier</option><option>Chef</option><option>Waiter</option><option>Cleaner</option><option>Other</option></select></div>
+          <div class="module-field"><label>PHONE</label><input id="employeePhone" type="tel"></div><div class="module-field"><label>EMAIL</label><input id="employeeEmail" type="email"></div><div class="module-field"><label>SALARY (SAR)</label><input id="employeeSalary" type="number" min="0" step="0.01" value="0"></div>
+        </div><div class="module-actions"><button class="menu-btn" type="submit" id="saveEmployeeBtn">SAVE EMPLOYEE</button><button class="menu-btn secondary" id="cancelEmployeeEdit" type="button" hidden>Cancel</button></div></form><p class="module-note">Employee records are stored in the restaurant's employees table. This does not automatically create a login account.</p></div>
+        <div class="module-card"><div class="module-toolbar"><h3 style="margin:0">Employee List</h3><input id="employeeSearch" placeholder="Search employees"></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>NAME</th><th>ROLE</th><th>PHONE</th><th>EMAIL</th><th>SALARY</th><th>ACTIONS</th></tr></thead><tbody id="employeeRows"></tbody></table></div></div>
+      </section>
+
+      <section id="budgetPage" class="pagepanel">
+        <div class="module-summary"><article class="stat"><div class="stathead">Total Budget</div><div class="statvalue" id="budgetModuleTotal">SAR 0.00</div></article><article class="stat"><div class="stathead">Spent</div><div class="statvalue" id="budgetModuleSpent">SAR 0.00</div></article><article class="stat"><div class="stathead">Remaining</div><div class="statvalue" id="budgetModuleRemaining">SAR 0.00</div></article></div>
+        <div class="module-card"><h3 id="budgetFormTitle">Set Budget</h3><form id="budgetForm"><div class="module-form"><div class="module-field"><label>BUDGET TITLE</label><input id="budgetTitle" required maxlength="120"></div><div class="module-field"><label>AMOUNT (SAR)</label><input id="budgetAmount" type="number" min="0.01" step="0.01" required></div><div class="module-field"><label>START DATE</label><input id="budgetStart" type="date" required></div><div class="module-field"><label>END DATE</label><input id="budgetEnd" type="date" required></div></div><div class="module-actions"><button class="menu-btn" type="submit" id="saveBudgetBtn">SAVE BUDGET</button><button class="menu-btn secondary" id="cancelBudgetEdit" type="button" hidden>Cancel</button></div></form></div>
+        <div class="module-card"><div class="module-toolbar"><h3 style="margin:0">Budget Reports</h3></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>TITLE</th><th>PERIOD</th><th>BUDGET</th><th>SPENT</th><th>REMAINING</th><th>ACTIONS</th></tr></thead><tbody id="budgetRows"></tbody></table></div></div>
+      </section>
+
+      <section id="settingsPage" class="pagepanel">
+        <div class="module-card"><h3>Restaurant Profile</h3><form id="settingsForm"><div class="module-form"><div class="module-field"><label>RESTAURANT NAME</label><input id="settingsName" required></div><div class="module-field"><label>CURRENCY</label><select id="settingsCurrency"><option value="SAR">SAR – Saudi Riyal</option><option value="ETB">ETB – Ethiopian Birr</option><option value="USD">USD – US Dollar</option><option value="AED">AED – UAE Dirham</option></select></div><div class="module-field"><label>TAX RATE (%)</label><input id="settingsTax" type="number" min="0" max="100" step="0.01"></div><div class="module-field"><label>RESTAURANT LOGO</label><input id="settingsLogo" type="file" accept="image/png,image/jpeg,image/webp"></div></div><div class="module-actions"><button class="menu-btn" type="submit">SAVE SETTINGS</button></div></form><p class="module-note">Profile name and currency are saved to the restaurants table. Logo upload uses the restaurant-logos bucket. Tax rate is stored in this browser until a cloud tax_rate column is added.</p></div>
+        <div class="module-card"><h3>Change Password</h3><form id="passwordForm"><div class="module-form"><div class="module-field"><label>NEW PASSWORD</label><input id="newPassword" type="password" minlength="8" required></div><div class="module-field"><label>CONFIRM PASSWORD</label><input id="confirmPassword" type="password" minlength="8" required></div></div><div class="module-actions"><button class="menu-btn" type="submit">UPDATE PASSWORD</button></div></form></div>
+      </section>
     </main>
   </section>
 
@@ -347,6 +400,8 @@
 
     const rid = restaurant.id;
     const currency = restaurant.currency || "SAR";
+    const savedTax = localStorage.getItem("naf_tax_" + restaurant.id);
+    if (savedTax !== null) $("taxRate").value = savedTax;
     const formatMoney = (value) => currency + " " + Number(value || 0).toLocaleString("en-SA", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
@@ -393,21 +448,28 @@
   function showPage(page) {
     document.querySelectorAll(".pagepanel").forEach(el => el.classList.remove("active"));
     document.querySelectorAll(".navitem[data-page]").forEach(el => el.classList.toggle("active", el.dataset.page === page));
-    const titles = {dashboard:"Dashboard", pos:"POS / New Sale", menu:"Menu"};
-    const target = page === "pos" ? $("posPage") : page === "menu" ? $("menuPage") : $("dashboardPage");
+    const titles = {dashboard:"Dashboard", pos:"POS / New Sale", menu:"Menu", purchases:"Purchases", expenses:"Expenses", "sales-history":"Sales History", employees:"Employees", budget:"Budget", settings:"Settings"};
+    const pageIds = {dashboard:"dashboardPage",pos:"posPage",menu:"menuPage",purchases:"purchasesPage",expenses:"expensesPage","sales-history":"salesHistoryPage",employees:"employeesPage",budget:"budgetPage",settings:"settingsPage"};
+    const target = $(pageIds[page] || "dashboardPage");
     target.classList.add("active");
     $("pageheading").textContent = titles[page] || "Dashboard";
     if (page === "pos") loadMenuItems();
     if (page === "menu") loadMenuManager();
+    if (page === "purchases") loadPurchases();
+    if (page === "expenses") loadExpenses();
+    if (page === "sales-history") loadSalesHistory();
+    if (page === "employees") loadEmployees();
+    if (page === "budget") loadBudget();
+    if (page === "settings") loadSettings();
   }
 
   document.querySelectorAll(".navitem[data-page]").forEach(button => {
     button.addEventListener("click", () => {
       const page = button.dataset.page;
-      if (["dashboard", "pos", "menu"].includes(page)) {
+      if (["dashboard", "pos", "menu", "purchases", "expenses", "sales-history", "employees", "budget", "settings"].includes(page)) {
         $("appNotice").classList.remove("show");
         showPage(page);
-      } else showAppNotice(page.replaceAll("-", " ") + " module is the next development step.");
+      } else showAppNotice("Super Admin module is a separate protected administration step.");
     });
   });
 
@@ -915,6 +977,87 @@
     if (!lastInvoice) { showAppNotice("There is no invoice to print in this session."); return; }
     printInvoice(lastInvoice);
   });
+
+
+  // Shared module helpers. All records are scoped to the signed-in restaurant.
+  const todayISO = () => new Date().toISOString().slice(0,10);
+  const safeText = v => escapeHTML(v == null ? "" : String(v));
+  const moduleError = (label, error) => showAppNotice(label + ": " + (error?.message || error));
+  let editingExpenseId = null, editingEmployeeId = null, editingBudgetId = null;
+  let purchaseLineCount = 0;
+  function addPurchaseLine(name="", qty="1", cost="0") {
+    const id = ++purchaseLineCount;
+    const row = document.createElement("div"); row.className="module-form"; row.style.marginTop="8px"; row.dataset.lineId=id;
+    row.innerHTML = `<div class="module-field"><label>ITEM NAME</label><input class="purchase-item-name" required maxlength="120" value="${safeText(name)}"></div><div class="module-field"><label>QUANTITY</label><input class="purchase-item-qty" type="number" min="0.001" step="0.001" required value="${safeText(qty)}"></div><div class="module-field"><label>UNIT COST (SAR)</label><input class="purchase-item-cost" type="number" min="0" step="0.01" required value="${safeText(cost)}"></div><div class="module-field" style="display:flex;align-items:end"><button class="menu-btn danger remove-purchase-line" type="button">Remove item</button></div>`;
+    row.querySelector(".remove-purchase-line").addEventListener("click",()=>{if($$("#purchaseLines .module-form").length>1)row.remove();});
+    $("purchaseLines").appendChild(row);
+  }
+  function $$(selector){return document.querySelectorAll(selector)}
+  async function loadPurchases(){
+    if(!activeRestaurant)return;
+    $("purchaseDate").value ||= todayISO();
+    const [sup, purchases] = await Promise.all([
+      client.from("suppliers").select("id,name").eq("restaurant_id",activeRestaurant.id).order("name"),
+      client.from("purchases").select("id,supplier_id,invoice_number,total_amount,status,purchase_date,created_at").eq("restaurant_id",activeRestaurant.id).order("purchase_date",{ascending:false}).limit(200)
+    ]);
+    if(sup.error||purchases.error){moduleError("Could not load purchases",sup.error||purchases.error);return;}
+    const sel=$("purchaseSupplier"), old=sel.value;sel.innerHTML='<option value="">Select supplier (optional)</option>';
+    (sup.data||[]).forEach(x=>{const o=document.createElement("option");o.value=x.id;o.textContent=x.name;sel.appendChild(o)});sel.value=old;
+    const names=Object.fromEntries((sup.data||[]).map(x=>[x.id,x.name]));
+    const q=($("purchaseSearch").value||"").toLowerCase();
+    $("purchaseRows").innerHTML=(purchases.data||[]).filter(x=>(x.invoice_number||"").toLowerCase().includes(q)||(names[x.supplier_id]||"").toLowerCase().includes(q)).map(x=>`<tr><td>${safeText(x.purchase_date||"")}</td><td>${safeText(x.invoice_number||"—")}</td><td>${safeText(names[x.supplier_id]||"—")}</td><td>${money(x.total_amount)}</td><td>${safeText(x.status||"")}</td></tr>`).join("")||'<tr><td colspan="5" class="muted-empty">No purchases found.</td></tr>';
+  }
+  $("addPurchaseLine").addEventListener("click",()=>addPurchaseLine());
+  $("purchaseSearch").addEventListener("input",loadPurchases);
+  $("purchaseForm").addEventListener("submit",async e=>{
+    e.preventDefault();if(!activeRestaurant)return;
+    const lines=[...$$("#purchaseLines .module-form")].map(row=>({name:row.querySelector(".purchase-item-name").value.trim(),quantity:Number(row.querySelector(".purchase-item-qty").value),unit_cost:Number(row.querySelector(".purchase-item-cost").value)}));
+    if(!lines.length||lines.some(x=>!x.name||x.quantity<=0||x.unit_cost<0)){showAppNotice("Enter valid purchase items, quantities and costs.");return;}
+    const total=lines.reduce((a,x)=>a+x.quantity*x.unit_cost,0);const btn=$("savePurchaseBtn");btn.disabled=true;
+    try{
+      const payload={restaurant_id:activeRestaurant.id,supplier_id:$("purchaseSupplier").value||null,invoice_number:$("purchaseInvoice").value.trim()||null,total_amount:total,status:$("purchaseStatus").value,purchase_date:$("purchaseDate").value||todayISO()};
+      const {data:purchase,error}=await client.from("purchases").insert(payload).select("id").single();if(error)throw error;
+      const items=lines.map(x=>({purchase_id:purchase.id,item_name:x.name,quantity:x.quantity,unit_cost:x.unit_cost,total_cost:x.quantity*x.unit_cost}));
+      const {error:itemError}=await client.from("purchase_items").insert(items);if(itemError){await client.from("purchases").delete().eq("id",purchase.id).eq("restaurant_id",activeRestaurant.id);throw new Error("Purchase header rolled back because purchase_items insert failed: "+itemError.message);}
+      showAppNotice("Purchase saved successfully.");$("purchaseForm").reset();$("purchaseDate").value=todayISO();$("purchaseLines").innerHTML="";purchaseLineCount=0;addPurchaseLine();await loadPurchases();await refreshDashboardTotals();
+    }catch(err){moduleError("Could not save purchase",err)}finally{btn.disabled=false;}
+  });
+
+  async function loadExpenses(){if(!activeRestaurant)return;$("expenseDate").value||=todayISO();const {data,error}=await client.from("expenses").select("id,title,category,amount,description,expense_date,created_at").eq("restaurant_id",activeRestaurant.id).order("expense_date",{ascending:false}).limit(300);if(error){moduleError("Could not load expenses",error);return;}window.nafExpenses=data||[];renderExpenses();}
+  function renderExpenses(){const q=($("expenseSearch").value||"").toLowerCase();const rows=(window.nafExpenses||[]).filter(x=>(x.title||"").toLowerCase().includes(q)||(x.category||"").toLowerCase().includes(q));$("expenseRows").innerHTML=rows.map(x=>`<tr><td>${safeText(x.expense_date||"")}</td><td>${safeText(x.title)}</td><td>${safeText(x.category||"")}</td><td>${money(x.amount)}</td><td><button class="edit" data-edit-expense="${safeText(x.id)}">Edit</button> <button class="del" data-delete-expense="${safeText(x.id)}">Delete</button></td></tr>`).join("")||'<tr><td colspan="5" class="muted-empty">No expenses recorded.</td></tr>';}
+  $("expenseSearch").addEventListener("input",renderExpenses);
+  $("expenseRows").addEventListener("click",async e=>{const edit=e.target.closest("[data-edit-expense]");const del=e.target.closest("[data-delete-expense]");if(edit){const x=window.nafExpenses.find(r=>r.id===edit.dataset.editExpense);if(!x)return;editingExpenseId=x.id;$("expenseTitle").value=x.title;$("expenseCategory").value=x.category||"Other";$("expenseAmount").value=x.amount;$("expenseDate").value=x.expense_date||todayISO();$("expenseDescription").value=x.description||"";$("expenseFormTitle").textContent="Edit Expense";$("saveExpenseBtn").textContent="UPDATE EXPENSE";$("cancelExpenseEdit").hidden=false;return;}if(del&&confirm("Delete this expense?")){const {error}=await client.from("expenses").delete().eq("id",del.dataset.deleteExpense).eq("restaurant_id",activeRestaurant.id);if(error)moduleError("Could not delete expense",error);else{showAppNotice("Expense deleted.");await loadExpenses();await refreshDashboardTotals();}}});
+  function resetExpense(){editingExpenseId=null;$("expenseForm").reset();$("expenseDate").value=todayISO();$("expenseFormTitle").textContent="Add Expense";$("saveExpenseBtn").textContent="SAVE EXPENSE";$("cancelExpenseEdit").hidden=true;}
+  $("cancelExpenseEdit").addEventListener("click",resetExpense);
+  $("expenseForm").addEventListener("submit",async e=>{e.preventDefault();const payload={restaurant_id:activeRestaurant.id,title:$("expenseTitle").value.trim(),category:$("expenseCategory").value,amount:Number($("expenseAmount").value),description:$("expenseDescription").value.trim()||null,expense_date:$("expenseDate").value||todayISO()};try{const result=editingExpenseId?await client.from("expenses").update(payload).eq("id",editingExpenseId).eq("restaurant_id",activeRestaurant.id):await client.from("expenses").insert(payload);if(result.error)throw result.error;showAppNotice(editingExpenseId?"Expense updated.":"Expense saved.");resetExpense();await loadExpenses();await refreshDashboardTotals();}catch(err){moduleError("Could not save expense",err)}});
+
+  async function loadSalesHistory(){if(!activeRestaurant)return;let query=client.from("sales").select("id,invoice_number,subtotal,discount,tax,total_amount,payment_method,payment_status,order_status,created_at").eq("restaurant_id",activeRestaurant.id).order("created_at",{ascending:false}).limit(500);if($("salesFrom").value)query=query.gte("created_at",$("salesFrom").value+"T00:00:00");if($("salesTo").value)query=query.lte("created_at",$("salesTo").value+"T23:59:59");const {data,error}=await query;if(error){moduleError("Could not load sales history",error);return;}window.nafSales=data||[];renderSalesHistory();}
+  function renderSalesHistory(){const q=($("salesSearch").value||"").toLowerCase();const rows=(window.nafSales||[]).filter(x=>(x.invoice_number||"").toLowerCase().includes(q));$("salesRows").innerHTML=rows.map(x=>`<tr><td>${safeText(new Date(x.created_at).toLocaleString())}</td><td>${safeText(x.invoice_number||"")}</td><td>${safeText(x.payment_method||"")}</td><td>${safeText(x.order_status||x.payment_status||"")}</td><td>${money(x.total_amount)}</td><td><button class="edit" data-view-sale="${safeText(x.id)}">View / Print</button></td></tr>`).join("")||'<tr><td colspan="6" class="muted-empty">No sales found.</td></tr>';}
+  $("salesSearch").addEventListener("input",renderSalesHistory);$("salesFilterBtn").addEventListener("click",loadSalesHistory);$("salesRefreshBtn").addEventListener("click",loadSalesHistory);
+  $("salesRows").addEventListener("click",async e=>{const b=e.target.closest("[data-view-sale]");if(!b)return;const sale=(window.nafSales||[]).find(x=>x.id===b.dataset.viewSale);if(!sale)return;const {data:items,error}=await client.from("sale_items").select("item_name,quantity,unit_price,total_price").eq("sale_id",sale.id);if(error){moduleError("Could not load invoice items",error);return;}const invoice={...sale,tax_rate:sale.subtotal>sale.discount?Math.round((Number(sale.tax||0)/(Number(sale.subtotal||0)-Number(sale.discount||0)))*10000)/100:0,items:items||[]};printInvoice(invoice);});
+
+  async function loadEmployees(){if(!activeRestaurant)return;const {data,error}=await client.from("employees").select("id,name,full_name,role,phone,email,salary,created_at").eq("restaurant_id",activeRestaurant.id).order("created_at",{ascending:false}).limit(300);if(error){moduleError("Could not load employees (check employees table columns)",error);return;}window.nafEmployees=data||[];renderEmployees();}
+  function employeeName(x){return x.full_name||x.name||"";}
+  function renderEmployees(){const q=($("employeeSearch").value||"").toLowerCase();const rows=(window.nafEmployees||[]).filter(x=>employeeName(x).toLowerCase().includes(q)||(x.role||"").toLowerCase().includes(q));$("employeeRows").innerHTML=rows.map(x=>`<tr><td>${safeText(employeeName(x))}</td><td>${safeText(x.role||"")}</td><td>${safeText(x.phone||"")}</td><td>${safeText(x.email||"")}</td><td>${money(x.salary)}</td><td><button class="edit" data-edit-employee="${safeText(x.id)}">Edit</button> <button class="del" data-delete-employee="${safeText(x.id)}">Delete</button></td></tr>`).join("")||'<tr><td colspan="6" class="muted-empty">No employees found.</td></tr>';}
+  $("employeeSearch").addEventListener("input",renderEmployees);
+  $("employeeRows").addEventListener("click",async e=>{const edit=e.target.closest("[data-edit-employee]"),del=e.target.closest("[data-delete-employee]");if(edit){const x=window.nafEmployees.find(r=>r.id===edit.dataset.editEmployee);editingEmployeeId=x.id;$("employeeName").value=employeeName(x);$("employeeRole").value=x.role||"Other";$("employeePhone").value=x.phone||"";$("employeeEmail").value=x.email||"";$("employeeSalary").value=x.salary||0;$("employeeFormTitle").textContent="Edit Employee";$("saveEmployeeBtn").textContent="UPDATE EMPLOYEE";$("cancelEmployeeEdit").hidden=false;return;}if(del&&confirm("Delete this employee record?")){const {error}=await client.from("employees").delete().eq("id",del.dataset.deleteEmployee).eq("restaurant_id",activeRestaurant.id);if(error)moduleError("Could not delete employee",error);else{showAppNotice("Employee deleted.");loadEmployees();}}});
+  function resetEmployee(){editingEmployeeId=null;$("employeeForm").reset();$("employeeSalary").value="0";$("employeeFormTitle").textContent="Add Employee";$("saveEmployeeBtn").textContent="SAVE EMPLOYEE";$("cancelEmployeeEdit").hidden=true;}
+  $("cancelEmployeeEdit").addEventListener("click",resetEmployee);
+  $("employeeForm").addEventListener("submit",async e=>{e.preventDefault();const payload={restaurant_id:activeRestaurant.id,name:$("employeeName").value.trim(),role:$("employeeRole").value,phone:$("employeePhone").value.trim()||null,email:$("employeeEmail").value.trim()||null,salary:Number($("employeeSalary").value||0)};try{const result=editingEmployeeId?await client.from("employees").update(payload).eq("id",editingEmployeeId).eq("restaurant_id",activeRestaurant.id):await client.from("employees").insert(payload);if(result.error)throw result.error;showAppNotice(editingEmployeeId?"Employee updated.":"Employee saved.");resetEmployee();await loadEmployees();}catch(err){moduleError("Could not save employee. Check employee column names",err)}});
+
+  async function loadBudget(){if(!activeRestaurant)return;const {data,error}=await client.from("budgets").select("id,title,amount,spent,start_date,end_date,created_at").eq("restaurant_id",activeRestaurant.id).order("start_date",{ascending:false}).limit(300);if(error){moduleError("Could not load budgets",error);return;}window.nafBudgets=data||[];renderBudget();}
+  function renderBudget(){const rows=window.nafBudgets||[];const total=rows.reduce((a,x)=>a+Number(x.amount||0),0),spent=rows.reduce((a,x)=>a+Number(x.spent||0),0);$("budgetModuleTotal").textContent=money(total);$("budgetModuleSpent").textContent=money(spent);$("budgetModuleRemaining").textContent=money(total-spent);$("budgetRows").innerHTML=rows.map(x=>`<tr><td>${safeText(x.title)}</td><td>${safeText(x.start_date||"")} – ${safeText(x.end_date||"")}</td><td>${money(x.amount)}</td><td>${money(x.spent)}</td><td>${money(Number(x.amount||0)-Number(x.spent||0))}</td><td><button class="edit" data-edit-budget="${safeText(x.id)}">Edit</button> <button class="del" data-delete-budget="${safeText(x.id)}">Delete</button></td></tr>`).join("")||'<tr><td colspan="6" class="muted-empty">No budgets created.</td></tr>';}
+  $("budgetRows").addEventListener("click",async e=>{const edit=e.target.closest("[data-edit-budget]"),del=e.target.closest("[data-delete-budget]");if(edit){const x=window.nafBudgets.find(r=>r.id===edit.dataset.editBudget);editingBudgetId=x.id;$("budgetTitle").value=x.title;$("budgetAmount").value=x.amount;$("budgetStart").value=x.start_date;$("budgetEnd").value=x.end_date;$("budgetFormTitle").textContent="Edit Budget";$("saveBudgetBtn").textContent="UPDATE BUDGET";$("cancelBudgetEdit").hidden=false;return;}if(del&&confirm("Delete this budget?")){const {error}=await client.from("budgets").delete().eq("id",del.dataset.deleteBudget).eq("restaurant_id",activeRestaurant.id);if(error)moduleError("Could not delete budget",error);else{showAppNotice("Budget deleted.");await loadBudget();await refreshDashboardTotals();}}});
+  function resetBudget(){editingBudgetId=null;$("budgetForm").reset();$("budgetFormTitle").textContent="Set Budget";$("saveBudgetBtn").textContent="SAVE BUDGET";$("cancelBudgetEdit").hidden=true;}
+  $("cancelBudgetEdit").addEventListener("click",resetBudget);
+  $("budgetForm").addEventListener("submit",async e=>{e.preventDefault();const start=$("budgetStart").value,end=$("budgetEnd").value;if(end<start){showAppNotice("Budget end date must be on or after start date.");return;}const payload={restaurant_id:activeRestaurant.id,title:$("budgetTitle").value.trim(),amount:Number($("budgetAmount").value),start_date:start,end_date:end};try{const result=editingBudgetId?await client.from("budgets").update(payload).eq("id",editingBudgetId).eq("restaurant_id",activeRestaurant.id):await client.from("budgets").insert(payload);if(result.error)throw result.error;showAppNotice(editingBudgetId?"Budget updated.":"Budget created.");resetBudget();await loadBudget();await refreshDashboardTotals();}catch(err){moduleError("Could not save budget",err)}});
+
+  async function loadSettings(){if(!activeRestaurant)return;$("settingsName").value=activeRestaurant.name||"";$("settingsCurrency").value=activeRestaurant.currency||"SAR";const rate=localStorage.getItem("naf_tax_"+activeRestaurant.id);$("settingsTax").value=rate===null?15:rate;$("taxRate").value=$("settingsTax").value;}
+  $("settingsForm").addEventListener("submit",async e=>{e.preventDefault();const payload={name:$("settingsName").value.trim(),currency:$("settingsCurrency").value};try{const {error}=await client.from("restaurants").update(payload).eq("id",activeRestaurant.id);if(error)throw error;activeRestaurant={...activeRestaurant,...payload};const file=$("settingsLogo").files[0];if(file){if(!["image/png","image/jpeg","image/webp"].includes(file.type)||file.size>2*1024*1024)throw new Error("Logo must be PNG, JPG or WEBP and under 2 MB.");const ext=file.name.split(".").pop().toLowerCase();const path=`${activeRestaurant.id}/logo.${ext}`;const up=await client.storage.from("restaurant-logos").upload(path,file,{upsert:true,contentType:file.type});if(up.error)throw up.error;const url=client.storage.from("restaurant-logos").getPublicUrl(path).data.publicUrl;const upd=await client.from("restaurants").update({logo_url:url}).eq("id",activeRestaurant.id);if(upd.error)throw upd.error;activeRestaurant.logo_url=url;}localStorage.setItem("naf_tax_"+activeRestaurant.id,String(Math.min(100,Math.max(0,Number($("settingsTax").value||0)))));$("taxRate").value=$("settingsTax").value;showAppNotice("Restaurant profile saved. Tax rate saved in this browser; add a cloud tax_rate column to sync it across devices.");await openDashboard((await client.auth.getUser()).data.user);}catch(err){moduleError("Could not save settings",err)}});
+  $("passwordForm").addEventListener("submit",async e=>{e.preventDefault();const a=$("newPassword").value,b=$("confirmPassword").value;if(a.length<8||a!==b){showAppNotice("Passwords must match and contain at least 8 characters.");return;}const {error}=await client.auth.updateUser({password:a});if(error)moduleError("Could not update password",error);else{showAppNotice("Password updated successfully.");$("passwordForm").reset();}});
+  async function refreshDashboardTotals(){const {data,error}=await client.auth.getUser();if(error||!data.user)return;await openDashboard(data.user);}
+  // Default purchase line, date fields and current tax preference.
+  $("purchaseDate").value=todayISO();$("expenseDate").value=todayISO();$("budgetStart").value=todayISO();$("budgetEnd").value=todayISO();addPurchaseLine();
 
   $("logoutBtn").addEventListener("click", async () => {
     const { error } = await client.auth.signOut();
