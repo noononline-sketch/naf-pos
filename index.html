@@ -81,6 +81,44 @@
     @media(max-width:900px){.poslayout{grid-template-columns:1fr}.product-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
     @media(max-width:520px){.product-grid{grid-template-columns:1fr 1fr}.posbox{padding:13px}}
 
+
+    /* Menu management */
+    .menu-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+    .menu-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px}
+    .menu-card h3{margin:0 0 14px;color:var(--navy);font-size:16px}
+    .menu-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .menu-field label{display:block;font-size:12px;font-weight:750;color:#4d5a6e;margin-bottom:6px}
+    .menu-field input,.menu-field select,.menu-field textarea{width:100%;min-height:41px;border:1px solid #dce2eb;border-radius:9px;padding:9px 11px;font:inherit;font-size:13px;background:#fff}
+    .menu-field textarea{min-height:72px;resize:vertical}
+    .menu-field.full{grid-column:1/-1}
+    .menu-check{display:flex;align-items:center;gap:8px;font-size:13px;color:#4d5a6e;margin-top:10px}
+    .menu-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}
+    .menu-btn{border:0;border-radius:9px;padding:10px 14px;background:var(--gold);color:var(--navy);font-weight:800;cursor:pointer}
+    .menu-btn.secondary{background:#edf0f5;color:#344258}
+    .menu-btn.danger{background:#fff0f0;color:#a52e3b}
+    .menu-table-wrap{overflow:auto}
+    .menu-table{width:100%;border-collapse:collapse;min-width:650px}
+    .menu-table th,.menu-table td{padding:11px 10px;border-bottom:1px solid var(--line);text-align:left;font-size:12px}
+    .menu-table th{color:var(--muted);font-weight:800;background:#fafbfc}
+    .menu-table td{color:var(--ink)}
+    .menu-status{display:inline-block;padding:4px 8px;border-radius:20px;background:#eaf8f0;color:#176b46;font-size:11px;font-weight:800}
+    .menu-status.off{background:#fff0f0;color:#a52e3b}
+    .category-list{display:flex;gap:8px;flex-wrap:wrap}
+    .category-pill{display:flex;align-items:center;gap:8px;background:#f4f6fa;border:1px solid var(--line);padding:7px 9px;border-radius:9px;font-size:12px}
+    .category-pill button{border:0;background:transparent;color:#a52e3b;cursor:pointer;font-weight:800}
+    @media(max-width:600px){.menu-form-grid{grid-template-columns:1fr}.menu-field.full{grid-column:auto}}
+
+
+    .menu-category-edit{border:0;background:#eaf0f8;color:var(--navy);border-radius:7px;padding:5px 8px;font-weight:750;cursor:pointer}
+    .menu-category-delete{border:0;background:#fff0f0;color:#a52e3b;border-radius:7px;padding:5px 8px;font-weight:750;cursor:pointer}
+    .category-pill{gap:7px}.menu-category-actions{display:flex;gap:5px;margin-left:5px}
+    .product-card img{width:100%;height:100px;object-fit:cover;border-radius:9px;margin-bottom:8px;background:#f1f3f7}
+    .invoice-print{font-family:Arial,sans-serif;color:#111;padding:24px;max-width:760px;margin:auto}
+    .invoice-print h1{font-size:24px;margin:0 0 5px}.invoice-print .meta{color:#555;font-size:12px;margin-bottom:18px}
+    .invoice-print table{width:100%;border-collapse:collapse;margin-top:16px}.invoice-print th,.invoice-print td{border-bottom:1px solid #ddd;padding:9px;text-align:left;font-size:13px}
+    .invoice-print .totals{margin:18px 0 0 auto;max-width:300px}.invoice-print .totals div{display:flex;justify-content:space-between;padding:5px 0}
+    @media print{body{background:#fff!important;padding:0!important}.invoice-print{padding:0}}
+
   </style>
 </head>
 <body>
@@ -190,6 +228,7 @@
             <div id="posCart" class="cart-list"><div class="muted-empty">Choose menu items to start an order.</div></div>
             <div class="cart-total"><span>Subtotal</span><b id="cartSubtotal">SAR 0.00</b></div>
             <div class="cart-total"><label for="cartDiscount">Discount (SAR)</label><input id="cartDiscount" type="number" min="0" step="0.01" value="0" style="width:100px;border:1px solid var(--line);border-radius:7px;padding:6px"></div>
+            <div class="cart-total"><label for="taxRate">Tax rate (%)</label><input id="taxRate" type="number" min="0" max="100" step="0.01" value="15" style="width:100px;border:1px solid var(--line);border-radius:7px;padding:6px"></div>
             <div class="cart-total"><span>Tax</span><b id="cartTax">SAR 0.00</b></div>
             <div class="cart-total grand"><span>Total</span><b id="cartTotal">SAR 0.00</b></div>
             <label style="display:block;font-size:12px;font-weight:750;margin-top:12px" for="paymentMethod">Payment method</label>
@@ -197,14 +236,63 @@
               <option value="cash">Cash</option><option value="card">Card</option><option value="transfer">Transfer</option>
             </select>
             <button class="pos-action" id="completeSale" type="button">COMPLETE SALE</button>
-            <p class="smallnote">Order totals are calculated in this screen. Sale saving will be connected after confirming your sale_items table columns.</p>
+            <button class="menu-btn secondary" id="printLastInvoiceBtn" type="button" style="width:100%;margin-top:8px" disabled>PRINT LAST INVOICE</button>
+            <p class="smallnote">Tax is editable. Completed sales are saved to Supabase and an invoice can be printed.</p>
           </aside>
         </div>
+      </section>
+
+      <section id="menuPage" class="pagepanel">
+        <div class="menu-toolbar">
+          <div><div class="eyebrow">Restaurant menu</div><p class="sub" style="margin:5px 0 0">Create categories and manage the food and drink items shown on the POS screen.</p></div>
+          <button class="menu-btn secondary" id="refreshMenuBtn" type="button">↻ Refresh menu</button>
+        </div>
+
+        <section class="menu-card">
+          <h3>Menu Categories</h3>
+          <form id="categoryForm">
+            <div class="menu-form-grid">
+              <div class="menu-field"><label for="categoryName">CATEGORY NAME</label><input id="categoryName" maxlength="80" placeholder="e.g. Drinks, Main Course" required></div>
+            </div>
+            <div class="menu-actions"><button class="menu-btn" type="submit">ADD CATEGORY</button></div>
+          </form>
+          <div id="menuCategoriesList" class="category-list" style="margin-top:14px"><span class="smallnote">Loading categories…</span></div>
+        </section>
+
+        <section class="menu-card">
+          <h3 id="menuItemFormTitle">Add Menu Item</h3>
+          <form id="menuItemForm">
+            <div class="menu-form-grid">
+              <div class="menu-field"><label for="menuItemName">ITEM NAME</label><input id="menuItemName" maxlength="120" placeholder="e.g. Chicken Burger" required></div>
+              <div class="menu-field"><label for="menuItemCategory">CATEGORY</label><select id="menuItemCategory"><option value="">Select category</option></select></div>
+              <div class="menu-field"><label for="menuItemPrice">SELLING PRICE (SAR)</label><input id="menuItemPrice" type="number" min="0" step="0.01" placeholder="0.00" required></div>
+              <div class="menu-field"><label for="menuItemCost">COST PRICE (SAR)</label><input id="menuItemCost" type="number" min="0" step="0.01" placeholder="0.00"></div>
+              <div class="menu-field full"><label for="menuItemDescription">DESCRIPTION</label><textarea id="menuItemDescription" maxlength="500" placeholder="Describe this menu item (optional)"></textarea></div>
+              <div class="menu-field full"><label for="menuItemImageFile">UPLOAD MENU IMAGE</label><input id="menuItemImageFile" type="file" accept="image/png,image/jpeg,image/webp"><div class="smallnote">PNG, JPG or WEBP. Maximum 5 MB. Uploads to Supabase Storage bucket: menu-images.</div><img id="menuImagePreview" alt="Menu item preview" style="display:none;max-width:130px;max-height:100px;object-fit:cover;border-radius:10px;margin-top:8px"></div>
+              <div class="menu-field full"><label for="menuItemImage">IMAGE URL (OPTIONAL)</label><input id="menuItemImage" type="url" placeholder="Image URL appears here after upload"></div>
+            </div>
+            <label class="menu-check"><input id="menuItemAvailable" type="checkbox" checked> Available for sale on POS</label>
+            <div class="menu-actions">
+              <button class="menu-btn" id="saveMenuItemBtn" type="submit">SAVE MENU ITEM</button>
+              <button class="menu-btn secondary" id="cancelMenuEditBtn" type="button" hidden>Cancel edit</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="menu-card">
+          <div class="menu-toolbar"><h3 style="margin:0">Menu Items</h3><input id="menuManagerSearch" type="search" placeholder="Search menu items…" style="height:39px;border:1px solid var(--line);border-radius:9px;padding:0 11px;min-width:190px"></div>
+          <div class="menu-table-wrap">
+            <table class="menu-table">
+              <thead><tr><th>ITEM</th><th>CATEGORY</th><th>SELLING PRICE</th><th>COST PRICE</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
+              <tbody id="menuItemsTable"><tr><td colspan="6" class="muted-empty">Loading menu items…</td></tr></tbody>
+            </table>
+          </div>
+        </section>
       </section>
     </main>
   </section>
 
-<script>
+ <script>
 (() => {
   const SUPABASE_URL = "https://ymdvlkbzrzcmshnvjspk.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_TXD6VPmdBNzHeWS-LEsndg_fmFWyP5Q";
@@ -215,7 +303,11 @@
   let selectedLogo = null;
   let activeRestaurant = null;
   let menuItemsCache = [];
+  let menuCategoriesCache = [];
+  let editingMenuItemId = null;
+  let selectedMenuImage = null;
   let cart = [];
+  let lastInvoice = null;
 
   function showAppNotice(message) {
     const el = $("appNotice");
@@ -301,21 +393,21 @@
   function showPage(page) {
     document.querySelectorAll(".pagepanel").forEach(el => el.classList.remove("active"));
     document.querySelectorAll(".navitem[data-page]").forEach(el => el.classList.toggle("active", el.dataset.page === page));
-    if (page === "pos") {
-      $("posPage").classList.add("active");
-      $("pageheading")?.replaceChildren(document.createTextNode("POS / New Sale"));
-      loadMenuItems();
-    } else {
-      $("dashboardPage").classList.add("active");
-      document.querySelector(".pageheading").textContent = "Dashboard";
-    }
+    const titles = {dashboard:"Dashboard", pos:"POS / New Sale", menu:"Menu"};
+    const target = page === "pos" ? $("posPage") : page === "menu" ? $("menuPage") : $("dashboardPage");
+    target.classList.add("active");
+    $("pageheading").textContent = titles[page] || "Dashboard";
+    if (page === "pos") loadMenuItems();
+    if (page === "menu") loadMenuManager();
   }
 
   document.querySelectorAll(".navitem[data-page]").forEach(button => {
     button.addEventListener("click", () => {
       const page = button.dataset.page;
-      if (page === "dashboard" || page === "pos") showPage(page);
-      else showAppNotice(page.replaceAll("-", " ") + " module is the next development step.");
+      if (["dashboard", "pos", "menu"].includes(page)) {
+        $("appNotice").classList.remove("show");
+        showPage(page);
+      } else showAppNotice(page.replaceAll("-", " ") + " module is the next development step.");
     });
   });
 
@@ -326,8 +418,281 @@
     return Number(item.price ?? item.selling_price ?? item.unit_price ?? item.amount ?? 0);
   }
   function itemCategory(item) {
-    return item.category_name || item.category || item.category_id || "Other";
+    const category = menuCategoriesCache.find(row => row.id === item.category_id);
+    return item.category_name || item.category || category?.name || "Other";
   }
+
+  function escapeHTML(value) {
+    return String(value ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+  }
+
+  function resetMenuItemForm() {
+    editingMenuItemId = null;
+    $("menuItemForm").reset();
+    $("menuItemAvailable").checked = true;
+    selectedMenuImage = null;
+    $("menuItemImageFile").value = "";
+    $("menuImagePreview").style.display = "none";
+    $("menuItemFormTitle").textContent = "Add Menu Item";
+    $("saveMenuItemBtn").textContent = "SAVE MENU ITEM";
+    $("cancelMenuEditBtn").hidden = true;
+  }
+
+  async function loadMenuManager() {
+    if (!activeRestaurant) return;
+    $("menuCategoriesList").textContent = "Loading categories…";
+    $("menuItemsTable").innerHTML = '<tr><td colspan="6" class="muted-empty">Loading menu items…</td></tr>';
+    const rid = activeRestaurant.id;
+    const [categoriesRes, itemsRes] = await Promise.all([
+      client.from("menu_categories").select("id,restaurant_id,name,created_at").eq("restaurant_id", rid).order("name"),
+      client.from("menu_items").select("*").eq("restaurant_id", rid).order("name")
+    ]);
+    if (categoriesRes.error || itemsRes.error) {
+      const err = categoriesRes.error || itemsRes.error;
+      showAppNotice("Could not load menu data: " + err.message);
+      $("menuCategoriesList").textContent = "Could not load categories.";
+      $("menuItemsTable").innerHTML = '<tr><td colspan="6" class="muted-empty">Could not load menu items.</td></tr>';
+      return;
+    }
+    menuCategoriesCache = categoriesRes.data || [];
+    menuItemsCache = itemsRes.data || [];
+    renderMenuCategories();
+    renderMenuCategorySelect();
+    renderMenuItemsTable();
+  }
+
+  function renderMenuCategories() {
+    const host = $("menuCategoriesList");
+    host.innerHTML = "";
+    if (!menuCategoriesCache.length) {
+      host.textContent = "No categories yet. Add a category above.";
+      return;
+    }
+    menuCategoriesCache.forEach(category => {
+      const pill = document.createElement("span");
+      pill.className = "category-pill";
+      const name = document.createElement("b");
+      name.textContent = category.name;
+      const actions = document.createElement("span");
+      actions.className = "menu-category-actions";
+      const edit = document.createElement("button");
+      edit.type = "button"; edit.className = "menu-category-edit"; edit.textContent = "Edit";
+      edit.addEventListener("click", () => editMenuCategory(category));
+      const remove = document.createElement("button");
+      remove.type = "button"; remove.className = "menu-category-delete"; remove.textContent = "×";
+      remove.title = "Delete category";
+      remove.addEventListener("click", () => deleteMenuCategory(category));
+      actions.append(edit, remove);
+      pill.append(name, actions);
+      host.appendChild(pill);
+    });
+  }
+
+  async function editMenuCategory(category) {
+    const nextName = window.prompt("Edit category name:", category.name);
+    if (nextName === null) return;
+    const name = nextName.trim();
+    if (!name) { showAppNotice("Category name cannot be empty."); return; }
+    if (menuCategoriesCache.some(row => row.id !== category.id && row.name.toLowerCase() === name.toLowerCase())) {
+      showAppNotice("That category already exists."); return;
+    }
+    const { error } = await client.from("menu_categories").update({name})
+      .eq("id", category.id).eq("restaurant_id", activeRestaurant.id);
+    if (error) { showAppNotice("Could not update category: " + error.message); return; }
+    showAppNotice("Category updated successfully.");
+    await loadMenuManager();
+    await loadMenuItems();
+  }
+
+  function renderMenuCategorySelect() {
+    const select = $("menuItemCategory");
+    const current = select.value;
+    select.innerHTML = '<option value="">Select category</option>';
+    menuCategoriesCache.forEach(category => {
+      const option = document.createElement("option");
+      option.value = category.id;
+      option.textContent = category.name;
+      select.appendChild(option);
+    });
+    if (menuCategoriesCache.some(row => row.id === current)) select.value = current;
+  }
+
+  function renderMenuItemsTable() {
+    const host = $("menuItemsTable");
+    const query = ($("menuManagerSearch").value || "").trim().toLowerCase();
+    const rows = menuItemsCache.filter(item =>
+      itemName(item).toLowerCase().includes(query) ||
+      itemCategory(item).toLowerCase().includes(query)
+    );
+    host.innerHTML = "";
+    if (!rows.length) {
+      host.innerHTML = '<tr><td colspan="6" class="muted-empty">No menu items found. Add your first item above.</td></tr>';
+      return;
+    }
+    rows.forEach(item => {
+      const tr = document.createElement("tr");
+      const values = [
+        itemName(item),
+        itemCategory(item),
+        money(itemPrice(item)),
+        money(item.cost_price || 0)
+      ];
+      values.forEach(value => {
+        const td = document.createElement("td");
+        td.textContent = value;
+        tr.appendChild(td);
+      });
+      const status = document.createElement("td");
+      const active = item.available !== false && item.is_available !== false;
+      status.innerHTML = active ? '<span class="menu-status">Available</span>' : '<span class="menu-status off">Unavailable</span>';
+      tr.appendChild(status);
+      const actions = document.createElement("td");
+      const edit = document.createElement("button");
+      edit.type = "button"; edit.className = "menu-btn secondary"; edit.textContent = "Edit";
+      edit.addEventListener("click", () => editMenuItem(item));
+      const del = document.createElement("button");
+      del.type = "button"; del.className = "menu-btn danger"; del.textContent = "Delete";
+      del.style.marginLeft = "6px";
+      del.addEventListener("click", () => deleteMenuItem(item));
+      actions.append(edit, del);
+      tr.appendChild(actions);
+      host.appendChild(tr);
+    });
+  }
+
+  function editMenuItem(item) {
+    editingMenuItemId = item.id;
+    $("menuItemName").value = item.name || "";
+    $("menuItemCategory").value = item.category_id || "";
+    $("menuItemDescription").value = item.description || "";
+    $("menuItemPrice").value = item.price ?? "";
+    $("menuItemCost").value = item.cost_price ?? "";
+    $("menuItemImage").value = item.image_url || "";
+    $("menuItemAvailable").checked = item.available !== false && item.is_available !== false;
+    $("menuItemFormTitle").textContent = "Edit Menu Item";
+    $("saveMenuItemBtn").textContent = "UPDATE MENU ITEM";
+    $("cancelMenuEditBtn").hidden = false;
+    $("menuItemFormTitle").scrollIntoView({behavior:"smooth",block:"center"});
+  }
+
+  async function deleteMenuItem(item) {
+    if (!window.confirm('Delete "' + itemName(item) + '" from this restaurant menu?')) return;
+    const { error } = await client.from("menu_items").delete()
+      .eq("id", item.id).eq("restaurant_id", activeRestaurant.id);
+    if (error) { showAppNotice("Could not delete menu item: " + error.message); return; }
+    if (editingMenuItemId === item.id) resetMenuItemForm();
+    showAppNotice("Menu item deleted.");
+    await loadMenuManager();
+  }
+
+  async function deleteMenuCategory(category) {
+    if (!window.confirm('Delete category "' + category.name + '"? It may fail if menu items still use it.')) return;
+    const { error } = await client.from("menu_categories").delete()
+      .eq("id", category.id).eq("restaurant_id", activeRestaurant.id);
+    if (error) { showAppNotice("Could not delete category: " + error.message); return; }
+    showAppNotice("Category deleted.");
+    await loadMenuManager();
+  }
+
+  $("categoryForm").addEventListener("submit", async event => {
+    event.preventDefault();
+    const name = $("categoryName").value.trim();
+    if (!name || !activeRestaurant) return;
+    const duplicate = menuCategoriesCache.some(row => row.name.toLowerCase() === name.toLowerCase());
+    if (duplicate) { showAppNotice("That category already exists."); return; }
+    const { error } = await client.from("menu_categories").insert({
+      restaurant_id: activeRestaurant.id, name
+    });
+    if (error) { showAppNotice("Could not add category: " + error.message); return; }
+    $("categoryForm").reset();
+    showAppNotice("Category added successfully.");
+    await loadMenuManager();
+  });
+
+  $("menuItemImageFile").addEventListener("change", event => {
+    const file = event.target.files?.[0] || null;
+    selectedMenuImage = file;
+    if (!file) return;
+    if (!["image/png","image/jpeg","image/webp"].includes(file.type) || file.size > 5 * 1024 * 1024) {
+      selectedMenuImage = null;
+      event.target.value = "";
+      showAppNotice("Choose a PNG, JPG or WEBP image smaller than 5 MB.");
+      return;
+    }
+    $("menuImagePreview").src = URL.createObjectURL(file);
+    $("menuImagePreview").style.display = "block";
+  });
+
+  async function uploadMenuImage(file, itemId) {
+    const ext = file.name.split(".").pop().toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+    const objectPath = `${activeRestaurant.id}/${itemId}/${Date.now()}.${ext}`;
+    const { error } = await client.storage.from("menu-images").upload(objectPath, file, {
+      upsert: true, contentType: file.type
+    });
+    if (error) {
+      throw new Error("Image upload failed. Check that the Supabase Storage bucket 'menu-images' exists and its upload policies allow this restaurant. " + error.message);
+    }
+    const { data } = client.storage.from("menu-images").getPublicUrl(objectPath);
+    return data.publicUrl;
+  }
+
+  $("menuItemForm").addEventListener("submit", async event => {
+    event.preventDefault();
+    if (!activeRestaurant) return;
+    const name = $("menuItemName").value.trim();
+    const price = Number($("menuItemPrice").value);
+    const costValue = $("menuItemCost").value.trim();
+    if (!name || !Number.isFinite(price) || price < 0) {
+      showAppNotice("Enter a valid item name and selling price."); return;
+    }
+    const costPrice = costValue === "" ? 0 : Number(costValue);
+    if (!Number.isFinite(costPrice) || costPrice < 0) {
+      showAppNotice("Enter a valid cost price."); return;
+    }
+    const payload = {
+      restaurant_id: activeRestaurant.id,
+      category_id: $("menuItemCategory").value || null,
+      name,
+      description: $("menuItemDescription").value.trim() || null,
+      price,
+      cost_price: costPrice,
+      image_url: $("menuItemImage").value.trim() || null,
+      available: $("menuItemAvailable").checked
+    };
+    let itemId = editingMenuItemId;
+    let result;
+    if (editingMenuItemId) {
+      result = await client.from("menu_items").update(payload)
+        .eq("id", editingMenuItemId).eq("restaurant_id", activeRestaurant.id).select("id").single();
+      if (result.error) { showAppNotice("Could not update menu item: " + result.error.message); return; }
+      itemId = result.data.id;
+    } else {
+      result = await client.from("menu_items").insert(payload).select("id").single();
+      if (result.error) { showAppNotice("Could not add menu item: " + result.error.message); return; }
+      itemId = result.data.id;
+    }
+
+    if (selectedMenuImage) {
+      try {
+        const imageUrl = await uploadMenuImage(selectedMenuImage, itemId);
+        const { error: imageUpdateError } = await client.from("menu_items").update({image_url:imageUrl})
+          .eq("id", itemId).eq("restaurant_id", activeRestaurant.id);
+        if (imageUpdateError) throw imageUpdateError;
+      } catch (error) {
+        showAppNotice(error.message || "Menu image could not be saved.");
+        return;
+      }
+    }
+    showAppNotice(editingMenuItemId ? "Menu item updated successfully." : "Menu item added successfully.");
+    resetMenuItemForm();
+    await loadMenuManager();
+    await loadMenuItems();
+  });
+
+  $("cancelMenuEditBtn").addEventListener("click", resetMenuItemForm);
+  $("refreshMenuBtn").addEventListener("click", loadMenuManager);
+  $("menuManagerSearch").addEventListener("input", renderMenuItemsTable);
+
   function renderProducts() {
     const query = ($("posSearch").value || "").trim().toLowerCase();
     const category = $("posCategory").value;
@@ -344,6 +709,11 @@
       const card = document.createElement("button");
       card.type = "button";
       card.className = "product-card";
+      if (item.image_url) {
+        const image = document.createElement("img");
+        image.src = item.image_url; image.alt = itemName(item); image.loading = "lazy";
+        card.appendChild(image);
+      }
       const name = document.createElement("b"); name.textContent = itemName(item);
       const cat = document.createElement("small"); cat.textContent = String(itemCategory(item));
       const price = document.createElement("strong"); price.textContent = money(itemPrice(item));
@@ -355,11 +725,17 @@
   async function loadMenuItems() {
     if (!activeRestaurant) return;
     $("posProducts").innerHTML = '<div class="muted-empty">Loading menu items...</div>';
-    const { data, error } = await client.from("menu_items").select("*").eq("restaurant_id", activeRestaurant.id);
+    const [categoriesRes, itemsRes] = await Promise.all([
+      client.from("menu_categories").select("id,name").eq("restaurant_id", activeRestaurant.id),
+      client.from("menu_items").select("*").eq("restaurant_id", activeRestaurant.id)
+    ]);
+    const error = categoriesRes.error || itemsRes.error;
+    const data = itemsRes.data;
     if (error) {
       $("posProducts").innerHTML = '<div class="muted-empty">Could not load menu items: ' + error.message.replace(/[<>&"]/g, "") + '</div>';
       return;
     }
+    menuCategoriesCache = categoriesRes.data || [];
     menuItemsCache = (data || []).filter(item => item.is_available !== false && item.available !== false);
     const categories = [...new Set(menuItemsCache.map(itemCategory).map(String))];
     $("posCategory").innerHTML = '<option value="">All categories</option>';
@@ -405,20 +781,139 @@
       controls.append(minus, qty, plus); line.append(details, controls); $("posCart").appendChild(line);
     });
     const subtotal = cart.reduce((sum,row) => sum + row.price * row.quantity, 0);
-    const discount = Math.max(0, Number($("cartDiscount").value || 0));
-    const tax = 0;
-    const total = Math.max(0, subtotal - discount + tax);
+    const discount = Math.min(subtotal, Math.max(0, Number($("cartDiscount").value || 0)));
+    const taxRate = Math.min(100, Math.max(0, Number($("taxRate").value || 0)));
+    const taxableAmount = Math.max(0, subtotal - discount);
+    const tax = Math.round(taxableAmount * taxRate) / 100;
+    const total = taxableAmount + tax;
     $("cartSubtotal").textContent = money(subtotal);
-    $("cartTax").textContent = money(tax);
+    $("cartTax").textContent = money(tax) + " (" + taxRate + "%)";
     $("cartTotal").textContent = money(total);
   }
   $("posSearch").addEventListener("input", renderProducts);
   $("posCategory").addEventListener("change", renderProducts);
   $("cartDiscount").addEventListener("input", renderCart);
+  $("taxRate").addEventListener("input", renderCart);
   $("clearCart").addEventListener("click", () => { cart = []; renderCart(); });
-  $("completeSale").addEventListener("click", () => {
+  function currentCartTotals() {
+    const subtotal = cart.reduce((sum,row) => sum + row.price * row.quantity, 0);
+    const discount = Math.min(subtotal, Math.max(0, Number($("cartDiscount").value || 0)));
+    const taxRate = Math.min(100, Math.max(0, Number($("taxRate").value || 0)));
+    const tax = Math.round(Math.max(0, subtotal - discount) * taxRate) / 100;
+    return {subtotal, discount, taxRate, tax, total: Math.max(0, subtotal - discount + tax)};
+  }
+
+  function createInvoiceNumber() {
+    const date = new Date();
+    const stamp = date.getFullYear().toString() +
+      String(date.getMonth()+1).padStart(2,"0") +
+      String(date.getDate()).padStart(2,"0");
+    return `NAF-${stamp}-${Math.random().toString(36).slice(2,8).toUpperCase()}`;
+  }
+
+  function printInvoice(invoice) {
+    const printWindow = window.open("", "_blank", "width=800,height=900");
+    if (!printWindow) {
+      showAppNotice("Sale saved, but the invoice window was blocked. Allow pop-ups to print the receipt.");
+      return;
+    }
+    const rows = invoice.items.map(item =>
+      `<tr><td>${escapeHTML(item.item_name)}</td><td>${item.quantity}</td><td>${money(item.unit_price)}</td><td>${money(item.total_price)}</td></tr>`
+    ).join("");
+    printWindow.onload = () => printWindow.print();
+    printWindow.document.write(`<!doctype html><html><head><title>${escapeHTML(invoice.invoice_number)}</title>
+      <meta charset="utf-8"><style>body{font-family:Arial,sans-serif;color:#111;padding:28px}.wrap{max-width:720px;margin:auto}
+      h1{margin:0 0 4px}.muted{color:#666;font-size:12px}.brand{border-bottom:2px solid #222;padding-bottom:14px}
+      table{width:100%;border-collapse:collapse;margin-top:22px}th,td{padding:10px 7px;border-bottom:1px solid #ddd;text-align:left;font-size:13px}
+      .totals{margin:18px 0 0 auto;max-width:290px}.totals div{display:flex;justify-content:space-between;padding:5px 0}
+      .grand{font-size:18px;font-weight:bold;border-top:2px solid #222;margin-top:7px;padding-top:10px}
+      .thanks{text-align:center;margin-top:35px;font-size:13px}</style></head><body><div class="wrap">
+      <div class="brand"><h1>${escapeHTML(activeRestaurant?.name || "NAF POS")}</h1><div class="muted">SALES INVOICE / RECEIPT</div>
+      <div class="muted">Invoice: ${escapeHTML(invoice.invoice_number)} · ${escapeHTML(new Date(invoice.created_at).toLocaleString())}</div></div>
+      <table><thead><tr><th>Item</th><th>Qty</th><th>Unit price</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table>
+      <div class="totals"><div><span>Subtotal</span><b>${money(invoice.subtotal)}</b></div>
+      <div><span>Discount</span><b>${money(invoice.discount)}</b></div>
+      <div><span>Tax (${invoice.tax_rate}%)</span><b>${money(invoice.tax)}</b></div>
+      <div class="grand"><span>Total</span><b>${money(invoice.total_amount)}</b></div>
+      <div><span>Payment</span><b>${escapeHTML(invoice.payment_method)}</b></div></div>
+      <div class="thanks">Thank you for visiting!</div></div></body></html>`);
+    printWindow.document.close();
+  }
+
+  $("completeSale").addEventListener("click", async () => {
     if (!cart.length) { showAppNotice("Add at least one menu item before completing a sale."); return; }
-    showAppNotice("The order is ready. To safely connect saving and receipt printing, please share a screenshot of the sale_items table columns in Supabase.");
+    if (!activeRestaurant) { showAppNotice("Restaurant session is not ready. Please sign in again."); return; }
+    const popup = window.open("", "_blank", "width=800,height=900");
+    const button = $("completeSale");
+    button.disabled = true; button.textContent = "SAVING SALE...";
+    try {
+      const totals = currentCartTotals();
+      const invoiceNumber = createInvoiceNumber();
+      const salePayload = {
+        restaurant_id: activeRestaurant.id,
+        invoice_number: invoiceNumber,
+        subtotal: totals.subtotal,
+        discount: totals.discount,
+        tax: totals.tax,
+        total_amount: totals.total,
+        payment_method: $("paymentMethod").value,
+        payment_status: "paid",
+        order_status: "completed"
+      };
+      const { data: sale, error: saleError } = await client.from("sales")
+        .insert(salePayload).select("id,invoice_number,created_at").single();
+      if (saleError) throw new Error("Could not save sale: " + saleError.message);
+
+      const saleItems = cart.map(item => ({
+        sale_id: sale.id,
+        menu_item_id: item.id,
+        item_name: item.name,
+        quantity: item.quantity,
+        unit_price: item.price,
+        total_price: item.price * item.quantity
+      }));
+      const { error: itemsError } = await client.from("sale_items").insert(saleItems);
+      if (itemsError) {
+        await client.from("sales").delete().eq("id", sale.id).eq("restaurant_id", activeRestaurant.id);
+        throw new Error("Sale items could not be saved; the sale header was rolled back. " + itemsError.message);
+      }
+
+      lastInvoice = {
+        invoice_number: sale.invoice_number || invoiceNumber,
+        created_at: sale.created_at || new Date().toISOString(),
+        subtotal: totals.subtotal, discount: totals.discount, tax: totals.tax,
+        tax_rate: totals.taxRate, total_amount: totals.total,
+        payment_method: salePayload.payment_method,
+        items: saleItems
+      };
+      $("printLastInvoiceBtn").disabled = false;
+      cart = [];
+      $("cartDiscount").value = "0";
+      renderCart();
+      showAppNotice("Sale completed and saved. Invoice " + lastInvoice.invoice_number + " is ready to print.");
+      if (popup) {
+        const oldOpen = window.open;
+        // Use the already-opened popup to avoid browser popup blocking after async save.
+        const rows = lastInvoice.items.map(item => `<tr><td>${escapeHTML(item.item_name)}</td><td>${item.quantity}</td><td>${money(item.unit_price)}</td><td>${money(item.total_price)}</td></tr>`).join("");
+        popup.onload = () => popup.print();
+        popup.document.write(`<!doctype html><html><head><title>${escapeHTML(lastInvoice.invoice_number)}</title><meta charset="utf-8"><style>body{font-family:Arial;padding:28px;color:#111}.wrap{max-width:720px;margin:auto}h1{margin:0 0 4px}.muted{color:#666;font-size:12px}table{width:100%;border-collapse:collapse;margin-top:22px}th,td{padding:10px 7px;border-bottom:1px solid #ddd;text-align:left;font-size:13px}.totals{margin:18px 0 0 auto;max-width:290px}.totals div{display:flex;justify-content:space-between;padding:5px 0}.grand{font-size:18px;font-weight:bold;border-top:2px solid #222;margin-top:7px;padding-top:10px}.thanks{text-align:center;margin-top:35px}</style></head><body><div class="wrap"><h1>${escapeHTML(activeRestaurant.name)}</h1><div class="muted">SALES INVOICE / RECEIPT</div><div class="muted">Invoice: ${escapeHTML(lastInvoice.invoice_number)} · ${escapeHTML(new Date(lastInvoice.created_at).toLocaleString())}</div><table><thead><tr><th>Item</th><th>Qty</th><th>Unit price</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table><div class="totals"><div><span>Subtotal</span><b>${money(lastInvoice.subtotal)}</b></div><div><span>Discount</span><b>${money(lastInvoice.discount)}</b></div><div><span>Tax (${lastInvoice.tax_rate}%)</span><b>${money(lastInvoice.tax)}</b></div><div class="grand"><span>Total</span><b>${money(lastInvoice.total_amount)}</b></div><div><span>Payment</span><b>${escapeHTML(lastInvoice.payment_method)}</b></div></div><div class="thanks">Thank you for visiting!</div></div></body></html>`);
+        popup.document.close();
+      } else {
+        showAppNotice("Sale saved. Allow pop-ups and use the Print Invoice button to print the receipt.");
+      }
+      await openDashboard((await client.auth.getUser()).data.user);
+      showPage("pos");
+    } catch (error) {
+      if (popup && !popup.closed) popup.close();
+      showAppNotice(error.message || "Sale could not be completed.");
+    } finally {
+      button.disabled = false; button.textContent = "COMPLETE SALE";
+    }
+  });
+
+  $("printLastInvoiceBtn").addEventListener("click", () => {
+    if (!lastInvoice) { showAppNotice("There is no invoice to print in this session."); return; }
+    printInvoice(lastInvoice);
   });
 
   $("logoutBtn").addEventListener("click", async () => {
