@@ -298,14 +298,15 @@
         <div class="module-card"><h3>New Purchase</h3><form id="purchaseForm">
           <div class="module-form">
             <div class="module-field"><label>SUPPLIER</label><select id="purchaseSupplier"><option value="">Select supplier (optional)</option></select></div>
-            <div class="module-field"><label>INVOICE NUMBER</label><input id="purchaseInvoice" placeholder="Supplier invoice number"></div>
+            <div class="module-field"><label>INVOICE NUMBER</label><input id="purchaseInvoice" readonly placeholder="001"></div>
             <div class="module-field"><label>PURCHASE DATE</label><input id="purchaseDate" type="date" required></div>
             <div class="module-field"><label>STATUS</label><select id="purchaseStatus"><option value="received">Received</option><option value="pending">Pending</option></select></div>
           </div>
           <div class="module-card" style="padding:12px;margin:14px 0 0;background:#fafbfc"><div class="module-toolbar"><b>Purchase items</b><button class="menu-btn secondary" type="button" id="addPurchaseLine">+ Add item</button></div><div id="purchaseLines"></div></div>
           <div class="module-actions"><button class="menu-btn" type="submit" id="savePurchaseBtn">SAVE PURCHASE</button></div>
         </form></div>
-        <div class="module-card"><div class="module-toolbar"><h3 style="margin:0">Purchase History</h3><input id="purchaseSearch" placeholder="Search invoice or supplier"></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>DATE</th><th>INVOICE</th><th>SUPPLIER</th><th>TOTAL</th><th>STATUS</th></tr></thead><tbody id="purchaseRows"></tbody></table></div></div>
+        <div class="module-card"><div class="module-toolbar"><h3 style="margin:0">Purchase History</h3><input id="purchaseSearch" placeholder="Search invoice or supplier"></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>DATE</th><th>INVOICE</th><th>SUPPLIER</th><th>TOTAL</th><th>STATUS</th><th>ACTIONS</th></tr></thead><tbody id="purchaseRows"></tbody></table></div></div>
+        <div class="module-card"><h3>Suppliers</h3><form id="supplierForm"><div class="module-form"><div class="module-field"><label>SUPPLIER NAME</label><input id="supplierName" required maxlength="120" placeholder="Supplier name"></div></div><div class="module-actions"><button class="menu-btn" id="saveSupplierBtn" type="submit">ADD SUPPLIER</button><button class="menu-btn secondary" id="cancelSupplierEdit" type="button" hidden>Cancel</button></div></form><div class="module-table-wrap"><table class="module-table"><thead><tr><th>SUPPLIER</th><th>ACTIONS</th></tr></thead><tbody id="supplierRows"></tbody></table></div></div>
       </section>
 
       <section id="expensesPage" class="pagepanel">
@@ -984,6 +985,7 @@
   const safeText = v => escapeHTML(v == null ? "" : String(v));
   const moduleError = (label, error) => showAppNotice(label + ": " + (error?.message || error));
   let editingExpenseId = null, editingEmployeeId = null, editingBudgetId = null;
+  let editingPurchaseId = null, editingSupplierId = null;
   let purchaseLineCount = 0;
   function addPurchaseLine(name="", qty="1", cost="0") {
     const id = ++purchaseLineCount;
@@ -993,35 +995,62 @@
     $("purchaseLines").appendChild(row);
   }
   function $$(selector){return document.querySelectorAll(selector)}
+  function nextPurchaseInvoice(rows){
+    const nums=(rows||[]).map(x=>String(x.invoice_number||'').trim()).filter(x=>/^\d+$/.test(x)).map(Number);
+    return String((nums.length?Math.max(...nums):0)+1).padStart(3,'0');
+  }
+  function resetPurchaseForm(){
+    editingPurchaseId=null;$('purchaseForm').reset();$('purchaseDate').value=todayISO();$('purchaseStatus').value='received';
+    $('purchaseForm').querySelector('h3')?.replaceChildren(document.createTextNode('New Purchase'));
+    $('savePurchaseBtn').textContent='SAVE PURCHASE';$('purchaseSupplier').value='';$('purchaseLines').innerHTML='';purchaseLineCount=0;addPurchaseLine();
+    $('purchaseInvoice').value=window.nafNextPurchaseInvoice||'001';
+  }
   async function loadPurchases(){
     if(!activeRestaurant)return;
-    $("purchaseDate").value ||= todayISO();
-    const [sup, purchases] = await Promise.all([
-      client.from("suppliers").select("id,name").eq("restaurant_id",activeRestaurant.id).order("name"),
-      client.from("purchases").select("id,supplier_id,invoice_number,total_amount,status,purchase_date,created_at").eq("restaurant_id",activeRestaurant.id).order("purchase_date",{ascending:false}).limit(200)
+    $('purchaseDate').value ||= todayISO();
+    const [sup,purchases]=await Promise.all([
+      client.from('suppliers').select('id,name').eq('restaurant_id',activeRestaurant.id).order('name'),
+      client.from('purchases').select('id,supplier_id,invoice_number,total_amount,status,purchase_date,created_at').eq('restaurant_id',activeRestaurant.id).order('created_at',{ascending:false}).limit(500)
     ]);
-    if(sup.error||purchases.error){moduleError("Could not load purchases",sup.error||purchases.error);return;}
-    const sel=$("purchaseSupplier"), old=sel.value;sel.innerHTML='<option value="">Select supplier (optional)</option>';
-    (sup.data||[]).forEach(x=>{const o=document.createElement("option");o.value=x.id;o.textContent=x.name;sel.appendChild(o)});sel.value=old;
-    const names=Object.fromEntries((sup.data||[]).map(x=>[x.id,x.name]));
-    const q=($("purchaseSearch").value||"").toLowerCase();
-    $("purchaseRows").innerHTML=(purchases.data||[]).filter(x=>(x.invoice_number||"").toLowerCase().includes(q)||(names[x.supplier_id]||"").toLowerCase().includes(q)).map(x=>`<tr><td>${safeText(x.purchase_date||"")}</td><td>${safeText(x.invoice_number||"—")}</td><td>${safeText(names[x.supplier_id]||"—")}</td><td>${money(x.total_amount)}</td><td>${safeText(x.status||"")}</td></tr>`).join("")||'<tr><td colspan="5" class="muted-empty">No purchases found.</td></tr>';
+    if(sup.error||purchases.error){moduleError('Could not load purchases',sup.error||purchases.error);return;}
+    window.nafSuppliers=sup.data||[];window.nafPurchases=purchases.data||[];
+    const sel=$('purchaseSupplier'),old=sel.value;sel.innerHTML='<option value="">Select supplier (optional)</option>';
+    window.nafSuppliers.forEach(x=>{const o=document.createElement('option');o.value=x.id;o.textContent=x.name;sel.appendChild(o)});sel.value=old;
+    const names=Object.fromEntries(window.nafSuppliers.map(x=>[x.id,x.name]));
+    $('supplierRows').innerHTML=window.nafSuppliers.map(x=>`<tr><td>${safeText(x.name)}</td><td><button class="edit" data-edit-supplier="${safeText(x.id)}">Edit</button> <button class="del" data-delete-supplier="${safeText(x.id)}">Delete</button></td></tr>`).join('')||'<tr><td colspan="2" class="muted-empty">No suppliers yet.</td></tr>';
+    const q=($('purchaseSearch').value||'').toLowerCase();
+    $('purchaseRows').innerHTML=window.nafPurchases.filter(x=>(x.invoice_number||'').toLowerCase().includes(q)||(names[x.supplier_id]||'').toLowerCase().includes(q)).map(x=>`<tr><td>${safeText(x.purchase_date||'')}</td><td>${safeText(x.invoice_number||'—')}</td><td>${safeText(names[x.supplier_id]||'—')}</td><td>${money(x.total_amount)}</td><td>${safeText(x.status||'')}</td><td><button class="edit" data-edit-purchase="${safeText(x.id)}">Edit</button> <button class="del" data-delete-purchase="${safeText(x.id)}">Delete</button></td></tr>`).join('')||'<tr><td colspan="6" class="muted-empty">No purchases found.</td></tr>';
+    window.nafNextPurchaseInvoice=nextPurchaseInvoice(window.nafPurchases);if(!editingPurchaseId)$('purchaseInvoice').value=window.nafNextPurchaseInvoice;
   }
-  $("addPurchaseLine").addEventListener("click",()=>addPurchaseLine());
-  $("purchaseSearch").addEventListener("input",loadPurchases);
-  $("purchaseForm").addEventListener("submit",async e=>{
+  $('addPurchaseLine').addEventListener('click',()=>addPurchaseLine());
+  $('purchaseSearch').addEventListener('input',loadPurchases);
+  $('purchaseForm').addEventListener('submit',async e=>{
     e.preventDefault();if(!activeRestaurant)return;
-    const lines=[...$$("#purchaseLines .module-form")].map(row=>({name:row.querySelector(".purchase-item-name").value.trim(),quantity:Number(row.querySelector(".purchase-item-qty").value),unit_cost:Number(row.querySelector(".purchase-item-cost").value)}));
-    if(!lines.length||lines.some(x=>!x.name||x.quantity<=0||x.unit_cost<0)){showAppNotice("Enter valid purchase items, quantities and costs.");return;}
-    const total=lines.reduce((a,x)=>a+x.quantity*x.unit_cost,0);const btn=$("savePurchaseBtn");btn.disabled=true;
+    const lines=[...$$('#purchaseLines .module-form')].map(row=>({name:row.querySelector('.purchase-item-name').value.trim(),quantity:Number(row.querySelector('.purchase-item-qty').value),unit_cost:Number(row.querySelector('.purchase-item-cost').value)}));
+    if(!lines.length||lines.some(x=>!x.name||x.quantity<=0||x.unit_cost<0)){showAppNotice('Enter valid purchase items, quantities and costs.');return;}
+    const total=lines.reduce((a,x)=>a+x.quantity*x.unit_cost,0),btn=$('savePurchaseBtn');btn.disabled=true;
     try{
-      const payload={restaurant_id:activeRestaurant.id,supplier_id:$("purchaseSupplier").value||null,invoice_number:$("purchaseInvoice").value.trim()||null,total_amount:total,status:$("purchaseStatus").value,purchase_date:$("purchaseDate").value||todayISO()};
-      const {data:purchase,error}=await client.from("purchases").insert(payload).select("id").single();if(error)throw error;
-      const items=lines.map(x=>({purchase_id:purchase.id,item_name:x.name,quantity:x.quantity,unit_cost:x.unit_cost,total_cost:x.quantity*x.unit_cost}));
-      const {error:itemError}=await client.from("purchase_items").insert(items);if(itemError){await client.from("purchases").delete().eq("id",purchase.id).eq("restaurant_id",activeRestaurant.id);throw new Error("Purchase header rolled back because purchase_items insert failed: "+itemError.message);}
-      showAppNotice("Purchase saved successfully.");$("purchaseForm").reset();$("purchaseDate").value=todayISO();$("purchaseLines").innerHTML="";purchaseLineCount=0;addPurchaseLine();await loadPurchases();await refreshDashboardTotals();
-    }catch(err){moduleError("Could not save purchase",err)}finally{btn.disabled=false;}
+      const payload={restaurant_id:activeRestaurant.id,supplier_id:$('purchaseSupplier').value||null,invoice_number:$('purchaseInvoice').value.trim()||window.nafNextPurchaseInvoice,total_amount:total,status:$('purchaseStatus').value,purchase_date:$('purchaseDate').value||todayISO()};
+      let purchaseId=editingPurchaseId;
+      if(editingPurchaseId){const {error}=await client.from('purchases').update(payload).eq('id',editingPurchaseId).eq('restaurant_id',activeRestaurant.id);if(error)throw error;}
+      else{const {data,error}=await client.from('purchases').insert(payload).select('id').single();if(error)throw error;purchaseId=data.id;}
+      if(editingPurchaseId){const {error:delError}=await client.from('purchase_items').delete().eq('purchase_id',purchaseId);if(delError)throw delError;}
+      const items=lines.map(x=>({purchase_id:purchaseId,item_name:x.name,quantity:x.quantity,unit_cost:x.unit_cost,total_cost:x.quantity*x.unit_cost}));
+      const {error:itemError}=await client.from('purchase_items').insert(items);if(itemError)throw itemError;
+      showAppNotice(editingPurchaseId?'Purchase updated successfully.':'Purchase saved successfully.');resetPurchaseForm();await loadPurchases();await refreshDashboardTotals();
+    }catch(err){moduleError('Could not save purchase',err)}finally{btn.disabled=false;}
   });
+  $('purchaseRows').addEventListener('click',async e=>{
+    const edit=e.target.closest('[data-edit-purchase]'),del=e.target.closest('[data-delete-purchase]');
+    if(edit){const x=window.nafPurchases.find(r=>r.id===edit.dataset.editPurchase);if(!x)return;
+      const {data,error}=await client.from('purchase_items').select('item_name,quantity,unit_cost').eq('purchase_id',x.id);if(error){moduleError('Could not load purchase items',error);return;}
+      editingPurchaseId=x.id;$('purchaseSupplier').value=x.supplier_id||'';$('purchaseInvoice').value=x.invoice_number||'';$('purchaseDate').value=x.purchase_date||todayISO();$('purchaseStatus').value=x.status||'received';$('purchaseLines').innerHTML='';purchaseLineCount=0;(data||[]).forEach(it=>addPurchaseLine(it.item_name,it.quantity,it.unit_cost));if(!(data||[]).length)addPurchaseLine();$('savePurchaseBtn').textContent='UPDATE PURCHASE';$('purchaseForm').scrollIntoView({behavior:'smooth',block:'start'});return;
+    }
+    if(del&&confirm('Delete this purchase and its items?')){const id=del.dataset.deletePurchase;const {error:itemError}=await client.from('purchase_items').delete().eq('purchase_id',id);if(itemError){moduleError('Could not delete purchase items',itemError);return;}const {error}=await client.from('purchases').delete().eq('id',id).eq('restaurant_id',activeRestaurant.id);if(error)moduleError('Could not delete purchase',error);else{if(editingPurchaseId===id)resetPurchaseForm();showAppNotice('Purchase deleted.');await loadPurchases();await refreshDashboardTotals();}}
+  });
+  $('supplierForm').addEventListener('submit',async e=>{e.preventDefault();const payload={restaurant_id:activeRestaurant.id,name:$('supplierName').value.trim()};if(!payload.name)return;const result=editingSupplierId?await client.from('suppliers').update({name:payload.name}).eq('id',editingSupplierId).eq('restaurant_id',activeRestaurant.id):await client.from('suppliers').insert(payload);if(result.error){moduleError('Could not save supplier',result.error);return;}showAppNotice(editingSupplierId?'Supplier updated.':'Supplier added.');editingSupplierId=null;$('supplierForm').reset();$('saveSupplierBtn').textContent='ADD SUPPLIER';$('cancelSupplierEdit').hidden=true;await loadPurchases();});
+  $('supplierRows').addEventListener('click',async e=>{const edit=e.target.closest('[data-edit-supplier]'),del=e.target.closest('[data-delete-supplier]');if(edit){const x=window.nafSuppliers.find(r=>r.id===edit.dataset.editSupplier);if(!x)return;editingSupplierId=x.id;$('supplierName').value=x.name;$('saveSupplierBtn').textContent='UPDATE SUPPLIER';$('cancelSupplierEdit').hidden=false;return;}if(del&&confirm('Delete this supplier? Purchases already recorded will remain.')){const {error}=await client.from('suppliers').delete().eq('id',del.dataset.deleteSupplier).eq('restaurant_id',activeRestaurant.id);if(error)moduleError('Could not delete supplier',error);else{showAppNotice('Supplier deleted.');await loadPurchases();}}});
+  $('cancelSupplierEdit').addEventListener('click',()=>{editingSupplierId=null;$('supplierForm').reset();$('saveSupplierBtn').textContent='ADD SUPPLIER';$('cancelSupplierEdit').hidden=true;});
 
   async function loadExpenses(){if(!activeRestaurant)return;$("expenseDate").value||=todayISO();const {data,error}=await client.from("expenses").select("id,title,category,amount,description,expense_date,created_at").eq("restaurant_id",activeRestaurant.id).order("expense_date",{ascending:false}).limit(300);if(error){moduleError("Could not load expenses",error);return;}window.nafExpenses=data||[];renderExpenses();}
   function renderExpenses(){const q=($("expenseSearch").value||"").toLowerCase();const rows=(window.nafExpenses||[]).filter(x=>(x.title||"").toLowerCase().includes(q)||(x.category||"").toLowerCase().includes(q));$("expenseRows").innerHTML=rows.map(x=>`<tr><td>${safeText(x.expense_date||"")}</td><td>${safeText(x.title)}</td><td>${safeText(x.category||"")}</td><td>${money(x.amount)}</td><td><button class="edit" data-edit-expense="${safeText(x.id)}">Edit</button> <button class="del" data-delete-expense="${safeText(x.id)}">Delete</button></td></tr>`).join("")||'<tr><td colspan="5" class="muted-empty">No expenses recorded.</td></tr>';}
