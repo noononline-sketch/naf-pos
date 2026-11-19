@@ -222,6 +222,25 @@
   </main>
 
 
+  <section id="subscriptionGate" class="subscription-gate" aria-live="polite">
+    <div class="subscription-card">
+      <div class="between" style="align-items:center;gap:12px">
+        <div><h2 id="subscriptionGateTitle">Subscription Required</h2><p id="subscriptionGateMessage" class="sub">Your free trial has ended. Select a plan and submit payment proof.</p></div>
+        <button id="subscriptionLogout" class="btn" type="button" style="width:auto;padding:10px 16px">Sign out</button>
+      </div>
+      <p id="subscriptionGateStatus" class="notice" style="display:block"></p>
+      <h3>Available subscription plans</h3>
+      <div id="subscriptionPlanCards" class="subscription-grid"></div>
+      <div id="subscriptionPaymentInfo" class="smallnote"></div>
+      <form id="subscriptionPaymentForm" class="subscription-form">
+        <div class="field"><label for="subscriptionPlanSelect">SELECT PLAN</label><select id="subscriptionPlanSelect" required></select></div>
+        <div class="field"><label for="subscriptionReference">PAYMENT REFERENCE (OPTIONAL)</label><input id="subscriptionReference" type="text" placeholder="Transaction reference"></div>
+        <div class="field full"><label for="subscriptionReceipt">PAYMENT RECEIPT</label><input id="subscriptionReceipt" type="file" accept="image/png,image/jpeg,image/webp,application/pdf" required></div>
+        <button class="btn full" type="submit">SUBMIT PAYMENT FOR REVIEW</button>
+      </form>
+    </div>
+  </section>
+
   <section id="appShell" class="app-shell">
     <aside class="sidebar">
       <div class="sidebrand"><div class="mark">N</div><div><b>NAF POS</b><small>RESTAURANT MANAGEMENT</small></div></div>
@@ -527,7 +546,7 @@
     }
     return false;
   }
-  $("subscriptionPaymentForm").addEventListener("submit",async e=>{
+  $("subscriptionPaymentForm")?.addEventListener("submit",async e=>{
     e.preventDefault();
     if(currentCashier||!activeRestaurant){showAppNotice("Only the restaurant owner can submit a subscription payment.");return;}
     const plan=subscriptionPlansCache.find(p=>p.id===$("subscriptionPlanSelect").value);
@@ -546,7 +565,7 @@
       $("subscriptionPaymentForm").reset();
     }catch(err){moduleError("Could not submit payment request",err);}
   });
-  $("subscriptionLogout").addEventListener("click",async()=>{await client.auth.signOut();hideSubscriptionGate();$("appShell").classList.remove("visible");document.body.classList.remove("app-mode");document.querySelector(".shell").classList.remove("hidden");switchTab("login");});
+  $("subscriptionLogout")?.addEventListener("click",async()=>{await client.auth.signOut();hideSubscriptionGate();$("appShell").classList.remove("visible");document.body.classList.remove("app-mode");document.querySelector(".shell").classList.remove("hidden");switchTab("login");});
 
   async function openDashboard(user) {
     const metadata = user.user_metadata || {};
