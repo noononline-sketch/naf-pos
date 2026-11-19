@@ -229,14 +229,14 @@
         <button id="subscriptionLogout" class="btn" type="button" style="width:auto;padding:10px 16px">Sign out</button>
       </div>
       <p id="subscriptionGateStatus" class="notice" style="display:block"></p>
-      <h3>Available subscription plans</h3><p class="smallnote">Plans, prices, duration and currency are set by NAF POS Super Admin. You can select a plan, but cannot change its price or duration.</p>
+      <h3>Available subscription plans</h3>
       <div id="subscriptionPlanCards" class="subscription-grid"></div>
       <div id="subscriptionPaymentInfo" class="smallnote"></div>
       <form id="subscriptionPaymentForm" class="subscription-form">
         <div class="field"><label for="subscriptionPlanSelect">SELECT PLAN</label><select id="subscriptionPlanSelect" required></select></div>
         <div class="field"><label for="subscriptionReference">PAYMENT REFERENCE (OPTIONAL)</label><input id="subscriptionReference" type="text" placeholder="Transaction reference"></div>
         <div class="field full"><label for="subscriptionReceipt">PAYMENT RECEIPT</label><input id="subscriptionReceipt" type="file" accept="image/png,image/jpeg,image/webp,application/pdf" required></div>
-        <button class="btn full" type="submit">SEND SUBSCRIPTION REQUEST</button>
+        <button class="btn full" type="submit">SUBMIT PAYMENT FOR REVIEW</button>
       </form>
     </div>
   </section>
@@ -258,6 +258,7 @@
         <button type="button" class="navitem" data-page="cashier-management"><span class="navicon">♟</span>Cashier Management</button>
         <button type="button" class="navitem" data-page="employees"><span class="navicon">♙</span>Employees</button>
         <button type="button" class="navitem" data-page="budget"><span class="navicon">▣</span>Budget</button>
+        <button type="button" class="navitem" data-page="subscription"><span class="navicon">◇</span>Subscription</button>
         <button type="button" class="navitem" data-page="settings"><span class="navicon">⚙</span>Settings</button>
         <button type="button" class="navitem" data-page="super-admin" hidden><span class="navicon">♛</span>Super Admin</button>
       </nav>
@@ -432,6 +433,14 @@
         <div class="module-card"><div class="module-toolbar"><h3 style="margin:0">Budget Reports</h3></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>TITLE</th><th>PERIOD</th><th>BUDGET</th><th>SPENT</th><th>REMAINING</th><th>ACTIONS</th></tr></thead><tbody id="budgetRows"></tbody></table></div></div>
       </section>
 
+      <section id="subscriptionPage" class="pagepanel">
+        <div class="module-card">
+          <h3>Subscription Management</h3>
+          <p class="module-note">View available plans, submit your payment receipt, and check your subscription request status. Only the restaurant owner can submit a payment request.</p>
+          <div class="module-actions"><button type="button" class="menu-btn" id="openSubscriptionRequest">VIEW PLANS & REQUEST SUBSCRIPTION</button></div>
+        </div>
+      </section>
+
       <section id="settingsPage" class="pagepanel">
         <div class="module-card" id="ownerProfileSettings">
           <h3>Owner Information</h3>
@@ -538,17 +547,13 @@
     const pendingRes=await client.from("naf_payment_requests").select("id,status,created_at,rejection_reason").eq("restaurant_id",restaurantId).order("created_at",{ascending:false}).limit(1);
     if(pendingRes.error) throw pendingRes.error;
     const pending=pendingRes.data?.[0];
-    let requestMessage = pending?.status ? ` Latest payment request: ${pending.status}.` : "";
-    if (pending?.status === "pending") requestMessage += " Your request is waiting for Super Admin approval. Please do not submit another request.";
-    if (pending?.status === "rejected" && pending?.rejection_reason) requestMessage += ` Rejection reason: ${pending.rejection_reason}`;
-    showSubscriptionGate("",`Subscription: ${status}. Expiry: ${expiry}.`+requestMessage);
+    showSubscriptionGate("",`Status: ${status}. Expiry: ${expiry}.`+(pending?.status?` Latest payment request: ${pending.status}.`:""));
     if(currentCashier){
       $("subscriptionPaymentForm").hidden=true;
       $("subscriptionGateMessage").textContent="This restaurant subscription is not active. Please contact the restaurant owner.";
     } else {
-      $("subscriptionPaymentForm").hidden = pending?.status === "pending";
+      $("subscriptionPaymentForm").hidden=false;
       $("subscriptionPaymentForm").dataset.restaurantId=restaurantId;
-      if (pending?.status === "pending") $("subscriptionGateMessage").textContent = "Your subscription request has been received. Wait for the Super Admin to review your payment.";
     }
     return false;
   }
@@ -567,10 +572,8 @@
       const {data:{user},error:userError}=await client.auth.getUser();if(userError)throw userError;
       const ins=await client.from("naf_payment_requests").insert({restaurant_id:activeRestaurant.id,plan_id:plan.id,owner_user_id:user.id,amount:Number(plan.price),currency:plan.currency,transaction_reference:$("subscriptionReference").value.trim()||null,receipt_path:path,status:"pending"});
       if(ins.error)throw ins.error;
-      $("subscriptionGateStatus").textContent="Payment request submitted successfully. Status: PENDING. Super Admin must approve it before your subscription becomes active.";
-      $("subscriptionGateMessage").textContent="Your payment receipt has been sent to NAF POS Super Admin. Please wait for approval.";
+      $("subscriptionGateStatus").textContent="Payment request submitted. Waiting for Super Admin review.";
       $("subscriptionPaymentForm").reset();
-      $("subscriptionPaymentForm").hidden=true;
     }catch(err){moduleError("Could not submit payment request",err);}
   });
   $("subscriptionLogout")?.addEventListener("click",async()=>{await client.auth.signOut();hideSubscriptionGate();$("appShell").classList.remove("visible");document.body.classList.remove("app-mode");document.querySelector(".shell").classList.remove("hidden");switchTab("login");});
@@ -719,8 +722,8 @@
     }
     document.querySelectorAll(".pagepanel").forEach(el => el.classList.remove("active"));
     document.querySelectorAll(".navitem[data-page]").forEach(el => el.classList.toggle("active", el.dataset.page === page));
-    const titles = {dashboard:"Dashboard", pos:"POS / New Sale", menu:"Menu", purchases:"Purchases", expenses:"Expenses", customers:"Customers", suppliers:"Suppliers", "sales-history":"Sales History", reports:"Reports", "cashier-management":"Cashier Management", employees:"Employees", budget:"Budget", settings:"Settings", "super-admin":"Super Admin"};
-    const pageIds = {dashboard:"dashboardPage",pos:"posPage",menu:"menuPage",purchases:"purchasesPage",expenses:"expensesPage",customers:"customersPage",suppliers:"suppliersPage","sales-history":"salesHistoryPage",reports:"reportsPage","cashier-management":"cashier-managementPage",employees:"employeesPage",budget:"budgetPage",settings:"settingsPage","super-admin":"super-adminPage"};
+    const titles = {dashboard:"Dashboard", pos:"POS / New Sale", menu:"Menu", purchases:"Purchases", expenses:"Expenses", customers:"Customers", suppliers:"Suppliers", "sales-history":"Sales History", reports:"Reports", "cashier-management":"Cashier Management", employees:"Employees", budget:"Budget", settings:"Settings", subscription:"Subscription", "super-admin":"Super Admin"};
+    const pageIds = {dashboard:"dashboardPage",pos:"posPage",menu:"menuPage",purchases:"purchasesPage",expenses:"expensesPage",customers:"customersPage",suppliers:"suppliersPage","sales-history":"salesHistoryPage",reports:"reportsPage","cashier-management":"cashier-managementPage",employees:"employeesPage",budget:"budgetPage",settings:"settingsPage",subscription:"subscriptionPage","super-admin":"super-adminPage"};
     const target = $(pageIds[page] || "dashboardPage");
     target.classList.add("active");
     $("pageheading").textContent = titles[page] || "Dashboard";
@@ -739,6 +742,17 @@
     if (page === "settings") loadSettings();
   }
 
+  $("openSubscriptionRequest")?.addEventListener("click",async()=>{
+    if(currentCashier || !activeRestaurant){showAppNotice("Only the restaurant owner can manage subscription requests.");return;}
+    try{
+      await loadSubscriptionPublicData();
+      showSubscriptionGate("","Choose a subscription plan and submit your payment receipt for review.");
+      $("subscriptionGateMessage").textContent="Choose a subscription plan and submit your payment receipt for review.";
+      $("subscriptionPaymentForm").hidden=false;
+      $("subscriptionPaymentForm").dataset.restaurantId=activeRestaurant.id;
+    }catch(err){moduleError("Could not load subscription plans",err);}
+  });
+
   document.querySelectorAll(".navitem[data-page]").forEach(button => {
     button.addEventListener("click", () => {
       const page = button.dataset.page;
@@ -747,7 +761,7 @@
         showPage("pos");
         return;
       }
-      if (["dashboard", "pos", "menu", "purchases", "expenses", "customers", "suppliers", "sales-history", "reports", "cashier-management", "employees", "budget", "settings", "super-admin"].includes(page)) {
+      if (["dashboard", "pos", "menu", "purchases", "expenses", "customers", "suppliers", "sales-history", "reports", "cashier-management", "employees", "budget", "settings", "subscription", "super-admin"].includes(page)) {
         $("appNotice").classList.remove("show");
         showPage(page);
       } else showAppNotice("Super Admin module is a separate protected administration step.");
