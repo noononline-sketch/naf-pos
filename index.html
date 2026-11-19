@@ -259,7 +259,7 @@
         <button type="button" class="navitem" data-page="employees"><span class="navicon">♙</span>Employees</button>
         <button type="button" class="navitem" data-page="budget"><span class="navicon">▣</span>Budget</button>
         <button type="button" class="navitem" data-page="settings"><span class="navicon">⚙</span>Settings</button>
-        <button type="button" class="navitem" data-page="super-admin"><span class="navicon">♛</span>Super Admin</button>
+        <button type="button" class="navitem" data-page="super-admin" hidden><span class="navicon">♛</span>Super Admin</button>
       </nav>
       <div class="sidebottom">NAF POS · Secure cloud workspace</div>
     </aside>
@@ -627,7 +627,7 @@
     const cashierSettings = $("cashierProfileSettings");
     if (ownerSettings) ownerSettings.hidden = false;
     if (cashierSettings) cashierSettings.hidden = true;
-    document.querySelectorAll(".navitem[data-page]").forEach(el => { el.hidden = false; });
+    document.querySelectorAll(".navitem[data-page]").forEach(el => { el.hidden = el.dataset.page === "super-admin" ? !isNafSuperAdmin : false; });
     const { data: restaurants, error } = await client
       .from("restaurants").select("id,name,logo_url,currency,tax_rate,phone,email,address")
       .eq("owner_id", user.id).limit(1);
@@ -702,6 +702,11 @@
 
 
   function showPage(page) {
+    // Enforce Super Admin navigation visibility in the UI; database RPC/RLS remains the real security boundary.
+    if (page === "super-admin" && !isNafSuperAdmin) {
+      showAppNotice("Access denied: this account is not a Super Admin.");
+      return;
+    }
     if (currentCashier && !["pos", "sales-history", "reports", "settings"].includes(page)) {
       showAppNotice("This page is not available for cashier accounts.");
       page = "pos";
