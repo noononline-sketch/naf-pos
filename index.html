@@ -435,6 +435,15 @@
 
       <section id="subscriptionPage" class="pagepanel">
         <div class="module-card">
+          <h3>My Subscription</h3>
+          <div class="module-summary">
+            <article class="stat"><div class="stathead">STATUS</div><div class="statvalue" id="customerSubStatus">Loading…</div></article>
+            <article class="stat"><div class="stathead">CURRENT PLAN</div><div class="statvalue" id="customerSubPlan">—</div></article>
+            <article class="stat"><div class="stathead">EXPIRY DATE</div><div class="statvalue" id="customerSubExpiry">—</div></article>
+          </div>
+          <p class="module-note" id="customerSubNote">Your subscription status and expiry date will appear here.</p>
+        </div>
+        <div class="module-card">
           <h3>Subscription Management</h3>
           <p class="module-note">View available plans, submit your payment receipt, and check your subscription request status. Only the restaurant owner can submit a payment request.</p>
           <div class="module-actions"><button type="button" class="menu-btn" id="openSubscriptionRequest">VIEW PLANS & REQUEST SUBSCRIPTION</button></div>
@@ -536,8 +545,29 @@
     const st=subscriptionSettingsCache;
     $("subscriptionPaymentInfo").innerHTML=[st.bank_name?`<b>Bank:</b> ${safeText(st.bank_name)}`:"",st.account_holder?`<b>Account holder:</b> ${safeText(st.account_holder)}`:"",st.account_number?`<b>Account number / IBAN:</b> ${safeText(st.account_number)}`:"",st.contact_email?`<b>Email:</b> ${safeText(st.contact_email)}`:"",st.contact_phone?`<b>Phone:</b> ${safeText(st.contact_phone)}`:"",st.whatsapp_number?`<b>WhatsApp:</b> ${safeText(st.whatsapp_number)}`:""].filter(Boolean).join("<br>")||"Please contact NAF POS support for payment instructions.";
   }
+  async function loadCustomerSubscriptionDetails(restaurantId){
+    const {data,error}=await client.rpc("naf_my_subscription_details",{p_restaurant_id:restaurantId});
+    if(error) throw new Error("Could not load subscription details: "+error.message);
+    const row=Array.isArray(data)?data[0]:data;
+    if(!row){
+      $("customerSubStatus").textContent="Not found";
+      $("customerSubPlan").textContent="—";
+      $("customerSubExpiry").textContent="—";
+      $("customerSubNote").textContent="No subscription record was found for this restaurant.";
+      return null;
+    }
+    const expiry=row.expires_at?new Date(row.expires_at).toLocaleDateString():"No expiry";
+    $("customerSubStatus").textContent=String(row.subscription_status||"unknown").toUpperCase();
+    $("customerSubPlan").textContent=row.plan_name||"Free Trial";
+    $("customerSubExpiry").textContent=expiry;
+    $("customerSubNote").textContent=(row.currency&&row.price!==null&&row.price!==undefined)
+      ?`Plan price: ${row.currency} ${Number(row.price).toFixed(2)} · ${Number(row.days_remaining||0)} day(s) remaining`
+      :`${Number(row.days_remaining||0)} day(s) remaining`;
+    return row;
+  }
   async function checkSubscriptionAccess(restaurantId){
     if(isNafSuperAdmin) return true;
+    await loadCustomerSubscriptionDetails(restaurantId);
     const {data,error}=await client.rpc("naf_my_subscription_access");
     if(error) throw new Error("Could not verify subscription access: "+error.message);
     const row=(data||[]).find(x=>x.restaurant_id===restaurantId);
@@ -744,7 +774,12 @@
     if (page === "settings") loadSettings();
   }
 
-  $("openSubscriptionRequest")?.addEventListener("click",async()=>{
+  async function refreshCustomerSubscriptionCard(){
+    if(!activeRestaurant || isNafSuperAdmin) return;
+    try{ await loadCustomerSubscriptionDetails(activeRestaurant.id); }
+    catch(err){ moduleError("Could not refresh subscription details",err); }
+  }
+    $("openSubscriptionRequest")?.addEventListener("click",async()=>{
     if(currentCashier || !activeRestaurant){showAppNotice("Only the restaurant owner can manage subscription requests.");return;}
     try{
       await loadSubscriptionPublicData();
@@ -763,6 +798,7 @@
         showPage("pos");
         return;
       }
+      if (page === "subscription") refreshCustomerSubscriptionCard();
       if (["dashboard", "pos", "menu", "purchases", "expenses", "customers", "suppliers", "sales-history", "reports", "cashier-management", "employees", "budget", "settings", "subscription", "super-admin"].includes(page)) {
         $("appNotice").classList.remove("show");
         showPage(page);
