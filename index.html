@@ -471,6 +471,8 @@
   const SUPABASE_URL = "https://ymdvlkbzrzcmshnvjspk.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_TXD6VPmdBNzHeWS-LEsndg_fmFWyP5Q";
   const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // Preserve the GitHub Pages project path (for example, /naf-pos/) in auth email redirects.
+  const APP_REDIRECT_URL = new URL("./", window.location.href).toString();
   const $ = (id) => document.getElementById(id);
   const notice = $("notice");
 
@@ -1654,7 +1656,7 @@
         email, password,
         options: {
           data: { full_name: fullName, phone, restaurant_name: restaurantName },
-          emailRedirectTo: window.location.origin
+          emailRedirectTo: APP_REDIRECT_URL
         }
       });
       if (error) throw error;
@@ -1693,7 +1695,7 @@
     if (!email) { showNotice("Enter your email address first, then choose Forgot password.", "error"); return; }
     try {
       const { error } = await client.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin
+        redirectTo: APP_REDIRECT_URL
       });
       if (error) throw error;
       showNotice("If this email is registered, a password reset link has been sent.", "ok");
