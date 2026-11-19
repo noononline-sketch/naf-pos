@@ -1144,7 +1144,7 @@
   $('supplierPageForm').addEventListener('submit',async e=>{e.preventDefault();const name=$('supplierPageName').value.trim();const q=editingSupplierPageId?client.from('suppliers').update({name}).eq('id',editingSupplierPageId).eq('restaurant_id',activeRestaurant.id):client.from('suppliers').insert({restaurant_id:activeRestaurant.id,name});const {error}=await q;if(error)moduleError('Could not save supplier',error);else{editingSupplierPageId=null;$('supplierPageForm').reset();$('supplierPageSave').textContent='ADD SUPPLIER';$('supplierPageCancel').hidden=true;loadSupplierPage();loadPurchases();}});
   $('supplierPageCancel').addEventListener('click',()=>{editingSupplierPageId=null;$('supplierPageForm').reset();$('supplierPageSave').textContent='ADD SUPPLIER';$('supplierPageCancel').hidden=true;});
   // Reports from saved sales, purchases and expenses.
-  async async function runReports(){
+  async function runReports(){
     if(!activeRestaurant)return;
     const from=$('reportFrom').value,to=$('reportTo').value;
     let sq=client.from('sales').select('total_amount,created_at').eq('restaurant_id',activeRestaurant.id).ilike('order_status','completed');
