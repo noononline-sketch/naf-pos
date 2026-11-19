@@ -229,14 +229,14 @@
         <button id="subscriptionLogout" class="btn" type="button" style="width:auto;padding:10px 16px">Sign out</button>
       </div>
       <p id="subscriptionGateStatus" class="notice" style="display:block"></p>
-      <h3>Available subscription plans</h3>
+      <h3>Available subscription plans</h3><p class="smallnote">Plans, prices, duration and currency are set by NAF POS Super Admin. You can select a plan, but cannot change its price or duration.</p>
       <div id="subscriptionPlanCards" class="subscription-grid"></div>
       <div id="subscriptionPaymentInfo" class="smallnote"></div>
       <form id="subscriptionPaymentForm" class="subscription-form">
         <div class="field"><label for="subscriptionPlanSelect">SELECT PLAN</label><select id="subscriptionPlanSelect" required></select></div>
         <div class="field"><label for="subscriptionReference">PAYMENT REFERENCE (OPTIONAL)</label><input id="subscriptionReference" type="text" placeholder="Transaction reference"></div>
         <div class="field full"><label for="subscriptionReceipt">PAYMENT RECEIPT</label><input id="subscriptionReceipt" type="file" accept="image/png,image/jpeg,image/webp,application/pdf" required></div>
-        <button class="btn full" type="submit">SUBMIT PAYMENT FOR REVIEW</button>
+        <button class="btn full" type="submit">SEND SUBSCRIPTION REQUEST</button>
       </form>
     </div>
   </section>
@@ -538,13 +538,17 @@
     const pendingRes=await client.from("naf_payment_requests").select("id,status,created_at,rejection_reason").eq("restaurant_id",restaurantId).order("created_at",{ascending:false}).limit(1);
     if(pendingRes.error) throw pendingRes.error;
     const pending=pendingRes.data?.[0];
-    showSubscriptionGate("",`Status: ${status}. Expiry: ${expiry}.`+(pending?.status?` Latest payment request: ${pending.status}.`:""));
+    let requestMessage = pending?.status ? ` Latest payment request: ${pending.status}.` : "";
+    if (pending?.status === "pending") requestMessage += " Your request is waiting for Super Admin approval. Please do not submit another request.";
+    if (pending?.status === "rejected" && pending?.rejection_reason) requestMessage += ` Rejection reason: ${pending.rejection_reason}`;
+    showSubscriptionGate("",`Subscription: ${status}. Expiry: ${expiry}.`+requestMessage);
     if(currentCashier){
       $("subscriptionPaymentForm").hidden=true;
       $("subscriptionGateMessage").textContent="This restaurant subscription is not active. Please contact the restaurant owner.";
     } else {
-      $("subscriptionPaymentForm").hidden=false;
+      $("subscriptionPaymentForm").hidden = pending?.status === "pending";
       $("subscriptionPaymentForm").dataset.restaurantId=restaurantId;
+      if (pending?.status === "pending") $("subscriptionGateMessage").textContent = "Your subscription request has been received. Wait for the Super Admin to review your payment.";
     }
     return false;
   }
@@ -563,8 +567,10 @@
       const {data:{user},error:userError}=await client.auth.getUser();if(userError)throw userError;
       const ins=await client.from("naf_payment_requests").insert({restaurant_id:activeRestaurant.id,plan_id:plan.id,owner_user_id:user.id,amount:Number(plan.price),currency:plan.currency,transaction_reference:$("subscriptionReference").value.trim()||null,receipt_path:path,status:"pending"});
       if(ins.error)throw ins.error;
-      $("subscriptionGateStatus").textContent="Payment request submitted. Waiting for Super Admin review.";
+      $("subscriptionGateStatus").textContent="Payment request submitted successfully. Status: PENDING. Super Admin must approve it before your subscription becomes active.";
+      $("subscriptionGateMessage").textContent="Your payment receipt has been sent to NAF POS Super Admin. Please wait for approval.";
       $("subscriptionPaymentForm").reset();
+      $("subscriptionPaymentForm").hidden=true;
     }catch(err){moduleError("Could not submit payment request",err);}
   });
   $("subscriptionLogout")?.addEventListener("click",async()=>{await client.auth.signOut();hideSubscriptionGate();$("appShell").classList.remove("visible");document.body.classList.remove("app-mode");document.querySelector(".shell").classList.remove("hidden");switchTab("login");});
