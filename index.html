@@ -167,6 +167,13 @@
 
     /* Ensure cashier-restricted navigation items are truly hidden. */
     .navitem[hidden]{display:none!important}
+
+
+    .subscription-gate{display:none;position:fixed;inset:0;z-index:9999;background:#f4f6fa;overflow:auto;padding:24px;align-items:center;justify-content:center}
+    .subscription-gate.visible{display:flex}.subscription-card{width:min(920px,100%);background:#fff;border:1px solid var(--line);border-radius:18px;padding:26px;box-shadow:0 20px 60px #18223518}
+    .subscription-card h2{margin:0 0 8px}.subscription-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0}.subscription-plan{border:1px solid var(--line);border-radius:12px;padding:15px}.subscription-plan b{display:block;color:var(--navy);font-size:16px}.subscription-plan small{color:var(--muted)}
+    .subscription-form{display:grid;grid-template-columns:1fr 1fr;gap:12px}.subscription-form label{display:block;font-size:12px;font-weight:750;color:#4d5a6e;margin-bottom:6px}.subscription-form input,.subscription-form select{width:100%;height:42px;border:1px solid #dce2eb;border-radius:8px;padding:8px;font:inherit}.subscription-form .full{grid-column:1/-1}.subscription-admin-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.subscription-status{font-weight:800;text-transform:capitalize}.subscription-actions{display:flex;gap:7px;flex-wrap:wrap}.subscription-actions button{border:0;border-radius:7px;padding:7px 10px;cursor:pointer;font-weight:750}.subscription-actions .approve{background:#eaf8f0;color:#176b46}.subscription-actions .reject{background:#fff0f0;color:#a52e3b}
+    @media(max-width:650px){.subscription-grid,.subscription-form,.subscription-admin-grid{grid-template-columns:1fr}.subscription-form .full{grid-column:auto}.subscription-card{padding:18px}}
   </style>
 </head>
 <body>
@@ -376,7 +383,22 @@
       <section id="suppliersPage" class="pagepanel"><div class="module-card"><h3 id="supplierPageTitle">Suppliers</h3><p class="module-note">Supplier records are shared with the Purchases module.</p><form id="supplierPageForm"><div class="module-form"><div class="module-field"><label>SUPPLIER NAME</label><input id="supplierPageName" required maxlength="120"></div></div><div class="module-actions"><button class="menu-btn" id="supplierPageSave">ADD SUPPLIER</button><button class="menu-btn secondary" id="supplierPageCancel" type="button" hidden>Cancel</button></div></form></div><div class="module-card"><div class="module-toolbar"><h3>Supplier List</h3><input id="supplierPageSearch" placeholder="Search suppliers"></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>SUPPLIER</th><th>ACTIONS</th></tr></thead><tbody id="supplierPageRows"></tbody></table></div></div></section>
       <section id="reportsPage" class="pagepanel"><div class="module-card"><div class="module-toolbar"><h3>Business Reports</h3><label>From <input id="reportFrom" type="date"></label><label>To <input id="reportTo" type="date"></label><button class="menu-btn" id="runReport">RUN REPORT</button><button class="menu-btn secondary" id="printReportBtn" type="button">PRINT REPORT</button></div><div class="extra-grid"><div class="extra-stat"><small>Sales</small><b id="reportSales">SAR 0.00</b></div><div class="extra-stat"><small>Purchases</small><b id="reportPurchases">SAR 0.00</b></div><div class="extra-stat"><small>Expenses</small><b id="reportExpenses">SAR 0.00</b></div><div class="extra-stat"><small>Gross Difference (Sales − Purchases − Expenses)</small><b id="reportNet">SAR 0.00</b></div></div><p class="module-note">This is a cash-flow summary, not an accounting-certified net profit calculation.</p></div></section>
       <section id="cashier-managementPage" class="pagepanel"><div class="module-card"><h3 id="cashierFormTitle">Cashier Management</h3><p class="module-note">Create a cashier login using a temporary password. Cashiers can access POS, their own Sales History, Reports and limited Settings only.</p><form id="cashierForm"><div class="module-form"><div class="module-field"><label>CASHIER NAME</label><input id="cashierName" required></div><div class="module-field"><label>EMAIL</label><input id="cashierEmail" type="email" required></div><div class="module-field"><label>PHONE</label><input id="cashierPhone"></div><div class="module-field"><label>PASSWORD (minimum 8 characters)</label><input id="cashierPassword" type="password" minlength="8" autocomplete="new-password" required></div><div class="module-field"><label>STATUS</label><select id="cashierStatus"><option value="active">Active</option><option value="inactive">Deactive</option></select></div></div><div class="module-actions"><button class="menu-btn" id="cashierSave">ADD CASHIER</button><button class="menu-btn secondary" id="cashierCancel" type="button" hidden>Cancel</button></div></form></div><div class="module-card"><div class="module-toolbar"><h3>Cashier List</h3><input id="cashierSearch" placeholder="Search cashiers"></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>NAME</th><th>PHONE</th><th>EMAIL</th><th>ROLE</th><th>STATUS</th><th>ACTIONS</th></tr></thead><tbody id="cashierRows"></tbody></table></div></div></section>
-      <section id="super-adminPage" class="pagepanel"><div class="module-card"><h3>Super Admin</h3><p class="module-note">Protected system administration. Your signed-in account must be manually authorized in the naf_super_admins table. This page does not grant admin access.</p><div class="module-toolbar"><b>Restaurant Accounts</b><button class="menu-btn secondary" id="refreshAdminRestaurants">REFRESH</button></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>RESTAURANT</th><th>CURRENCY</th><th>OWNER ID</th><th>CREATED</th></tr></thead><tbody id="adminRestaurantRows"><tr><td colspan="4">Press Refresh to load authorized data.</td></tr></tbody></table></div></div></section>
+      <section id="super-adminPage" class="pagepanel">
+        <div class="module-card"><h3>Super Admin · Subscription Control</h3><p class="module-note">Manage trial duration, contact/payment instructions, plans, restaurant subscriptions and payment approvals. Access is checked against naf_super_admins.</p></div>
+        <div class="subscription-admin-grid">
+          <div class="module-card"><h3>Subscription Settings</h3><form id="adminSubscriptionSettingsForm"><div class="module-form">
+            <div class="module-field"><label>FREE TRIAL DAYS</label><input id="adminTrialDays" type="number" min="0" max="365" required></div>
+            <div class="module-field"><label>CURRENCY</label><input id="adminSubCurrency" value="SAR" maxlength="8"></div>
+            <div class="module-field"><label>SUPPORT EMAIL</label><input id="adminSubEmail" type="email"></div><div class="module-field"><label>SUPPORT PHONE</label><input id="adminSubPhone"></div>
+            <div class="module-field"><label>WHATSAPP</label><input id="adminSubWhatsapp"></div><div class="module-field"><label>BANK NAME</label><input id="adminSubBank"></div>
+            <div class="module-field"><label>ACCOUNT HOLDER</label><input id="adminSubHolder"></div><div class="module-field"><label>ACCOUNT / IBAN</label><input id="adminSubAccount"></div>
+            <div class="module-field"><label>EXPIRED TITLE</label><input id="adminExpiryTitle"></div><div class="module-field"><label>EXPIRED MESSAGE</label><input id="adminExpiryMessage"></div>
+          </div><div class="module-actions"><button class="menu-btn" type="submit">SAVE SUBSCRIPTION SETTINGS</button></div></form></div>
+          <div class="module-card"><h3>Subscription Plans</h3><form id="adminPlanForm"><div class="module-form"><div class="module-field"><label>PLAN NAME</label><input id="adminPlanName" required></div><div class="module-field"><label>PLAN CODE</label><input id="adminPlanCode" required></div><div class="module-field"><label>DURATION DAYS</label><input id="adminPlanDays" type="number" min="1" max="3650" required></div><div class="module-field"><label>PRICE</label><input id="adminPlanPrice" type="number" min="0" step="0.01" required></div><div class="module-field"><label>CURRENCY</label><input id="adminPlanCurrency" value="SAR" required></div><div class="module-field"><label>STATUS</label><select id="adminPlanActive"><option value="true">Active</option><option value="false">Inactive</option></select></div></div><div class="module-actions"><button class="menu-btn" type="submit">ADD PLAN</button></div></form><div class="module-table-wrap"><table class="module-table"><thead><tr><th>PLAN</th><th>DAYS</th><th>PRICE</th><th>STATUS</th><th>ACTION</th></tr></thead><tbody id="adminPlanRows"></tbody></table></div></div>
+        </div>
+        <div class="module-card"><div class="module-toolbar"><h3 style="margin:0">Payment Requests</h3><button class="menu-btn secondary" id="refreshPaymentRequests" type="button">REFRESH REQUESTS</button></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>RESTAURANT</th><th>PLAN</th><th>AMOUNT</th><th>REFERENCE</th><th>RECEIPT</th><th>STATUS</th><th>ACTIONS</th></tr></thead><tbody id="adminPaymentRows"></tbody></table></div></div>
+        <div class="module-card"><div class="module-toolbar"><b>Restaurant Subscriptions</b><button class="menu-btn secondary" id="refreshAdminRestaurants" type="button">REFRESH</button></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>RESTAURANT</th><th>STATUS</th><th>PLAN</th><th>EXPIRES</th><th>OWNER ID</th><th>ACTION</th></tr></thead><tbody id="adminRestaurantRows"><tr><td colspan="6">Press Refresh to load authorized data.</td></tr></tbody></table></div></div>
+      </section>
       <section id="employeesPage" class="pagepanel">
         <div class="module-card"><h3 id="employeeFormTitle">Add Employee</h3><form id="employeeForm"><div class="module-form">
           <div class="module-field"><label>FULL NAME</label><input id="employeeName" required maxlength="120"></div><div class="module-field"><label>ROLE</label><select id="employeeRole"><option>Manager</option><option>Cashier</option><option>Chef</option><option>Waiter</option><option>Cleaner</option><option>Other</option></select></div>
@@ -442,6 +464,10 @@
   let selectedMenuImage = null;
   let cart = [];
   let lastInvoice = null;
+  let isNafSuperAdmin = false;
+  let currentSubscription = null;
+  let subscriptionPlansCache = [];
+  let subscriptionSettingsCache = null;
 
   function showAppNotice(message) {
     const el = $("appNotice");
@@ -453,8 +479,81 @@
     return "SAR " + Number(value || 0).toLocaleString("en-SA", {minimumFractionDigits:2, maximumFractionDigits:2});
   }
 
+  function showSubscriptionGate(message, statusText) {
+    $("subscriptionGateTitle").textContent = subscriptionSettingsCache?.expiry_title || "Subscription Required";
+    $("subscriptionGateMessage").textContent = subscriptionSettingsCache?.expiry_message || "Your free trial has ended. Select a plan and submit payment proof.";
+    $("subscriptionGateStatus").textContent = statusText || message || "Your restaurant subscription is not active.";
+    $("subscriptionGate").classList.add("visible");
+    $("appShell").classList.add("visible");
+    document.body.classList.add("app-mode");
+    document.querySelector(".shell").classList.add("hidden");
+    $("sidebar");
+  }
+  function hideSubscriptionGate(){ $("subscriptionGate").classList.remove("visible"); }
+  async function loadSubscriptionPublicData(){
+    const [plansRes,settingsRes] = await Promise.all([
+      client.from("naf_subscription_plans").select("id,plan_code,plan_name,duration_days,price,currency,is_active").eq("is_active",true).order("duration_days"),
+      client.from("naf_subscription_settings").select("trial_days,contact_email,contact_phone,whatsapp_number,expiry_title,expiry_message,bank_name,account_holder,account_number,currency").eq("setting_key","main").maybeSingle()
+    ]);
+    if(plansRes.error) throw plansRes.error;
+    if(settingsRes.error) throw settingsRes.error;
+    subscriptionPlansCache=plansRes.data||[]; subscriptionSettingsCache=settingsRes.data||{};
+    const select=$("subscriptionPlanSelect");
+    select.innerHTML=subscriptionPlansCache.map(p=>`<option value="${safeText(p.id)}">${safeText(p.plan_name)} · ${safeText(p.currency)} ${Number(p.price).toFixed(2)} (${p.duration_days} days)</option>`).join("");
+    $("subscriptionPlanCards").innerHTML=subscriptionPlansCache.map(p=>`<article class="subscription-plan"><b>${safeText(p.plan_name)}</b><small>${p.duration_days} days</small><div style="font-size:22px;font-weight:850;margin-top:8px">${safeText(p.currency)} ${Number(p.price).toFixed(2)}</div></article>`).join("")||"<p>No active plans are available. Contact NAF POS support.</p>";
+    const st=subscriptionSettingsCache;
+    $("subscriptionPaymentInfo").innerHTML=[st.bank_name?`<b>Bank:</b> ${safeText(st.bank_name)}`:"",st.account_holder?`<b>Account holder:</b> ${safeText(st.account_holder)}`:"",st.account_number?`<b>Account number / IBAN:</b> ${safeText(st.account_number)}`:"",st.contact_email?`<b>Email:</b> ${safeText(st.contact_email)}`:"",st.contact_phone?`<b>Phone:</b> ${safeText(st.contact_phone)}`:"",st.whatsapp_number?`<b>WhatsApp:</b> ${safeText(st.whatsapp_number)}`:""].filter(Boolean).join("<br>")||"Please contact NAF POS support for payment instructions.";
+  }
+  async function checkSubscriptionAccess(restaurantId){
+    if(isNafSuperAdmin) return true;
+    const {data,error}=await client.rpc("naf_my_subscription_access");
+    if(error) throw new Error("Could not verify subscription access: "+error.message);
+    const row=(data||[]).find(x=>x.restaurant_id===restaurantId);
+    currentSubscription=row||null;
+    if(row?.can_access===true) return true;
+    await loadSubscriptionPublicData();
+    const status=row?.subscription_status||"not_found";
+    const expiry=row?.expires_at?new Date(row.expires_at).toLocaleDateString():"not available";
+    const pendingRes=await client.from("naf_payment_requests").select("id,status,created_at,rejection_reason").eq("restaurant_id",restaurantId).order("created_at",{ascending:false}).limit(1);
+    if(pendingRes.error) throw pendingRes.error;
+    const pending=pendingRes.data?.[0];
+    showSubscriptionGate("",`Status: ${status}. Expiry: ${expiry}.`+(pending?.status?` Latest payment request: ${pending.status}.`:""));
+    if(currentCashier){
+      $("subscriptionPaymentForm").hidden=true;
+      $("subscriptionGateMessage").textContent="This restaurant subscription is not active. Please contact the restaurant owner.";
+    } else {
+      $("subscriptionPaymentForm").hidden=false;
+      $("subscriptionPaymentForm").dataset.restaurantId=restaurantId;
+    }
+    return false;
+  }
+  $("subscriptionPaymentForm").addEventListener("submit",async e=>{
+    e.preventDefault();
+    if(currentCashier||!activeRestaurant){showAppNotice("Only the restaurant owner can submit a subscription payment.");return;}
+    const plan=subscriptionPlansCache.find(p=>p.id===$("subscriptionPlanSelect").value);
+    const file=$("subscriptionReceipt").files[0];
+    if(!plan||!file){showAppNotice("Choose a plan and attach the payment receipt.");return;}
+    if(file.size>5*1024*1024||!["image/png","image/jpeg","image/webp","application/pdf"].includes(file.type)){showAppNotice("Receipt must be PNG, JPG, WEBP or PDF and no larger than 5 MB.");return;}
+    try{
+      const ext=(file.name.split(".").pop()||"file").toLowerCase().replace(/[^a-z0-9]/g,"");
+      const path=`${activeRestaurant.id}/${crypto.randomUUID()}.${ext}`;
+      const up=await client.storage.from("naf-payment-receipts").upload(path,file,{upsert:false,contentType:file.type});
+      if(up.error)throw up.error;
+      const {data:{user},error:userError}=await client.auth.getUser();if(userError)throw userError;
+      const ins=await client.from("naf_payment_requests").insert({restaurant_id:activeRestaurant.id,plan_id:plan.id,owner_user_id:user.id,amount:Number(plan.price),currency:plan.currency,transaction_reference:$("subscriptionReference").value.trim()||null,receipt_path:path,status:"pending"});
+      if(ins.error)throw ins.error;
+      $("subscriptionGateStatus").textContent="Payment request submitted. Waiting for Super Admin review.";
+      $("subscriptionPaymentForm").reset();
+    }catch(err){moduleError("Could not submit payment request",err);}
+  });
+  $("subscriptionLogout").addEventListener("click",async()=>{await client.auth.signOut();hideSubscriptionGate();$("appShell").classList.remove("visible");document.body.classList.remove("app-mode");document.querySelector(".shell").classList.remove("hidden");switchTab("login");});
+
   async function openDashboard(user) {
     const metadata = user.user_metadata || {};
+    const adminCheck = await client.rpc("naf_is_super_admin");
+    if(adminCheck.error) throw adminCheck.error;
+    isNafSuperAdmin = adminCheck.data === true;
+    document.querySelectorAll(".navitem[data-page=\"super-admin\"]").forEach(el=>{el.hidden=!isNafSuperAdmin;});
     // Cashier accounts are mapped to a restaurant by the secure server-side function.
     const { data: cashierRecord, error: cashierLookupError } = await client
       .from("naf_cashiers").select("id,restaurant_id,name,email,phone,status,auth_user_id")
@@ -471,6 +570,8 @@
       if (cashierRestaurantError) throw cashierRestaurantError;
       currentCashier = cashierRecord;
       activeRestaurant = cashierRestaurant;
+      if(!(await checkSubscriptionAccess(cashierRestaurant.id))) return;
+      hideSubscriptionGate();
       const ownerSettings = $("ownerProfileSettings");
       const cashierSettings = $("cashierProfileSettings");
       if (ownerSettings) ownerSettings.hidden = true;
@@ -494,6 +595,11 @@
       return;
     }
     currentCashier = null;
+    if(isNafSuperAdmin){
+      activeRestaurant=null; hideSubscriptionGate(); document.body.classList.add("app-mode"); document.querySelector(".shell").classList.add("hidden"); $("appShell").classList.add("visible");
+      $("dashUserName").textContent=user.email||"Super Admin"; $("dashRestaurantName").textContent="NAF POS System"; $("welcomeTitle").textContent="Welcome, Super Admin"; $("userAvatar").textContent="S";
+      document.querySelectorAll(".navitem[data-page]").forEach(el=>{el.hidden=el.dataset.page!=="super-admin";}); showPage("super-admin"); return;
+    }
     const ownerSettings = $("ownerProfileSettings");
     const cashierSettings = $("cashierProfileSettings");
     if (ownerSettings) ownerSettings.hidden = false;
@@ -514,6 +620,8 @@
     }
     const restaurant = restaurants[0];
     activeRestaurant = restaurant;
+    if(!(await checkSubscriptionAccess(restaurant.id))) return;
+    hideSubscriptionGate();
     $("dashUserName").textContent = metadata.full_name || user.email || "Admin";
     $("dashRestaurantName").textContent = restaurant.name;
     $("welcomeTitle").textContent = "Welcome, " + (metadata.full_name || "Admin");
@@ -591,7 +699,7 @@
     if (page === "suppliers") loadSupplierPage();
     if (page === "reports") runReports();
     if (page === "cashier-management") loadCashiers();
-    if (page === "super-admin") loadAdminRestaurants();
+    if (page === "super-admin") loadAdminSubscriptionPanel();
     if (page === "employees") loadEmployees();
     if (page === "budget") loadBudget();
     if (page === "settings") loadSettings();
@@ -1327,8 +1435,18 @@
     catch(err){moduleError('Could not save cashier',err);}
   });
   $('cashierCancel').addEventListener('click',()=>{editingCashierId=null;$('cashierForm').reset();$('cashierPassword').required=true;$('cashierSave').textContent='ADD CASHIER';$('cashierCancel').hidden=true;});
-  async function loadAdminRestaurants(){const {data:auth}=await client.auth.getUser();const {data:allowed,error:roleError}=await client.from('naf_super_admins').select('user_id').eq('user_id',auth.user.id).maybeSingle();if(roleError||!allowed){moduleError('Access denied: this account is not registered as a Super Admin.',roleError||new Error('Not authorized'));return;}const {data,error}=await client.from('restaurants').select('id,name,currency,owner_id,created_at').order('created_at',{ascending:false}).limit(500);if(error){moduleError('Could not load restaurant accounts',error);return;}$('adminRestaurantRows').innerHTML=(data||[]).map(x=>`<tr><td>${safeText(x.name)}</td><td>${safeText(x.currency||'')}</td><td>${safeText(x.owner_id||'')}</td><td>${safeText(x.created_at?new Date(x.created_at).toLocaleDateString():'')}</td></tr>`).join('')||'<tr><td colspan="4">No restaurant accounts.</td></tr>';}
-  $('refreshAdminRestaurants').addEventListener('click',loadAdminRestaurants);
+  async function requireNafSuperAdmin(){const {data:{user},error}=await client.auth.getUser();if(error)throw error;if(!user)throw new Error("Please sign in.");const {data:ok,error:checkError}=await client.rpc("naf_is_super_admin");if(checkError)throw checkError;if(ok!==true)throw new Error("Access denied: this account is not a Super Admin.");return user;}
+  async function loadAdminSubscriptionSettings(){await requireNafSuperAdmin();const {data,error}=await client.from("naf_subscription_settings").select("*").eq("setting_key","main").single();if(error)throw error;subscriptionSettingsCache=data;$('adminTrialDays').value=data.trial_days??5;$('adminSubCurrency').value=data.currency||'SAR';$('adminSubEmail').value=data.contact_email||'';$('adminSubPhone').value=data.contact_phone||'';$('adminSubWhatsapp').value=data.whatsapp_number||'';$('adminSubBank').value=data.bank_name||'';$('adminSubHolder').value=data.account_holder||'';$('adminSubAccount').value=data.account_number||'';$('adminExpiryTitle').value=data.expiry_title||'';$('adminExpiryMessage').value=data.expiry_message||'';}
+  $('adminSubscriptionSettingsForm').addEventListener('submit',async e=>{e.preventDefault();try{const user=await requireNafSuperAdmin();const payload={trial_days:Number($('adminTrialDays').value),currency:$('adminSubCurrency').value.trim()||'SAR',contact_email:$('adminSubEmail').value.trim()||null,contact_phone:$('adminSubPhone').value.trim()||null,whatsapp_number:$('adminSubWhatsapp').value.trim()||null,bank_name:$('adminSubBank').value.trim()||null,account_holder:$('adminSubHolder').value.trim()||null,account_number:$('adminSubAccount').value.trim()||null,expiry_title:$('adminExpiryTitle').value.trim()||'Subscription Expired',expiry_message:$('adminExpiryMessage').value.trim()||'Please subscribe to continue.',updated_at:new Date().toISOString(),updated_by:user.id};const {error}=await client.from('naf_subscription_settings').update(payload).eq('setting_key','main');if(error)throw error;showAppNotice('Subscription settings saved. New trial duration applies to newly created restaurants.');await loadAdminSubscriptionSettings();}catch(err){moduleError('Could not save subscription settings',err);}});
+  async function loadAdminPlans(){await requireNafSuperAdmin();const {data,error}=await client.from('naf_subscription_plans').select('*').order('duration_days');if(error)throw error;subscriptionPlansCache=data||[];$('adminPlanRows').innerHTML=subscriptionPlansCache.map(p=>`<tr><td>${safeText(p.plan_name)}</td><td>${p.duration_days}</td><td>${safeText(p.currency)} ${Number(p.price).toFixed(2)}</td><td>${p.is_active?'Active':'Inactive'}</td><td><button class="edit" data-plan-edit="${safeText(p.id)}">Edit</button></td></tr>`).join('')||'<tr><td colspan="5">No plans.</td></tr>';}
+  $('adminPlanForm').addEventListener('submit',async e=>{e.preventDefault();try{await requireNafSuperAdmin();const code=$('adminPlanCode').value.trim().toLowerCase().replace(/[^a-z0-9_-]/g,'-');const payload={plan_code:code,plan_name:$('adminPlanName').value.trim(),duration_days:Number($('adminPlanDays').value),price:Number($('adminPlanPrice').value),currency:$('adminPlanCurrency').value.trim().toUpperCase(),is_active:$('adminPlanActive').value==='true',updated_at:new Date().toISOString()};const {error}=await client.from('naf_subscription_plans').upsert(payload,{onConflict:'plan_code'});if(error)throw error;showAppNotice('Subscription plan saved.');$('adminPlanForm').reset();$('adminPlanCurrency').value='SAR';await loadAdminPlans();}catch(err){moduleError('Could not save subscription plan',err);}});
+  $('adminPlanRows').addEventListener('click',e=>{const b=e.target.closest('[data-plan-edit]');if(!b)return;const p=subscriptionPlansCache.find(x=>x.id===b.dataset.planEdit);if(!p)return;$('adminPlanName').value=p.plan_name;$('adminPlanCode').value=p.plan_code;$('adminPlanDays').value=p.duration_days;$('adminPlanPrice').value=p.price;$('adminPlanCurrency').value=p.currency;$('adminPlanActive').value=String(p.is_active);});
+  async function loadAdminRestaurants(){try{await requireNafSuperAdmin();const {data,error}=await client.from('restaurants').select('id,name,currency,owner_id,created_at').order('created_at',{ascending:false}).limit(500);if(error)throw error;const {data:subs,error:subError}=await client.from('naf_subscriptions').select('restaurant_id,status,expires_at,plan_id');if(subError)throw subError;const {data:plans,error:planError}=await client.from('naf_subscription_plans').select('id,plan_name');if(planError)throw planError;const planMap=new Map((plans||[]).map(p=>[p.id,p.plan_name]));$('adminRestaurantRows').innerHTML=(data||[]).map(x=>{const sub=(subs||[]).find(y=>y.restaurant_id===x.id);return `<tr><td>${safeText(x.name)}</td><td class="subscription-status">${safeText(sub?.status||'missing')}</td><td>${safeText(planMap.get(sub?.plan_id)||'Trial')}</td><td>${safeText(sub?.expires_at?new Date(sub.expires_at).toLocaleDateString():'—')}</td><td>${safeText(x.owner_id||'')}</td><td><button class="edit" data-sub-extend="${safeText(x.id)}">+30 days</button> <button class="del" data-sub-suspend="${safeText(x.id)}">Suspend</button></td></tr>`;}).join('')||'<tr><td colspan="6">No restaurant accounts.</td></tr>';window.nafAdminRestaurants=data||[];window.nafAdminSubs=subs||[];}catch(err){moduleError('Could not load restaurant subscriptions',err);}}
+  $('adminRestaurantRows').addEventListener('click',async e=>{const extend=e.target.closest('[data-sub-extend]'),suspend=e.target.closest('[data-sub-suspend]');if(!extend&&!suspend)return;try{await requireNafSuperAdmin();const rid=(extend||suspend).dataset[extend?'subExtend':'subSuspend'];const current=(window.nafAdminSubs||[]).find(x=>x.restaurant_id===rid);if(!current)throw new Error('Subscription row not found.');let patch;if(extend){const base=current.status==='active'&&new Date(current.expires_at)>new Date()?new Date(current.expires_at):new Date();base.setDate(base.getDate()+30);patch={status:'active',started_at:new Date().toISOString(),expires_at:base.toISOString()};}else{if(!confirm('Suspend this restaurant subscription?'))return;patch={status:'suspended'};}const {error}=await client.from('naf_subscriptions').update({...patch,updated_at:new Date().toISOString()}).eq('restaurant_id',rid);if(error)throw error;showAppNotice('Subscription updated.');await loadAdminRestaurants();}catch(err){moduleError('Could not update subscription',err);}});
+  async function loadAdminPaymentRequests(){try{await requireNafSuperAdmin();const {data,error}=await client.from('naf_payment_requests').select('id,restaurant_id,plan_id,amount,currency,transaction_reference,receipt_path,status,created_at').order('created_at',{ascending:false}).limit(300);if(error)throw error;const [restaurantsRes,plansRes]=await Promise.all([client.from('restaurants').select('id,name'),client.from('naf_subscription_plans').select('id,plan_name,duration_days')]);if(restaurantsRes.error)throw restaurantsRes.error;if(plansRes.error)throw plansRes.error;const rm=new Map((restaurantsRes.data||[]).map(x=>[x.id,x.name])),pm=new Map((plansRes.data||[]).map(x=>[x.id,x]));window.nafPaymentRequests=data||[];$('adminPaymentRows').innerHTML=window.nafPaymentRequests.map(x=>`<tr><td>${safeText(rm.get(x.restaurant_id)||x.restaurant_id)}</td><td>${safeText(pm.get(x.plan_id)?.plan_name||'Plan')}</td><td>${safeText(x.currency)} ${Number(x.amount).toFixed(2)}</td><td>${safeText(x.transaction_reference||'')}</td><td><button class="edit" data-receipt="${safeText(x.id)}">View receipt</button></td><td class="subscription-status">${safeText(x.status)}</td><td>${x.status==='pending'?`<div class="subscription-actions"><button class="approve" data-payment-approve="${safeText(x.id)}">Approve</button><button class="reject" data-payment-reject="${safeText(x.id)}">Reject</button></div>`:'—'}</td></tr>`).join('')||'<tr><td colspan="7">No payment requests.</td></tr>';window.nafPlanMap=pm;}catch(err){moduleError('Could not load payment requests',err);}}
+  $('adminPaymentRows').addEventListener('click',async e=>{const view=e.target.closest('[data-receipt]'),approve=e.target.closest('[data-payment-approve]'),reject=e.target.closest('[data-payment-reject]');try{await requireNafSuperAdmin();if(view){const req=window.nafPaymentRequests.find(x=>x.id===view.dataset.receipt);const {data,error}=await client.storage.from('naf-payment-receipts').createSignedUrl(req.receipt_path,300);if(error)throw error;window.open(data.signedUrl,'_blank','noopener');return;}if(approve||reject){const id=(approve||reject).dataset[approve?'paymentApprove':'paymentReject'];const req=window.nafPaymentRequests.find(x=>x.id===id);if(!req)return;let rejection_reason=null;if(reject){rejection_reason=prompt('Reason for rejection (optional):')||null;}const {data:reviewResult,error:reviewError}=await client.rpc('naf_admin_review_payment',{p_request_id:id,p_approve:!!approve,p_rejection_reason:rejection_reason});if(reviewError)throw reviewError;if(reviewResult!==true)throw new Error('Payment review was not completed.');showAppNotice(approve?'Payment approved and subscription activated.':'Payment request rejected.');await loadAdminPaymentRequests();await loadAdminRestaurants();}}catch(err){moduleError('Payment review failed',err);}});
+  async function loadAdminSubscriptionPanel(){await Promise.all([loadAdminSubscriptionSettings(),loadAdminPlans(),loadAdminPaymentRequests(),loadAdminRestaurants()]);}
+  $('refreshAdminRestaurants').addEventListener('click',loadAdminRestaurants);$('refreshPaymentRequests').addEventListener('click',loadAdminPaymentRequests);
 
   async function loadEmployees(){if(!activeRestaurant)return;const {data,error}=await client.from("employees").select("id,name,role,phone,email,salary,created_at").eq("restaurant_id",activeRestaurant.id).order("created_at",{ascending:false}).limit(300);if(error){moduleError("Could not load employees (check employees table columns)",error);return;}window.nafEmployees=data||[];renderEmployees();}
   function employeeName(x){return x.name||"";}
