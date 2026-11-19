@@ -523,11 +523,13 @@
   async function loadSubscriptionPublicData(){
     const [plansRes,settingsRes] = await Promise.all([
       client.from("naf_subscription_plans").select("id,plan_code,plan_name,duration_days,price,currency,is_active").eq("is_active",true).order("duration_days"),
-      client.from("naf_subscription_settings").select("trial_days,contact_email,contact_phone,whatsapp_number,expiry_title,expiry_message,bank_name,account_holder,account_number,currency").eq("setting_key","main").maybeSingle()
+      client.rpc("naf_get_public_subscription_settings")
     ]);
     if(plansRes.error) throw plansRes.error;
     if(settingsRes.error) throw settingsRes.error;
-    subscriptionPlansCache=plansRes.data||[]; subscriptionSettingsCache=settingsRes.data||{};
+    subscriptionPlansCache=plansRes.data||[];
+    const publicSettingsRows=settingsRes.data||[];
+    subscriptionSettingsCache=Array.isArray(publicSettingsRows)?(publicSettingsRows[0]||{}):(publicSettingsRows||{});
     const select=$("subscriptionPlanSelect");
     select.innerHTML=subscriptionPlansCache.map(p=>`<option value="${safeText(p.id)}">${safeText(p.plan_name)} · ${safeText(p.currency)} ${Number(p.price).toFixed(2)} (${p.duration_days} days)</option>`).join("");
     $("subscriptionPlanCards").innerHTML=subscriptionPlansCache.map(p=>`<article class="subscription-plan"><b>${safeText(p.plan_name)}</b><small>${p.duration_days} days</small><div style="font-size:22px;font-weight:850;margin-top:8px">${safeText(p.currency)} ${Number(p.price).toFixed(2)}</div></article>`).join("")||"<p>No active plans are available. Contact NAF POS support.</p>";
