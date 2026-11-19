@@ -614,10 +614,12 @@
       return;
     }
     currentCashier = null;
-    if(isNafSuperAdmin){
-      activeRestaurant=null; hideSubscriptionGate(); document.body.classList.add("app-mode"); document.querySelector(".shell").classList.add("hidden"); $("appShell").classList.add("visible");
-      $("dashUserName").textContent=user.email||"Super Admin"; $("dashRestaurantName").textContent="NAF POS System"; $("welcomeTitle").textContent="Welcome, Super Admin"; $("userAvatar").textContent="S";
-      document.querySelectorAll(".navitem[data-page]").forEach(el=>{el.hidden=el.dataset.page!=="super-admin";}); showPage("super-admin"); return;
+    // A user may be both a restaurant owner and a NAF Super Admin.
+    // In that case continue loading the restaurant workspace below, while
+    // keeping the protected Super Admin navigation item visible as well.
+    if (isNafSuperAdmin) {
+      const adminNav = document.querySelector('.navitem[data-page="super-admin"]');
+      if (adminNav) adminNav.hidden = false;
     }
     const ownerSettings = $("ownerProfileSettings");
     const cashierSettings = $("cashierProfileSettings");
