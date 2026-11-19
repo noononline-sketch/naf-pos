@@ -124,6 +124,46 @@
 
     .module-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.module-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:15px}.module-card h3{margin:0 0 14px;color:var(--navy);font-size:16px}.module-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.module-field label{display:block;font-size:11px;font-weight:800;color:#526077;margin-bottom:6px}.module-field input,.module-field select,.module-field textarea{width:100%;min-height:40px;border:1px solid #dce2eb;border-radius:8px;padding:8px 10px;font:inherit;font-size:13px;background:#fff}.module-field.full{grid-column:1/-1}.module-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.module-table-wrap{overflow:auto}.module-table{width:100%;border-collapse:collapse;min-width:650px}.module-table th,.module-table td{padding:10px;border-bottom:1px solid var(--line);font-size:12px;text-align:left}.module-table th{color:var(--muted);background:#fafbfc}.module-table td{color:var(--ink)}.module-table button{border:0;border-radius:7px;padding:6px 9px;cursor:pointer;font-weight:750}.module-table .edit{background:#edf0f5;color:var(--navy)}.module-table .del{background:#fff0f0;color:#a52e3b}.module-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}.module-summary .stat{padding:13px}.module-summary .statvalue{font-size:19px}.module-toolbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:12px}.module-toolbar input{height:39px;border:1px solid var(--line);border-radius:8px;padding:0 10px}.module-note{font-size:11px;color:var(--muted);margin-top:7px;line-height:1.5}
     @media(max-width:650px){.module-grid,.module-form{grid-template-columns:1fr}.module-field.full{grid-column:auto}.module-summary{grid-template-columns:1fr 1fr}}
+
+    /* Stable full-screen workspace: keep the sidebar fixed and scroll page content only. */
+    @media (min-width:721px){
+      html,body.app-mode{height:100%;min-height:100%;overflow:hidden}
+      body.app-mode{padding:0}
+      .app-shell.visible{
+        display:flex;width:100%;height:100vh;height:100dvh;min-height:0;
+        overflow:hidden;align-items:stretch
+      }
+      .sidebar{
+        flex:0 0 255px;width:255px;height:100%;min-height:0;
+        overflow-y:auto;overflow-x:hidden
+      }
+      .mainarea{
+        flex:1 1 0;width:auto;max-width:none;min-width:0;
+        height:100%;min-height:0;margin:0;
+        padding:28px clamp(18px,3vw,42px);
+        overflow-y:auto;overflow-x:hidden
+      }
+      .pagepanel,.pagepanel.active{width:100%;min-width:0}
+      .poslayout{width:100%;grid-template-columns:minmax(0,1.55fr) minmax(280px,.85fr)}
+      .module-card,.menu-card,.posbox{min-width:0;max-width:none}
+    }
+    @media (max-width:720px){
+      html,body.app-mode{height:auto;min-height:100%;overflow:auto}
+      .app-shell.visible{
+        display:block;width:100%;height:auto;min-height:100vh;
+        overflow:visible
+      }
+      .sidebar{
+        width:100%;height:auto;min-height:0;max-height:none;
+        overflow:visible
+      }
+      .mainarea{
+        width:100%;max-width:none;height:auto;min-height:0;
+        margin:0;overflow:visible
+      }
+      .pagepanel,.pagepanel.active{width:100%;min-width:0}
+      .poslayout{width:100%}
+    }
   </style>
 </head>
 <body>
