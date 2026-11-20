@@ -1333,8 +1333,17 @@
       .paper-80 .tag{font-size:8px}.paper-80 .meta{grid-template-columns:1fr;gap:5px;padding:8px;margin:10px 0;font-size:9px}
       .paper-80 table{margin-top:10px}.paper-80 th,.paper-80 td{font-size:9px;padding:6px 3px}.paper-80 .totals{max-width:100%;margin-top:12px}
       .paper-80 .totals div{font-size:10px;padding:4px 0}.paper-80 .grand{font-size:14px!important}.paper-80 .bottom{margin-top:14px;gap:8px}
-      .paper-80 .thanks{font-size:11px}.paper-80 .foot{font-size:8px}.paper-80 #invoiceQr{width:60px;height:60px}
-      @media print{body[data-paper="80mm"]{width:80mm;padding:0}body[data-paper="80mm"] .sheet{width:80mm;max-width:80mm;padding:4mm}}
+      .paper-80 .thanks{font-size:11px}.paper-80 .foot{font-size:8px}
+      .paper-80 .bottom{flex-direction:column;align-items:center;text-align:center;gap:8px}
+      .paper-80 #invoiceQr{width:42px;height:42px;padding:2px;display:grid;place-items:center;margin:0 auto}
+      .paper-80 #invoiceQr canvas,.paper-80 #invoiceQr img{width:38px!important;height:38px!important;max-width:100%;max-height:100%;display:block}
+      .paper-80 table{table-layout:fixed;width:100%}.paper-80 th:first-child,.paper-80 td:first-child{width:34%;overflow-wrap:anywhere}
+      .paper-80 th:nth-child(2),.paper-80 td:nth-child(2){width:10%;text-align:center}
+      .paper-80 th:nth-child(3),.paper-80 td:nth-child(3){width:27%}
+      .paper-80 th:nth-child(4),.paper-80 td:nth-child(4){width:29%}
+      @media print{body[data-paper="80mm"]{width:80mm;min-width:80mm;max-width:80mm;padding:0;margin:0}
+      body[data-paper="80mm"] .sheet{width:80mm;min-width:80mm;max-width:80mm;padding:3mm;margin:0;border:0;box-shadow:none}
+      body[data-paper="80mm"] .paper-80 #invoiceQr{width:42px;height:42px}}
       </style></head><body data-paper="A4"><div class="toolbar">
       <label for="paperSize">Print size</label><select id="paperSize"><option value="A4">A4 Invoice</option><option value="80mm">80mm Thermal Receipt</option></select>
       <button type="button" onclick="window.print()">PRINT INVOICE</button></div>
