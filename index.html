@@ -174,7 +174,15 @@
     .subscription-card h2{margin:0 0 8px}.subscription-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0}.subscription-plan{border:1px solid var(--line);border-radius:12px;padding:15px}.subscription-plan b{display:block;color:var(--navy);font-size:16px}.subscription-plan small{color:var(--muted)}
     .subscription-form{display:grid;grid-template-columns:1fr 1fr;gap:12px}.subscription-form label{display:block;font-size:12px;font-weight:750;color:#4d5a6e;margin-bottom:6px}.subscription-form input,.subscription-form select{width:100%;height:42px;border:1px solid #dce2eb;border-radius:8px;padding:8px;font:inherit}.subscription-form .full{grid-column:1/-1}.subscription-admin-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.subscription-status{font-weight:800;text-transform:capitalize}.subscription-actions{display:flex;gap:7px;flex-wrap:wrap}.subscription-actions button{border:0;border-radius:7px;padding:7px 10px;cursor:pointer;font-weight:750}.subscription-actions .approve{background:#eaf8f0;color:#176b46}.subscription-actions .reject{background:#fff0f0;color:#a52e3b}
     @media(max-width:650px){.subscription-grid,.subscription-form,.subscription-admin-grid{grid-template-columns:1fr}.subscription-form .full{grid-column:auto}.subscription-card{padding:18px}}
-  </style>
+  
+.dashboard-details{align-items:stretch}.dash-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.dash-section-head h3{margin:0}
+.activity-list{display:grid;gap:10px;max-height:360px;overflow:auto}.activity-row{display:grid;grid-template-columns:38px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line,#e5e7eb)}
+.activity-dot{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:#f1f5f9;color:#334155;font-weight:800}.activity-main{min-width:0}.activity-main b{display:block;color:var(--navy);font-size:13px}
+.activity-main small,.overview-metric small{display:block;color:#77839a;font-size:11px;margin-top:3px}.activity-amount{font-weight:800;color:var(--navy);font-size:12px;white-space:nowrap}
+.overview-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}.overview-metric{border:1px solid var(--line,#e5e7eb);border-radius:12px;padding:12px;background:#fff;min-width:0}
+.overview-metric span{display:block;color:#68758c;font-size:11px;font-weight:700}.overview-metric b{display:block;color:var(--navy);font-size:17px;margin-top:6px;overflow-wrap:anywhere}
+@media(max-width:700px){.overview-grid{grid-template-columns:1fr 1fr}.activity-row{grid-template-columns:34px minmax(0,1fr)}.activity-amount{grid-column:2}}
+\n</style>
 </head>
 <body>
   <main class="shell">
@@ -282,9 +290,16 @@
         <article class="stat"><div class="stathead">Budget Balance <span class="staticon">◉</span></div><div class="statvalue" id="budgetBalance">SAR 0.00</div><div class="statnote">Budget − purchases − expenses</div></article>
         <article class="stat"><div class="stathead">Total Sale <span class="staticon">↗</span></div><div class="statvalue" id="totalSales">SAR 0.00</div><div class="statnote">Completed orders only</div></article>
       </section>
-      <section class="lowergrid">
-        <article class="dashcard"><h3>Recent Activity</h3><p>Your recent sales will appear here.</p><div class="empty" id="recentSales">No sales recorded yet.</div></article>
-        <article class="dashcard"><h3>Quick Overview</h3><p>Use the navigation menu to manage your restaurant. The other modules will be connected in the next development steps.</p><div class="empty" id="restaurantInfo">Loading restaurant details…</div></article>
+      <section class="lowergrid dashboard-details">
+        <article class="dashcard"><div class="dash-section-head"><h3>Recent Activity</h3><button class="link" id="refreshDashboardBtn" type="button">Refresh</button></div><p>Latest sales, purchases and expenses from this restaurant.</p><div id="recentSales" class="activity-list"><div class="empty">Loading recent activity…</div></div></article>
+        <article class="dashcard"><h3>Quick Overview</h3><p>Live totals loaded from Supabase for this restaurant.</p><div class="overview-grid">
+          <div class="overview-metric"><span>Total Sales</span><b id="overviewSales">—</b></div>
+          <div class="overview-metric"><span>Purchase Cost</span><b id="overviewPurchases">—</b></div>
+          <div class="overview-metric"><span>Total Expenses</span><b id="overviewExpenses">—</b></div>
+          <div class="overview-metric"><span>Net Profit</span><b id="overviewNetProfit">—</b></div>
+          <div class="overview-metric"><span>Stock Value</span><b id="overviewStockValue">Not tracked</b><small>Inventory quantities are not currently stored in the menu table.</small></div>
+          <div class="overview-metric"><span>Pending Payments</span><b id="overviewPendingPayments">—</b></div>
+        </div><div class="muted" id="restaurantInfo">Loading restaurant details…</div></article>
       </section>
       </div>
 
@@ -739,43 +754,50 @@
       maximumFractionDigits: 2
     });
 
-    // Dashboard totals are restricted to this restaurant.
-    // Only Completed orders are included in Total Sale.
-    const [budgetsRes, salesRes, purchasesRes, expensesRes, recentSalesRes] = await Promise.all([
-      client.from("budgets").select("amount").eq("restaurant_id", rid),
-      client.from("sales").select("total_amount").eq("restaurant_id", rid).ilike("order_status", "completed"),
-      client.from("purchases").select("total_amount").eq("restaurant_id", rid),
-      client.from("expenses").select("amount").eq("restaurant_id", rid),
-      client.from("sales").select("total_amount,created_at,invoice_number")
-        .eq("restaurant_id", rid).ilike("order_status", "completed")
-        .order("created_at", {ascending:false}).limit(5)
-    ]);
-
-    const failed = [budgetsRes, salesRes, purchasesRes, expensesRes, recentSalesRes].find(r => r.error);
-    if (failed) {
-      showAppNotice("Dashboard opened, but some totals could not load: " + failed.error.message);
-      return;
-    }
-
-    const budgetTotal = (budgetsRes.data || []).reduce((sum, row) => sum + Number(row.amount || 0), 0);
-    const purchaseTotal = (purchasesRes.data || []).reduce((sum, row) => sum + Number(row.total_amount || 0), 0);
-    const expenseTotal = (expensesRes.data || []).reduce((sum, row) => sum + Number(row.amount || 0), 0);
-    const salesTotal = (salesRes.data || []).reduce((sum, row) => sum + Number(row.total_amount || 0), 0);
-    const balance = budgetTotal - purchaseTotal - expenseTotal;
-
-    $("totalBudget").textContent = formatMoney(budgetTotal);
-    $("purchaseCost").textContent = formatMoney(purchaseTotal);
-    $("totalExpenses").textContent = formatMoney(expenseTotal);
-    $("budgetBalance").textContent = formatMoney(balance);
-    $("budgetBalance").style.color = balance < 0 ? "#b42318" : "#16804a";
-    $("totalSales").textContent = formatMoney(salesTotal);
-
-    const recentSales = recentSalesRes.data || [];
-    $("recentSales").textContent = recentSales.length
-      ? recentSales.map(row => `${row.invoice_number || "Sale"} · ${formatMoney(row.total_amount)}`).join("  |  ")
-      : "No completed sales recorded yet.";
+    await refreshDashboardData();
   }
 
+  async function refreshDashboardData(){
+    if(!activeRestaurant)return;
+    const rid=activeRestaurant.id,currency=activeRestaurant.currency||"SAR";
+    const fmt=value=>currency+" "+Number(value||0).toLocaleString("en-SA",{minimumFractionDigits:2,maximumFractionDigits:2});
+    const [budgetsRes,salesRes,purchasesRes,expensesRes,recentSalesRes,recentPurchasesRes,recentExpensesRes,pendingRes]=await Promise.all([
+      client.from("budgets").select("amount").eq("restaurant_id",rid),
+      client.from("sales").select("total_amount").eq("restaurant_id",rid).ilike("order_status","completed"),
+      client.from("purchases").select("total_amount").eq("restaurant_id",rid),
+      client.from("expenses").select("amount").eq("restaurant_id",rid),
+      client.from("sales").select("id,total_amount,created_at,invoice_number,cashier_id,created_by,payment_method").eq("restaurant_id",rid).ilike("order_status","completed").order("created_at",{ascending:false}).limit(8),
+      client.from("purchases").select("id,total_amount,created_at,purchase_date,invoice_number,created_by,status").eq("restaurant_id",rid).order("created_at",{ascending:false}).limit(8),
+      client.from("expenses").select("id,title,amount,created_at,expense_date,created_by").eq("restaurant_id",rid).order("created_at",{ascending:false}).limit(8),
+      client.from("sales").select("total_amount").eq("restaurant_id",rid).ilike("payment_status","pending")
+    ]);
+    const required=[budgetsRes,salesRes,purchasesRes,expensesRes,recentSalesRes,recentPurchasesRes,recentExpensesRes],failed=required.find(r=>r.error);
+    if(failed){showAppNotice("Dashboard could not load all Supabase data: "+failed.error.message);return;}
+    const sum=(rows,key)=>(rows||[]).reduce((a,r)=>a+Number(r[key]||0),0);
+    const budgetTotal=sum(budgetsRes.data,"amount"),purchaseTotal=sum(purchasesRes.data,"total_amount"),expenseTotal=sum(expensesRes.data,"amount"),salesTotal=sum(salesRes.data,"total_amount");
+    const netProfit=salesTotal-purchaseTotal-expenseTotal,pendingTotal=pendingRes.error?null:sum(pendingRes.data,"total_amount");
+    $("totalBudget").textContent=fmt(budgetTotal);$("purchaseCost").textContent=fmt(purchaseTotal);$("totalExpenses").textContent=fmt(expenseTotal);
+    $("budgetBalance").textContent=fmt(budgetTotal-purchaseTotal-expenseTotal);$("budgetBalance").style.color=(budgetTotal-purchaseTotal-expenseTotal)<0?"#b42318":"#16804a";
+    $("totalSales").textContent=fmt(salesTotal);$("overviewSales").textContent=fmt(salesTotal);$("overviewPurchases").textContent=fmt(purchaseTotal);
+    $("overviewExpenses").textContent=fmt(expenseTotal);$("overviewNetProfit").textContent=fmt(netProfit);$("overviewNetProfit").style.color=netProfit<0?"#b42318":"#16804a";
+    $("overviewPendingPayments").textContent=pendingTotal===null?"Unavailable":fmt(pendingTotal);
+    const activity=[
+      ...(recentSalesRes.data||[]).map(x=>({kind:"Sale",icon:"S",title:x.invoice_number||"New sale",amount:x.total_amount,at:x.created_at,actorId:x.created_by||x.cashier_id,detail:"Payment: "+(x.payment_method||"—")})),
+      ...(recentPurchasesRes.data||[]).map(x=>({kind:"Purchase",icon:"P",title:x.invoice_number||"New purchase",amount:x.total_amount,at:x.created_at||x.purchase_date,actorId:x.created_by,detail:"Status: "+(x.status||"—")})),
+      ...(recentExpensesRes.data||[]).map(x=>({kind:"Expense",icon:"E",title:x.title||"Expense recorded",amount:x.amount,at:x.created_at||x.expense_date,actorId:x.created_by,detail:"Expense"}))
+    ].sort((a,b)=>new Date(b.at||0)-new Date(a.at||0)).slice(0,12);
+    const actorIds=[...new Set(activity.map(x=>x.actorId).filter(Boolean))];let actorNames={};
+    if(actorIds.length){
+      const [profiles,cashiers]=await Promise.all([
+        client.from("profiles").select("id,full_name").in("id",actorIds),
+        client.from("naf_cashiers").select("auth_user_id,name").eq("restaurant_id",rid).in("auth_user_id",actorIds)
+      ]);
+      (profiles.data||[]).forEach(x=>actorNames[x.id]=x.full_name||"Staff");
+      (cashiers.data||[]).forEach(x=>actorNames[x.auth_user_id]=x.name||actorNames[x.auth_user_id]||"Cashier");
+    }
+    $("recentSales").innerHTML=activity.length?activity.map(x=>`<div class="activity-row"><div class="activity-dot">${x.icon}</div><div class="activity-main"><b>${safeText(x.kind)} · ${safeText(x.title)}</b><small>${safeText(x.detail)} · By: ${safeText(actorNames[x.actorId]||"Staff not recorded")} · ${safeText(x.at?new Date(x.at).toLocaleString():"Time unavailable")}</small></div><div class="activity-amount">${fmt(x.amount)}</div></div>`).join(""):'<div class="empty">No recent sales, purchases or expenses.</div>';
+  }
+  $("refreshDashboardBtn")?.addEventListener("click",refreshDashboardData);
 
   function showPage(page) {
     // Enforce Super Admin navigation visibility in the UI; database RPC/RLS remains the real security boundary.
@@ -1311,8 +1333,10 @@
     try {
       const totals = currentCartTotals();
       const invoiceNumber = createInvoiceNumber();
+      const signedInUser=(await client.auth.getUser()).data.user;
       const salePayload = {
         restaurant_id: activeRestaurant.id,
+        created_by: signedInUser?.id || null,
         cashier_id: currentCashier ? currentCashier.auth_user_id : null,
         invoice_number: invoiceNumber,
         subtotal: totals.subtotal,
@@ -1430,9 +1454,9 @@
     if(!lines.length||lines.some(x=>!x.name||x.quantity<=0||x.unit_cost<0)){showAppNotice('Enter valid purchase items, quantities and costs.');return;}
     const total=lines.reduce((a,x)=>a+x.quantity*x.unit_cost,0),btn=$('savePurchaseBtn');btn.disabled=true;
     try{
-      const payload={restaurant_id:activeRestaurant.id,supplier_id:$('purchaseSupplier').value||null,invoice_number:$('purchaseInvoice').value.trim()||window.nafNextPurchaseInvoice,total_amount:total,status:$('purchaseStatus').value,purchase_date:$('purchaseDate').value||todayISO()};
+      const signedInUser=(await client.auth.getUser()).data.user;const payload={restaurant_id:activeRestaurant.id,created_by:editingPurchaseId?undefined:(signedInUser?.id||null),supplier_id:$('purchaseSupplier').value||null,invoice_number:$('purchaseInvoice').value.trim()||window.nafNextPurchaseInvoice,total_amount:total,status:$('purchaseStatus').value,purchase_date:$('purchaseDate').value||todayISO()};
       let purchaseId=editingPurchaseId;
-      if(editingPurchaseId){const {error}=await client.from('purchases').update(payload).eq('id',editingPurchaseId).eq('restaurant_id',activeRestaurant.id);if(error)throw error;}
+      if(editingPurchaseId){delete payload.created_by;const {error}=await client.from('purchases').update(payload).eq('id',editingPurchaseId).eq('restaurant_id',activeRestaurant.id);if(error)throw error;}
       else{const {data,error}=await client.from('purchases').insert(payload).select('id').single();if(error)throw error;purchaseId=data.id;}
       if(editingPurchaseId){const {error:delError}=await client.from('purchase_items').delete().eq('purchase_id',purchaseId);if(delError)throw delError;}
       const items=lines.map(x=>({purchase_id:purchaseId,item_name:x.name,quantity:x.quantity,unit_cost:x.unit_cost,total_cost:x.quantity*x.unit_cost}));
@@ -1458,7 +1482,7 @@
   $("expenseRows").addEventListener("click",async e=>{const edit=e.target.closest("[data-edit-expense]");const del=e.target.closest("[data-delete-expense]");if(edit){const x=window.nafExpenses.find(r=>r.id===edit.dataset.editExpense);if(!x)return;editingExpenseId=x.id;$("expenseTitle").value=x.title;$("expenseCategory").value=x.category||"Other";$("expenseAmount").value=x.amount;$("expenseDate").value=x.expense_date||todayISO();$("expenseDescription").value=x.description||"";$("expenseFormTitle").textContent="Edit Expense";$("saveExpenseBtn").textContent="UPDATE EXPENSE";$("cancelExpenseEdit").hidden=false;return;}if(del&&confirm("Delete this expense?")){const {error}=await client.from("expenses").delete().eq("id",del.dataset.deleteExpense).eq("restaurant_id",activeRestaurant.id);if(error)moduleError("Could not delete expense",error);else{showAppNotice("Expense deleted.");await loadExpenses();await refreshDashboardTotals();}}});
   function resetExpense(){editingExpenseId=null;$("expenseForm").reset();$("expenseDate").value=todayISO();$("expenseFormTitle").textContent="Add Expense";$("saveExpenseBtn").textContent="SAVE EXPENSE";$("cancelExpenseEdit").hidden=true;}
   $("cancelExpenseEdit").addEventListener("click",resetExpense);
-  $("expenseForm").addEventListener("submit",async e=>{e.preventDefault();const payload={restaurant_id:activeRestaurant.id,title:$("expenseTitle").value.trim(),category:$("expenseCategory").value,amount:Number($("expenseAmount").value),description:$("expenseDescription").value.trim()||null,expense_date:$("expenseDate").value||todayISO()};try{const result=editingExpenseId?await client.from("expenses").update(payload).eq("id",editingExpenseId).eq("restaurant_id",activeRestaurant.id):await client.from("expenses").insert(payload);if(result.error)throw result.error;showAppNotice(editingExpenseId?"Expense updated.":"Expense saved.");resetExpense();await loadExpenses();await refreshDashboardTotals();}catch(err){moduleError("Could not save expense",err)}});
+  $("expenseForm").addEventListener("submit",async e=>{e.preventDefault();const signedInUser=(await client.auth.getUser()).data.user;const payload={restaurant_id:activeRestaurant.id,created_by:editingExpenseId?undefined:(signedInUser?.id||null),title:$("expenseTitle").value.trim(),category:$("expenseCategory").value,amount:Number($("expenseAmount").value),description:$("expenseDescription").value.trim()||null,expense_date:$("expenseDate").value||todayISO()};try{if(editingExpenseId)delete payload.created_by;const result=editingExpenseId?await client.from("expenses").update(payload).eq("id",editingExpenseId).eq("restaurant_id",activeRestaurant.id):await client.from("expenses").insert(payload);if(result.error)throw result.error;showAppNotice(editingExpenseId?"Expense updated.":"Expense saved.");resetExpense();await loadExpenses();await refreshDashboardTotals();}catch(err){moduleError("Could not save expense",err)}});
 
   async function loadSalesHistory(){if(!activeRestaurant)return;let query=client.from("sales").select("id,invoice_number,subtotal,discount,tax,total_amount,payment_method,payment_status,order_status,created_at").eq("restaurant_id",activeRestaurant.id).order("created_at",{ascending:false}).limit(500);if($("salesFrom").value)query=query.gte("created_at",$("salesFrom").value+"T00:00:00");if($("salesTo").value)query=query.lte("created_at",$("salesTo").value+"T23:59:59");if(currentCashier)query=query.eq("cashier_id",currentCashier.auth_user_id);const {data,error}=await query;if(error){moduleError("Could not load sales history",error);return;}window.nafSales=data||[];renderSalesHistory();}
   function renderSalesHistory(){const q=($("salesSearch").value||"").toLowerCase();const rows=(window.nafSales||[]).filter(x=>(x.invoice_number||"").toLowerCase().includes(q));$("salesRows").innerHTML=rows.map(x=>`<tr><td>${safeText(new Date(x.created_at).toLocaleString())}</td><td>${safeText(x.invoice_number||"")}</td><td>${safeText(x.payment_method||"")}</td><td>${safeText(x.order_status||x.payment_status||"")}</td><td>${money(x.total_amount)}</td><td><button class="edit" data-view-sale="${safeText(x.id)}">View / Print</button></td></tr>`).join("")||'<tr><td colspan="6" class="muted-empty">No sales found.</td></tr>';}
@@ -1752,7 +1776,7 @@
     }catch(err){moduleError("Could not save owner settings",err);}
   });
   $("passwordForm").addEventListener("submit",async e=>{e.preventDefault();const a=$("newPassword").value,b=$("confirmPassword").value;if(a.length<8||a!==b){showAppNotice("Passwords must match and contain at least 8 characters.");return;}const {error}=await client.auth.updateUser({password:a});if(error)moduleError("Could not update password",error);else{showAppNotice("Password updated successfully.");$("passwordForm").reset();}});
-  async function refreshDashboardTotals(){const {data,error}=await client.auth.getUser();if(error||!data.user)return;await openDashboard(data.user);}
+  async function refreshDashboardTotals(){if(activeRestaurant){await refreshDashboardData();return;}const {data,error}=await client.auth.getUser();if(error||!data.user)return;await openDashboard(data.user);}
   // Default purchase line, date fields and current tax preference.
   $("purchaseDate").value=todayISO();$("expenseDate").value=todayISO();$("budgetStart").value=todayISO();$("budgetEnd").value=todayISO();addPurchaseLine();
 
