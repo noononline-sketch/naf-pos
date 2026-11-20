@@ -470,6 +470,36 @@
           </form>
           <p class="module-note">Owner profile email changes require confirmation from the new email address. Restaurant information is saved to the restaurant account.</p>
         </div>
+        <div class="module-card" id="restaurantDangerZone" style="border:1px solid #efb7bc;background:#fffafa">
+          <h3 style="color:#a52e3b">Danger Zone — Restaurant Data</h3>
+          <p class="module-note">Only the restaurant owner can run these actions. They affect this restaurant only. Cashier accounts, owner login, restaurant account, settings and subscription records are preserved.</p>
+          <div class="module-card" style="border-color:#f0d3d6;background:#fff">
+            <h3>1. Reset Restaurant Data</h3>
+            <p class="module-note">Deletes sales and sale items, purchases and purchase items, expenses and budgets. Keeps menu, categories, customers, suppliers, employees and cashier accounts.</p>
+            <button type="button" class="menu-btn danger" id="resetRestaurantDataBtn">RESET RESTAURANT DATA</button>
+          </div>
+          <div class="module-card" style="border-color:#f0d3d6;background:#fff">
+            <h3>2. Delete All Operational Data</h3>
+            <p class="module-note">Deletes transactions, expenses, budgets, menu items/categories, customers, suppliers, employees and pending cashier invitations. Keeps cashier accounts and all owner/account/subscription records.</p>
+            <button type="button" class="menu-btn danger" id="deleteAllRestaurantDataBtn">DELETE ALL OPERATIONAL DATA</button>
+          </div>
+          <div id="restaurantDataConfirmPanel" hidden style="border:1px solid #e5aeb4;border-radius:12px;padding:15px;background:#fff5f5">
+            <h3 id="restaurantDataConfirmTitle">Confirm action</h3>
+            <p id="restaurantDataConfirmDescription" class="module-note"></p>
+            <form id="restaurantDataConfirmForm">
+              <div class="module-form">
+                <div class="module-field full"><label>TYPE THE EXACT RESTAURANT NAME</label><input id="restaurantDataConfirmName" autocomplete="off" required></div>
+                <div class="module-field full"><label>OWNER ACCOUNT PASSWORD</label><input id="restaurantDataConfirmPassword" type="password" autocomplete="current-password" required></div>
+              </div>
+              <label style="display:flex;gap:9px;align-items:flex-start;margin-top:12px;font-size:12px;color:#7f2630"><input id="restaurantDataBackupAck" type="checkbox" required style="margin-top:2px"> I have exported or saved a backup of this restaurant's data and understand this action cannot be undone.</label>
+              <div class="module-actions">
+                <button type="submit" class="menu-btn danger" id="restaurantDataConfirmSubmit">CONFIRM & CONTINUE</button>
+                <button type="button" class="menu-btn secondary" id="restaurantDataConfirmCancel">CANCEL</button>
+              </div>
+              <p class="module-note">Your password is checked with Supabase Auth. It is not stored by this page. The database function independently verifies that you own this restaurant.</p>
+            </form>
+          </div>
+        </div>
         <div class="module-card" id="cashierProfileSettings" hidden>
           <h3>My Cashier Information</h3>
           <div class="module-form">
@@ -776,66 +806,19 @@
 
   async function refreshCustomerSubscriptionCard(){
     if(!activeRestaurant || isNafSuperAdmin) return;
-    try{
-      const details = await loadCustomerSubscriptionDetails(activeRestaurant.id);
-      const requestButton = $("openSubscriptionRequest");
-      if(requestButton){
-        const expiry = details?.expires_at ? new Date(details.expires_at) : null;
-        const stillActive = ["trial","active"].includes(String(details?.subscription_status||"").toLowerCase())
-          && expiry && expiry.getTime() > Date.now();
-        requestButton.disabled = !!stillActive;
-        requestButton.textContent = stillActive
-          ? "PLAN REQUEST AVAILABLE AFTER EXPIRY"
-          : "VIEW PLANS & REQUEST SUBSCRIPTION";
-        requestButton.title = stillActive
-          ? "You can request a new plan after your current subscription expires."
-          : "Choose a plan and submit payment proof.";
-      }
-    }catch(err){ moduleError("Could not refresh subscription details",err); }
+    try{ await loadCustomerSubscriptionDetails(activeRestaurant.id); }
+    catch(err){ moduleError("Could not refresh subscription details",err); }
   }
-  $("openSubscriptionRequest")?.addEventListener("click",async()=>{
+    $("openSubscriptionRequest")?.addEventListener("click",async()=>{
     if(currentCashier || !activeRestaurant){showAppNotice("Only the restaurant owner can manage subscription requests.");return;}
     try{
-      // The server-side access RPC is authoritative; never allow an early renewal request.
-      const {data,error}=await client.rpc("naf_my_subscription_access");
-      if(error) throw error;
-      const accessRow=(data||[]).find(x=>x.restaurant_id===activeRestaurant.id);
-      if(accessRow?.can_access===true){
-        showAppNotice("Your current plan is still active. You can request another plan after the expiry date.");
-        await refreshCustomerSubscriptionCard();
-        return;
-      }
       await loadSubscriptionPublicData();
-      showSubscriptionGate("","Your subscription has expired. Choose a new plan and submit your payment receipt for review.");
-      $("subscriptionGateMessage").textContent="Your subscription has expired. Choose a new plan and submit your payment receipt for review.";
+      showSubscriptionGate("","Choose a subscription plan and submit your payment receipt for review.");
+      $("subscriptionGateMessage").textContent="Choose a subscription plan and submit your payment receipt for review.";
       $("subscriptionPaymentForm").hidden=false;
       $("subscriptionPaymentForm").dataset.restaurantId=activeRestaurant.id;
-    }catch(err){moduleError("Could not open subscription plans",err);}
+    }catch(err){moduleError("Could not load subscription plans",err);}
   });
-
-  // Re-check access while the app is open so an account is locked shortly after expiry,
-  // not only when the owner or cashier signs in again.
-  window.setInterval(async()=>{
-    if(!activeRestaurant || isNafSuperAdmin || $("subscriptionGate").classList.contains("visible")) return;
-    try{
-      const {data,error}=await client.rpc("naf_my_subscription_access");
-      if(error) throw error;
-      const row=(data||[]).find(x=>x.restaurant_id===activeRestaurant.id);
-      currentSubscription=row||null;
-      if(row?.can_access!==true){
-        await loadSubscriptionPublicData();
-        const expiry=row?.expires_at?new Date(row.expires_at).toLocaleDateString():"not available";
-        showSubscriptionGate("",`Subscription expired. Expiry: ${expiry}.`);
-        if(currentCashier){
-          $("subscriptionPaymentForm").hidden=true;
-          $("subscriptionGateMessage").textContent="This restaurant subscription has expired. Please contact the restaurant owner.";
-        }else{
-          $("subscriptionPaymentForm").hidden=false;
-          $("subscriptionPaymentForm").dataset.restaurantId=activeRestaurant.id;
-        }
-      }
-    }catch(err){ console.error("Subscription access re-check failed:",err); }
-  },60000);
 
   document.querySelectorAll(".navitem[data-page]").forEach(button => {
     button.addEventListener("click", () => {
@@ -1601,6 +1584,7 @@
     if(!activeRestaurant)return;
     if(currentCashier){
       $("ownerProfileSettings").hidden=true;
+      $("restaurantDangerZone").hidden=true;
       $("cashierProfileSettings").hidden=false;
       $("myCashierName").value=currentCashier.name||"";
       $("myCashierPhone").value=currentCashier.phone||"";
@@ -1608,6 +1592,7 @@
       return;
     }
     $("ownerProfileSettings").hidden=false;
+    $("restaurantDangerZone").hidden=false;
     $("cashierProfileSettings").hidden=true;
     const {data:{user},error}=await client.auth.getUser();
     if(error)throw error;
@@ -1623,6 +1608,66 @@
     $("settingsTax").value=Number.isFinite(rate)?Math.min(100,Math.max(0,rate)):15;
     $("taxRate").value=$("settingsTax").value;
   }
+  let pendingRestaurantDataAction = null;
+  function closeRestaurantDataConfirm(){
+    pendingRestaurantDataAction=null;
+    $("restaurantDataConfirmPanel").hidden=true;
+    $("restaurantDataConfirmForm").reset();
+    $("restaurantDataConfirmSubmit").disabled=false;
+    $("restaurantDataConfirmSubmit").textContent="CONFIRM & CONTINUE";
+  }
+  function openRestaurantDataConfirm(mode){
+    if(currentCashier || !activeRestaurant){showAppNotice("Only the restaurant owner can manage restaurant data.");return;}
+    pendingRestaurantDataAction=mode;
+    const isFull=mode==="delete_all";
+    $("restaurantDataConfirmTitle").textContent=isFull?"Confirm Delete All Operational Data":"Confirm Reset Restaurant Data";
+    $("restaurantDataConfirmDescription").textContent=isFull
+      ? `This permanently deletes all operational data for ${activeRestaurant.name}, including menu, customers, suppliers, employees and pending invitations. Cashier accounts, owner login and subscription remain.`
+      : `This permanently deletes sales, purchases, expenses and budgets for ${activeRestaurant.name}. Menu, customers, suppliers, employees and cashier accounts remain.`;
+    $("restaurantDataConfirmPanel").hidden=false;
+    $("restaurantDataConfirmName").value="";
+    $("restaurantDataConfirmPassword").value="";
+    $("restaurantDataBackupAck").checked=false;
+    $("restaurantDataConfirmPanel").scrollIntoView({behavior:"smooth",block:"center"});
+  }
+  $("resetRestaurantDataBtn").addEventListener("click",()=>openRestaurantDataConfirm("reset"));
+  $("deleteAllRestaurantDataBtn").addEventListener("click",()=>openRestaurantDataConfirm("delete_all"));
+  $("restaurantDataConfirmCancel").addEventListener("click",closeRestaurantDataConfirm);
+  $("restaurantDataConfirmForm").addEventListener("submit",async e=>{
+    e.preventDefault();
+    if(!pendingRestaurantDataAction || currentCashier || !activeRestaurant)return;
+    const mode=pendingRestaurantDataAction;
+    const typedName=$("restaurantDataConfirmName").value.trim();
+    const password=$("restaurantDataConfirmPassword").value;
+    if(typedName!==String(activeRestaurant.name||"")){showAppNotice("Restaurant name does not match. No data was changed.");return;}
+    if(!password){showAppNotice("Enter your owner account password.");return;}
+    if(!$('restaurantDataBackupAck').checked){showAppNotice("Please confirm that you have saved a backup before continuing.");return;}
+    const submit=$("restaurantDataConfirmSubmit");
+    submit.disabled=true;submit.textContent="VERIFYING & PROCESSING…";
+    try{
+      const {data:{user},error:userError}=await client.auth.getUser();
+      if(userError)throw userError;
+      if(!user?.email)throw new Error("Could not verify the signed-in owner email. Please sign in again.");
+      // Re-authenticate the current owner before the destructive server-side RPC.
+      const authResult=await client.auth.signInWithPassword({email:user.email,password});
+      if(authResult.error)throw new Error("Password verification failed. Check your owner password and try again.");
+      if(authResult.data?.user?.id!==user.id)throw new Error("The verified account does not match the signed-in owner.");
+      const {data,error}=await client.rpc("naf_owner_clear_restaurant_data",{
+        p_restaurant_id:activeRestaurant.id,
+        p_mode:mode,
+        p_confirm_name:typedName
+      });
+      if(error)throw error;
+      closeRestaurantDataConfirm();
+      showAppNotice(mode==="reset"?"Restaurant data reset completed. Your cashier accounts and subscription were preserved.":"All operational data deleted. Your cashier accounts and subscription were preserved.");
+      // Reload from Supabase so every screen reflects the clean restaurant state.
+      window.location.reload();
+    }catch(err){
+      submit.disabled=false;submit.textContent="CONFIRM & CONTINUE";
+      moduleError("Restaurant data action failed. No success was reported.",err);
+    }
+  });
+
   $("ownerProfileForm").addEventListener("submit",async e=>{
     e.preventDefault();
     if(currentCashier){showAppNotice("Only the restaurant owner can edit owner and restaurant information.");return;}
