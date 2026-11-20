@@ -776,19 +776,66 @@
 
   async function refreshCustomerSubscriptionCard(){
     if(!activeRestaurant || isNafSuperAdmin) return;
-    try{ await loadCustomerSubscriptionDetails(activeRestaurant.id); }
-    catch(err){ moduleError("Could not refresh subscription details",err); }
+    try{
+      const details = await loadCustomerSubscriptionDetails(activeRestaurant.id);
+      const requestButton = $("openSubscriptionRequest");
+      if(requestButton){
+        const expiry = details?.expires_at ? new Date(details.expires_at) : null;
+        const stillActive = ["trial","active"].includes(String(details?.subscription_status||"").toLowerCase())
+          && expiry && expiry.getTime() > Date.now();
+        requestButton.disabled = !!stillActive;
+        requestButton.textContent = stillActive
+          ? "PLAN REQUEST AVAILABLE AFTER EXPIRY"
+          : "VIEW PLANS & REQUEST SUBSCRIPTION";
+        requestButton.title = stillActive
+          ? "You can request a new plan after your current subscription expires."
+          : "Choose a plan and submit payment proof.";
+      }
+    }catch(err){ moduleError("Could not refresh subscription details",err); }
   }
-    $("openSubscriptionRequest")?.addEventListener("click",async()=>{
+  $("openSubscriptionRequest")?.addEventListener("click",async()=>{
     if(currentCashier || !activeRestaurant){showAppNotice("Only the restaurant owner can manage subscription requests.");return;}
     try{
+      // The server-side access RPC is authoritative; never allow an early renewal request.
+      const {data,error}=await client.rpc("naf_my_subscription_access");
+      if(error) throw error;
+      const accessRow=(data||[]).find(x=>x.restaurant_id===activeRestaurant.id);
+      if(accessRow?.can_access===true){
+        showAppNotice("Your current plan is still active. You can request another plan after the expiry date.");
+        await refreshCustomerSubscriptionCard();
+        return;
+      }
       await loadSubscriptionPublicData();
-      showSubscriptionGate("","Choose a subscription plan and submit your payment receipt for review.");
-      $("subscriptionGateMessage").textContent="Choose a subscription plan and submit your payment receipt for review.";
+      showSubscriptionGate("","Your subscription has expired. Choose a new plan and submit your payment receipt for review.");
+      $("subscriptionGateMessage").textContent="Your subscription has expired. Choose a new plan and submit your payment receipt for review.";
       $("subscriptionPaymentForm").hidden=false;
       $("subscriptionPaymentForm").dataset.restaurantId=activeRestaurant.id;
-    }catch(err){moduleError("Could not load subscription plans",err);}
+    }catch(err){moduleError("Could not open subscription plans",err);}
   });
+
+  // Re-check access while the app is open so an account is locked shortly after expiry,
+  // not only when the owner or cashier signs in again.
+  window.setInterval(async()=>{
+    if(!activeRestaurant || isNafSuperAdmin || $("subscriptionGate").classList.contains("visible")) return;
+    try{
+      const {data,error}=await client.rpc("naf_my_subscription_access");
+      if(error) throw error;
+      const row=(data||[]).find(x=>x.restaurant_id===activeRestaurant.id);
+      currentSubscription=row||null;
+      if(row?.can_access!==true){
+        await loadSubscriptionPublicData();
+        const expiry=row?.expires_at?new Date(row.expires_at).toLocaleDateString():"not available";
+        showSubscriptionGate("",`Subscription expired. Expiry: ${expiry}.`);
+        if(currentCashier){
+          $("subscriptionPaymentForm").hidden=true;
+          $("subscriptionGateMessage").textContent="This restaurant subscription has expired. Please contact the restaurant owner.";
+        }else{
+          $("subscriptionPaymentForm").hidden=false;
+          $("subscriptionPaymentForm").dataset.restaurantId=activeRestaurant.id;
+        }
+      }
+    }catch(err){ console.error("Subscription access re-check failed:",err); }
+  },60000);
 
   document.querySelectorAll(".navitem[data-page]").forEach(button => {
     button.addEventListener("click", () => {
