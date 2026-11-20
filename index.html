@@ -182,7 +182,14 @@
 .overview-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}.overview-metric{border:1px solid var(--line,#e5e7eb);border-radius:12px;padding:12px;background:#fff;min-width:0}
 .overview-metric span{display:block;color:#68758c;font-size:11px;font-weight:700}.overview-metric b{display:block;color:var(--navy);font-size:17px;margin-top:6px;overflow-wrap:anywhere}
 @media(max-width:700px){.overview-grid{grid-template-columns:1fr 1fr}.activity-row{grid-template-columns:34px minmax(0,1fr)}.activity-amount{grid-column:2}}
-\n</style>
+\n
+.dashboard-datebar{display:flex;align-items:end;gap:10px;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:12px;padding:13px 15px;margin:14px 0}
+.dashboard-datebar>div{margin-right:auto}.dashboard-datebar b{display:block;color:var(--navy);font-size:13px}.dashboard-datebar small{display:block;color:var(--muted);font-size:11px;margin-top:3px}
+.dashboard-datebar label{display:grid;gap:4px;color:#657087;font-size:10px;font-weight:800}
+.dashboard-datebar input{height:37px;border:1px solid var(--line);border-radius:8px;padding:0 8px;font:inherit;color:var(--ink)}
+@media(max-width:720px){.topbar .userbox{flex-wrap:wrap;justify-content:flex-end}.topbar .logout{padding:8px 9px;font-size:11px}.dashboard-datebar>div{width:100%}.dashboard-datebar label{flex:1;min-width:115px}.dashboard-datebar input{width:100%}}
+
+</style>
 </head>
 <body>
   <main class="shell">
@@ -275,13 +282,19 @@
     <main class="mainarea">
       <header class="topbar">
         <div><div class="eyebrow">Restaurant workspace</div><h1 class="pageheading" id="pageheading">Dashboard</h1></div>
-        <div class="userbox"><div class="avatar" id="userAvatar">N</div><div class="usertext"><b id="dashUserName">Admin</b><small id="dashRestaurantName">Restaurant</small></div><button class="logout" id="logoutBtn" type="button">Log out</button></div>
+        <div class="userbox"><div class="avatar" id="userAvatar">N</div><div class="usertext"><b id="dashUserName">Admin</b><small id="dashRestaurantName">Restaurant</small></div><button class="logout" id="refreshAppBtn" type="button" title="Refresh the whole app">↻ Refresh</button><button class="logout" id="logoutBtn" type="button">Log out</button></div>
       </header>
       <div id="appNotice" class="appnotice"></div>
       <div id="dashboardPage" class="pagepanel active">
       <section class="welcome">
         <h2 id="welcomeTitle">Welcome to NAF POS</h2>
         <p>Your restaurant overview. Your live business figures will appear here as you record transactions.</p>
+      </section>
+      <section class="dashboard-datebar">
+        <div><b>Dashboard date range</b><small>Filter sales, purchases, expenses and activity</small></div>
+        <label>From <input type="date" id="dashboardFromDate"></label>
+        <label>To <input type="date" id="dashboardToDate"></label>
+        <button type="button" class="menu-btn" id="applyDashboardDates">Apply</button>
       </section>
       <section class="stats">
         <article class="stat"><div class="stathead">Budget <span class="staticon">◈</span></div><div class="statvalue" id="totalBudget">SAR 0.00</div><div class="statnote">Total allocated budget</div></article>
@@ -754,22 +767,46 @@
       maximumFractionDigits: 2
     });
 
+    showPage("dashboard");
     await refreshDashboardData();
+  }
+
+  function setDefaultDashboardDates(){
+    const today=new Date();
+    const localISO=d=>{const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");return `${y}-${m}-${day}`;};
+    const firstOfMonth=new Date(today.getFullYear(),today.getMonth(),1);
+    if(!$("dashboardFromDate").value)$("dashboardFromDate").value=localISO(firstOfMonth);
+    if(!$("dashboardToDate").value)$("dashboardToDate").value=localISO(today);
   }
 
   async function refreshDashboardData(){
     if(!activeRestaurant)return;
     const rid=activeRestaurant.id,currency=activeRestaurant.currency||"SAR";
     const fmt=value=>currency+" "+Number(value||0).toLocaleString("en-SA",{minimumFractionDigits:2,maximumFractionDigits:2});
+    setDefaultDashboardDates();
+    const fromDate=$("dashboardFromDate").value,toDate=$("dashboardToDate").value;
+    if(fromDate&&toDate&&fromDate>toDate){showAppNotice("Dashboard date range is invalid: From date must be before To date.");return;}
+    const dateFilter=(query,column,isTimestamp=true)=>{
+      if(fromDate)query=query.gte(column,isTimestamp?`${fromDate}T00:00:00`:fromDate);
+      if(toDate)query=query.lte(column,isTimestamp?`${toDate}T23:59:59.999`:toDate);
+      return query;
+    };
+    const salesQuery=dateFilter(client.from("sales").select("total_amount").eq("restaurant_id",rid).ilike("order_status","completed"),"created_at");
+    const purchasesQuery=dateFilter(client.from("purchases").select("total_amount").eq("restaurant_id",rid),"purchase_date",false);
+    const expensesQuery=dateFilter(client.from("expenses").select("amount").eq("restaurant_id",rid),"expense_date",false);
+    const recentSalesQuery=dateFilter(client.from("sales").select("id,total_amount,created_at,invoice_number,cashier_id,created_by,payment_method").eq("restaurant_id",rid).ilike("order_status","completed"),"created_at");
+    const recentPurchasesQuery=dateFilter(client.from("purchases").select("id,total_amount,created_at,purchase_date,invoice_number,created_by,status").eq("restaurant_id",rid),"purchase_date",false);
+    const recentExpensesQuery=dateFilter(client.from("expenses").select("id,title,amount,created_at,expense_date,created_by").eq("restaurant_id",rid),"expense_date",false);
+    const pendingQuery=dateFilter(client.from("sales").select("total_amount").eq("restaurant_id",rid).ilike("payment_status","pending"),"created_at");
     const [budgetsRes,salesRes,purchasesRes,expensesRes,recentSalesRes,recentPurchasesRes,recentExpensesRes,pendingRes]=await Promise.all([
       client.from("budgets").select("amount").eq("restaurant_id",rid),
-      client.from("sales").select("total_amount").eq("restaurant_id",rid).ilike("order_status","completed"),
-      client.from("purchases").select("total_amount").eq("restaurant_id",rid),
-      client.from("expenses").select("amount").eq("restaurant_id",rid),
-      client.from("sales").select("id,total_amount,created_at,invoice_number,cashier_id,created_by,payment_method").eq("restaurant_id",rid).ilike("order_status","completed").order("created_at",{ascending:false}).limit(8),
-      client.from("purchases").select("id,total_amount,created_at,purchase_date,invoice_number,created_by,status").eq("restaurant_id",rid).order("created_at",{ascending:false}).limit(8),
-      client.from("expenses").select("id,title,amount,created_at,expense_date,created_by").eq("restaurant_id",rid).order("created_at",{ascending:false}).limit(8),
-      client.from("sales").select("total_amount").eq("restaurant_id",rid).ilike("payment_status","pending")
+      salesQuery,
+      purchasesQuery,
+      expensesQuery,
+      recentSalesQuery.order("created_at",{ascending:false}).limit(8),
+      recentPurchasesQuery.order("purchase_date",{ascending:false}).limit(8),
+      recentExpensesQuery.order("expense_date",{ascending:false}).limit(8),
+      pendingQuery
     ]);
     const required=[budgetsRes,salesRes,purchasesRes,expensesRes,recentSalesRes,recentPurchasesRes,recentExpensesRes],failed=required.find(r=>r.error);
     if(failed){showAppNotice("Dashboard could not load all Supabase data: "+failed.error.message);return;}
@@ -798,6 +835,10 @@
     $("recentSales").innerHTML=activity.length?activity.map(x=>`<div class="activity-row"><div class="activity-dot">${x.icon}</div><div class="activity-main"><b>${safeText(x.kind)} · ${safeText(x.title)}</b><small>${safeText(x.detail)} · By: ${safeText(actorNames[x.actorId]||"Staff not recorded")} · ${safeText(x.at?new Date(x.at).toLocaleString():"Time unavailable")}</small></div><div class="activity-amount">${fmt(x.amount)}</div></div>`).join(""):'<div class="empty">No recent sales, purchases or expenses.</div>';
   }
   $("refreshDashboardBtn")?.addEventListener("click",refreshDashboardData);
+  $("applyDashboardDates")?.addEventListener("click",refreshDashboardData);
+  $("dashboardFromDate")?.addEventListener("change",()=>{if($("dashboardToDate").value&&$("dashboardFromDate").value>$("dashboardToDate").value)$("dashboardToDate").value=$("dashboardFromDate").value;});
+  $("dashboardToDate")?.addEventListener("change",()=>{if($("dashboardFromDate").value&&$("dashboardToDate").value<$("dashboardFromDate").value)$("dashboardFromDate").value=$("dashboardToDate").value;});
+  $("refreshAppBtn")?.addEventListener("click",()=>window.location.reload());
 
   function showPage(page) {
     // Enforce Super Admin navigation visibility in the UI; database RPC/RLS remains the real security boundary.
