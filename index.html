@@ -445,7 +445,7 @@
           <div class="module-card" style="padding:12px;margin:14px 0 0;background:#fafbfc"><div class="module-toolbar"><b>Purchase items</b><button class="menu-btn secondary" type="button" id="addPurchaseLine">+ Add item</button></div><div id="purchaseLines"></div></div>
           <div class="module-actions"><button class="menu-btn" type="submit" id="savePurchaseBtn">SAVE PURCHASE</button></div>
         </form></div>
-        <div class="module-card"><div class="module-toolbar"><h3 style="margin:0">Purchase History</h3><input id="purchaseSearch" placeholder="Search invoice or supplier"></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>DATE</th><th>INVOICE</th><th>SUPPLIER</th><th>TOTAL</th><th>STATUS</th><th>ACTIONS</th></tr></thead><tbody id="purchaseRows"></tbody></table></div></div>
+        <div class="module-card"><div class="module-toolbar"><h3 style="margin:0">Purchase History</h3><input id="purchaseSearch" placeholder="Search invoice or supplier"></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>DATE</th><th>ITEM</th><th>INVOICE</th><th>SUPPLIER</th><th>QUANTITY</th><th>UNIT</th><th>TOTAL</th><th>STATUS</th><th>ACTIONS</th></tr></thead><tbody id="purchaseRows"></tbody></table></div></div>
         <div class="module-card"><h3>Suppliers</h3><form id="supplierForm"><div class="module-form"><div class="module-field"><label>SUPPLIER NAME</label><input id="supplierName" required maxlength="120" placeholder="Supplier name"></div></div><div class="module-actions"><button class="menu-btn" id="saveSupplierBtn" type="submit">ADD SUPPLIER</button><button class="menu-btn secondary" id="cancelSupplierEdit" type="button" hidden>Cancel</button></div></form><div class="module-table-wrap"><table class="module-table"><thead><tr><th>SUPPLIER</th><th>ACTIONS</th></tr></thead><tbody id="supplierRows"></tbody></table></div></div>
       </section>
 
@@ -1573,10 +1573,12 @@
   let editingExpenseId = null, editingEmployeeId = null, editingBudgetId = null;
   let editingPurchaseId = null, editingSupplierId = null;
   let purchaseLineCount = 0;
-  function addPurchaseLine(name="", qty="1", cost="0") {
+  const PURCHASE_UNITS = ['kg','gram','liter','piece','box','carton'];
+  function addPurchaseLine(name="", qty="1", cost="0", unit="piece") {
     const id = ++purchaseLineCount;
     const row = document.createElement("div"); row.className="module-form"; row.style.marginTop="8px"; row.dataset.lineId=id;
-    row.innerHTML = `<div class="module-field"><label>ITEM NAME</label><input class="purchase-item-name" required maxlength="120" value="${safeText(name)}"></div><div class="module-field"><label>QUANTITY</label><input class="purchase-item-qty" type="number" min="0.001" step="0.001" required value="${safeText(qty)}"></div><div class="module-field"><label>UNIT COST (SAR)</label><input class="purchase-item-cost" type="number" min="0" step="0.01" required value="${safeText(cost)}"></div><div class="module-field" style="display:flex;align-items:end"><button class="menu-btn danger remove-purchase-line" type="button">Remove item</button></div>`;
+    const unitOptions = PURCHASE_UNITS.map(u=>`<option value="${u}" ${u===unit?'selected':''}>${u}</option>`).join('');
+    row.innerHTML = `<div class="module-field"><label>ITEM NAME</label><input class="purchase-item-name" required maxlength="120" value="${safeText(name)}"></div><div class="module-field"><label>QUANTITY</label><input class="purchase-item-qty" type="number" min="0.001" step="0.001" required value="${safeText(qty)}"></div><div class="module-field"><label>UNIT</label><select class="purchase-item-unit" required>${unitOptions}</select></div><div class="module-field"><label>UNIT COST (SAR)</label><input class="purchase-item-cost" type="number" min="0" step="0.01" required value="${safeText(cost)}"></div><div class="module-field" style="display:flex;align-items:end"><button class="menu-btn danger remove-purchase-line" type="button">Remove item</button></div>`;
     row.querySelector(".remove-purchase-line").addEventListener("click",()=>{if($$("#purchaseLines .module-form").length>1)row.remove();});
     $("purchaseLines").appendChild(row);
   }
@@ -1604,16 +1606,45 @@
     window.nafSuppliers.forEach(x=>{const o=document.createElement('option');o.value=x.id;o.textContent=x.name;sel.appendChild(o)});sel.value=old;
     const names=Object.fromEntries(window.nafSuppliers.map(x=>[x.id,x.name]));
     $('supplierRows').innerHTML=window.nafSuppliers.map(x=>`<tr><td>${safeText(x.name)}</td><td><button class="edit" data-edit-supplier="${safeText(x.id)}">Edit</button> <button class="del" data-delete-supplier="${safeText(x.id)}">Delete</button></td></tr>`).join('')||'<tr><td colspan="2" class="muted-empty">No suppliers yet.</td></tr>';
+    const purchaseIds=window.nafPurchases.map(x=>x.id);
+    let itemRows=[];
+    if(purchaseIds.length){
+      const {data,error}=await client.from('purchase_items').select('purchase_id,item_name,quantity,unit,total_cost').in('purchase_id',purchaseIds);
+      if(error){moduleError('Could not load purchase item history. If the unit column is missing, run the supplied SQL first.',error);return;}
+      itemRows=data||[];
+    }
+    const byPurchase={};
+    itemRows.forEach(it=>(byPurchase[it.purchase_id] ||= []).push(it));
+    window.nafPurchaseItemsByPurchase=byPurchase;
     const q=($('purchaseSearch').value||'').toLowerCase();
-    $('purchaseRows').innerHTML=window.nafPurchases.filter(x=>(x.invoice_number||'').toLowerCase().includes(q)||(names[x.supplier_id]||'').toLowerCase().includes(q)).map(x=>`<tr><td>${safeText(x.purchase_date||'')}</td><td>${safeText(x.invoice_number||'—')}</td><td>${safeText(names[x.supplier_id]||'—')}</td><td>${money(x.total_amount)}</td><td>${safeText(x.status||'')}</td><td><button class="edit" data-edit-purchase="${safeText(x.id)}">Edit</button> <button class="del" data-delete-purchase="${safeText(x.id)}">Delete</button></td></tr>`).join('')||'<tr><td colspan="6" class="muted-empty">No purchases found.</td></tr>';
+    const filtered=window.nafPurchases.filter(x=>{
+      const items=byPurchase[x.id]||[];
+      return (x.invoice_number||'').toLowerCase().includes(q)||(names[x.supplier_id]||'').toLowerCase().includes(q)||items.some(it=>(it.item_name||'').toLowerCase().includes(q));
+    });
+    $('purchaseRows').innerHTML=filtered.map(x=>{
+      const items=byPurchase[x.id]||[];
+      const itemText=items.map(it=>safeText(it.item_name)).join('<br>')||'—';
+      const qtyText=items.map(it=>safeText(String(it.quantity))).join('<br>')||'—';
+      const unitText=items.map(it=>safeText(it.unit||'piece')).join('<br>')||'—';
+      return `<tr><td>${safeText(x.purchase_date||'')}</td><td>${itemText}</td><td>${safeText(x.invoice_number||'—')}</td><td>${safeText(names[x.supplier_id]||'—')}</td><td>${qtyText}</td><td>${unitText}</td><td>${money(x.total_amount)}</td><td>${safeText(x.status||'')}</td><td><button class="edit" data-edit-purchase="${safeText(x.id)}">Edit</button> <button class="del" data-delete-purchase="${safeText(x.id)}">Delete</button> <button class="edit" data-print-purchase="${safeText(x.id)}">Print</button></td></tr>`;
+    }).join('')||'<tr><td colspan="9" class="muted-empty">No purchases found.</td></tr>';
     window.nafNextPurchaseInvoice=nextPurchaseInvoice(window.nafPurchases);if(!editingPurchaseId)$('purchaseInvoice').value=window.nafNextPurchaseInvoice;
+  }
+  function printPurchase(id){
+    const purchase=window.nafPurchases.find(x=>x.id===id);if(!purchase)return;
+    const items=(window.nafPurchaseItemsByPurchase||{})[id]||[];
+    const supplier=(window.nafSuppliers||[]).find(x=>x.id===purchase.supplier_id);
+    const rows=items.map(it=>`<tr><td>${safeText(it.item_name)}</td><td>${safeText(it.quantity)}</td><td>${safeText(it.unit||'piece')}</td><td>${money(it.unit_cost||0)}</td><td>${money(it.total_cost||Number(it.quantity)*Number(it.unit_cost||0))}</td></tr>`).join('');
+    const w=window.open('','_blank','width=850,height=700');if(!w){showAppNotice('Allow pop-ups to print purchase invoice.');return;}
+    w.document.write(`<!doctype html><html><head><title>Purchase ${safeText(purchase.invoice_number||'')}</title><style>body{font-family:Arial;padding:28px;color:#182235}h1{margin-bottom:4px}small{color:#64748b}.meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:22px 0}table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #ddd;text-align:left}th{background:#f4f6fa}.total{text-align:right;font-size:20px;font-weight:bold;margin-top:22px}</style></head><body><h1>Purchase Invoice</h1><small>${safeText(activeRestaurant?.name||'NAF POS')}</small><div class="meta"><div><b>Invoice:</b> ${safeText(purchase.invoice_number||'—')}</div><div><b>Date:</b> ${safeText(purchase.purchase_date||'')}</div><div><b>Supplier:</b> ${safeText(supplier?.name||'—')}</div><div><b>Status:</b> ${safeText(purchase.status||'')}</div></div><table><thead><tr><th>Item</th><th>Quantity</th><th>Unit</th><th>Unit cost</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table><div class="total">Grand Total: ${money(purchase.total_amount)}</div><script>window.onload=()=>window.print()<\/script></body></html>`);
+    w.document.close();
   }
   $('addPurchaseLine').addEventListener('click',()=>addPurchaseLine());
   $('purchaseSearch').addEventListener('input',loadPurchases);
   $('purchaseForm').addEventListener('submit',async e=>{
     e.preventDefault();if(!activeRestaurant)return;
-    const lines=[...$$('#purchaseLines .module-form')].map(row=>({name:row.querySelector('.purchase-item-name').value.trim(),quantity:Number(row.querySelector('.purchase-item-qty').value),unit_cost:Number(row.querySelector('.purchase-item-cost').value)}));
-    if(!lines.length||lines.some(x=>!x.name||x.quantity<=0||x.unit_cost<0)){showAppNotice('Enter valid purchase items, quantities and costs.');return;}
+    const lines=[...$$('#purchaseLines .module-form')].map(row=>({name:row.querySelector('.purchase-item-name').value.trim(),quantity:Number(row.querySelector('.purchase-item-qty').value),unit:row.querySelector('.purchase-item-unit').value,unit_cost:Number(row.querySelector('.purchase-item-cost').value)}));
+    if(!lines.length||lines.some(x=>!x.name||x.quantity<=0||x.unit_cost<0)){showAppNotice('Enter valid purchase items, quantities, units and costs.');return;}
     const total=lines.reduce((a,x)=>a+x.quantity*x.unit_cost,0),btn=$('savePurchaseBtn');btn.disabled=true;
     try{
       const signedInUser=(await client.auth.getUser()).data.user;const payload={restaurant_id:activeRestaurant.id,created_by:editingPurchaseId?undefined:(signedInUser?.id||null),supplier_id:$('purchaseSupplier').value||null,invoice_number:$('purchaseInvoice').value.trim()||window.nafNextPurchaseInvoice,total_amount:total,status:$('purchaseStatus').value,purchase_date:$('purchaseDate').value||todayISO()};
@@ -1621,16 +1652,17 @@
       if(editingPurchaseId){delete payload.created_by;const {error}=await client.from('purchases').update(payload).eq('id',editingPurchaseId).eq('restaurant_id',activeRestaurant.id);if(error)throw error;}
       else{const {data,error}=await client.from('purchases').insert(payload).select('id').single();if(error)throw error;purchaseId=data.id;}
       if(editingPurchaseId){const {error:delError}=await client.from('purchase_items').delete().eq('purchase_id',purchaseId);if(delError)throw delError;}
-      const items=lines.map(x=>({purchase_id:purchaseId,item_name:x.name,quantity:x.quantity,unit_cost:x.unit_cost,total_cost:x.quantity*x.unit_cost}));
+      const items=lines.map(x=>({purchase_id:purchaseId,item_name:x.name,quantity:x.quantity,unit:x.unit,unit_cost:x.unit_cost,total_cost:x.quantity*x.unit_cost}));
       const {error:itemError}=await client.from('purchase_items').insert(items);if(itemError)throw itemError;
       showAppNotice(editingPurchaseId?'Purchase updated successfully.':'Purchase saved successfully.');resetPurchaseForm();await loadPurchases();await refreshDashboardTotals();
     }catch(err){moduleError('Could not save purchase',err)}finally{btn.disabled=false;}
   });
   $('purchaseRows').addEventListener('click',async e=>{
-    const edit=e.target.closest('[data-edit-purchase]'),del=e.target.closest('[data-delete-purchase]');
+    const edit=e.target.closest('[data-edit-purchase]'),del=e.target.closest('[data-delete-purchase]'),print=e.target.closest('[data-print-purchase]');
+    if(print){printPurchase(print.dataset.printPurchase);return;}
     if(edit){const x=window.nafPurchases.find(r=>r.id===edit.dataset.editPurchase);if(!x)return;
-      const {data,error}=await client.from('purchase_items').select('item_name,quantity,unit_cost').eq('purchase_id',x.id);if(error){moduleError('Could not load purchase items',error);return;}
-      editingPurchaseId=x.id;$('purchaseSupplier').value=x.supplier_id||'';$('purchaseInvoice').value=x.invoice_number||'';$('purchaseDate').value=x.purchase_date||todayISO();$('purchaseStatus').value=x.status||'received';$('purchaseLines').innerHTML='';purchaseLineCount=0;(data||[]).forEach(it=>addPurchaseLine(it.item_name,it.quantity,it.unit_cost));if(!(data||[]).length)addPurchaseLine();if ($('savePurchaseBtn')) $('savePurchaseBtn').textContent ='UPDATE PURCHASE';$('purchaseForm').scrollIntoView({behavior:'smooth',block:'start'});return;
+      const {data,error}=await client.from('purchase_items').select('item_name,quantity,unit,unit_cost').eq('purchase_id',x.id);if(error){moduleError('Could not load purchase items',error);return;}
+      editingPurchaseId=x.id;$('purchaseSupplier').value=x.supplier_id||'';$('purchaseInvoice').value=x.invoice_number||'';$('purchaseDate').value=x.purchase_date||todayISO();$('purchaseStatus').value=x.status||'received';$('purchaseLines').innerHTML='';purchaseLineCount=0;(data||[]).forEach(it=>addPurchaseLine(it.item_name,it.quantity,it.unit_cost,it.unit||'piece'));if(!(data||[]).length)addPurchaseLine();if ($('savePurchaseBtn')) $('savePurchaseBtn').textContent ='UPDATE PURCHASE';$('purchaseForm').scrollIntoView({behavior:'smooth',block:'start'});return;
     }
     if(del&&confirm('Delete this purchase and its items?')){const id=del.dataset.deletePurchase;const {error:itemError}=await client.from('purchase_items').delete().eq('purchase_id',id);if(itemError){moduleError('Could not delete purchase items',itemError);return;}const {error}=await client.from('purchases').delete().eq('id',id).eq('restaurant_id',activeRestaurant.id);if(error)moduleError('Could not delete purchase',error);else{if(editingPurchaseId===id)resetPurchaseForm();showAppNotice('Purchase deleted.');await loadPurchases();await refreshDashboardTotals();}}
   });
