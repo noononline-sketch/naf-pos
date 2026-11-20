@@ -191,6 +191,27 @@
 @media(max-width:1050px){.topbar{align-items:flex-start;flex-wrap:wrap}.topbar .userbox{width:100%;justify-content:flex-end}.dashboard-datebar input{width:125px}}
 @media(max-width:620px){.topbar .userbox{gap:7px}.dashboard-datebar{order:3;width:100%;justify-content:flex-end}.dashboard-datebar label{flex:1}.dashboard-datebar input{width:100%}.topbar .logout{padding:8px 9px;font-size:11px}}
 
+
+/* Reference-style desktop header: date range, Apply, Refresh, Log out, owner */
+.topbar{align-items:center;gap:18px;margin-bottom:22px}
+.topbar .userbox{display:flex;align-items:center;justify-content:flex-end;flex-wrap:nowrap;gap:9px;width:auto;min-width:0}
+.topbar .top-datebar{display:flex;align-items:flex-end;flex-wrap:nowrap;gap:7px;margin:0 3px 0 0}
+.topbar .top-datebar label{display:flex;flex-direction:column;gap:3px;font-size:10px}
+.topbar .top-datebar input{width:126px;height:37px}
+.topbar .userbox .logout{height:37px;white-space:nowrap}
+.topbar .avatar{flex:0 0 39px}
+.topbar .usertext{min-width:80px;white-space:nowrap}
+@media(max-width:1120px){
+ .topbar{align-items:flex-start;flex-wrap:wrap}
+ .topbar .userbox{width:100%;justify-content:flex-end;flex-wrap:wrap}
+}
+@media(max-width:620px){
+ .topbar .userbox{justify-content:flex-start}
+ .topbar .top-datebar{order:3;width:100%;justify-content:flex-start}
+ .topbar .top-datebar label{flex:1;min-width:0}
+ .topbar .top-datebar input{width:100%}
+}
+
 </style>
 </head>
 <body>
@@ -284,7 +305,7 @@
     <main class="mainarea">
       <header class="topbar">
         <div><div class="eyebrow">Restaurant workspace</div><h1 class="pageheading" id="pageheading">Dashboard</h1></div>
-        <div class="userbox"><div class="avatar" id="userAvatar">N</div><div class="usertext"><b id="dashUserName">Admin</b><small id="dashRestaurantName">Restaurant</small></div><div class="dashboard-datebar top-datebar"><label>From <input type="date" id="dashboardFromDate"></label><label>To <input type="date" id="dashboardToDate"></label><button type="button" class="menu-btn" id="applyDashboardDates">Apply</button></div><button class="logout" id="refreshAppBtn" type="button" title="Refresh the whole app">↻ Refresh</button><button class="logout" id="logoutBtn" type="button">Log out</button></div>
+        <div class="userbox"><div class="dashboard-datebar top-datebar"><label>From <input type="date" id="dashboardFromDate"></label><label>To <input type="date" id="dashboardToDate"></label><button type="button" class="menu-btn" id="applyDashboardDates">Apply</button></div><button class="logout" id="refreshAppBtn" type="button" title="Refresh the whole app">↻ Refresh</button><button class="logout" id="logoutBtn" type="button">Log out</button><div class="avatar" id="userAvatar">N</div><div class="usertext"><b id="dashUserName">Admin</b><small id="dashRestaurantName">Restaurant</small></div></div>
       </header>
       <div id="appNotice" class="appnotice"></div>
       <div id="dashboardPage" class="pagepanel active">
