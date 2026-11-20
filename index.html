@@ -446,6 +446,30 @@
           <div class="module-actions"><button class="menu-btn" type="submit" id="savePurchaseBtn">SAVE PURCHASE</button></div>
         </form></div>
         <div class="module-card"><div class="module-toolbar"><h3 style="margin:0">Purchase History</h3><input id="purchaseSearch" placeholder="Search invoice or supplier"></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>DATE</th><th>INVOICE</th><th>SUPPLIER</th><th>TOTAL</th><th>STATUS</th><th>ACTIONS</th></tr></thead><tbody id="purchaseRows"></tbody></table></div></div>
+
+        <div class="module-card" id="purchaseUsedCard">
+          <h3>Purchase Used / Stock Usage</h3>
+          <p class="module-note">Record every purchased item when it is used. Remaining stock is calculated automatically.</p>
+          <form id="purchaseUsedForm">
+            <div class="module-form">
+              <div class="module-field"><label>USAGE DATE</label><input id="purchaseUsedDate" type="date" required></div>
+              <div class="module-field"><label>PURCHASED ITEM</label><select id="purchaseUsedSource" required><option value="">Select item from received purchases</option></select></div>
+              <div class="module-field"><label>QUANTITY USED</label><input id="purchaseUsedQty" type="number" min="0.001" step="0.001" required placeholder="0.00"></div>
+              <div class="module-field"><label>UNIT</label><input id="purchaseUsedUnit" readonly placeholder="Selected item unit"></div>
+              <div class="module-field"><label>USED FOR / REASON</label><input id="purchaseUsedReason" maxlength="120" placeholder="e.g. Kitchen use, cleaning"></div>
+              <div class="module-field"><label>NOTES</label><input id="purchaseUsedNotes" maxlength="300" placeholder="Optional notes"></div>
+            </div>
+            <div class="module-actions"><button class="menu-btn" id="savePurchaseUsedBtn" type="submit">RECORD USAGE</button><button class="menu-btn secondary" id="cancelPurchaseUsedEdit" type="button" hidden>Cancel edit</button></div>
+          </form>
+        </div>
+        <div class="module-card">
+          <div class="module-toolbar"><h3 style="margin:0">Purchase Used History</h3><input id="purchaseUsedSearch" placeholder="Search item or reason"></div>
+          <div class="module-table-wrap"><table class="module-table"><thead><tr><th>DATE</th><th>ITEM</th><th>INVOICE</th><th>QUANTITY USED</th><th>UNIT</th><th>REASON</th><th>ACTIONS</th></tr></thead><tbody id="purchaseUsedRows"></tbody></table></div>
+        </div>
+        <div class="module-card">
+          <h3>Current Purchase Stock</h3>
+          <div class="module-table-wrap"><table class="module-table"><thead><tr><th>ITEM</th><th>INVOICE</th><th>PURCHASED</th><th>USED</th><th>IN STOCK</th><th>UNIT</th></tr></thead><tbody id="purchaseStockRows"></tbody></table></div>
+        </div>
         <div class="module-card"><h3>Suppliers</h3><form id="supplierForm"><div class="module-form"><div class="module-field"><label>SUPPLIER NAME</label><input id="supplierName" required maxlength="120" placeholder="Supplier name"></div></div><div class="module-actions"><button class="menu-btn" id="saveSupplierBtn" type="submit">ADD SUPPLIER</button><button class="menu-btn secondary" id="cancelSupplierEdit" type="button" hidden>Cancel</button></div></form><div class="module-table-wrap"><table class="module-table"><thead><tr><th>SUPPLIER</th><th>ACTIONS</th></tr></thead><tbody id="supplierRows"></tbody></table></div></div>
       </section>
 
@@ -1571,8 +1595,108 @@
   const safeText = v => escapeHTML(v == null ? "" : String(v));
   const moduleError = (label, error) => showAppNotice(label + ": " + (error?.message || error));
   let editingExpenseId = null, editingEmployeeId = null, editingBudgetId = null;
-  let editingPurchaseId = null, editingSupplierId = null;
+  let editingPurchaseId = null, editingSupplierId = null, editingPurchaseUsageId = null;
+  let purchaseUsageSources = [];
   let purchaseLineCount = 0;
+
+  function purchaseUsageKey(x){return [x.purchase_id,x.item_name,x.unit||'piece'].join('||');}
+  function resetPurchaseUsageForm(){
+    editingPurchaseUsageId=null;
+    $('purchaseUsedForm').reset();
+    $('purchaseUsedDate').value=todayISO();
+    $('purchaseUsedUnit').value='';
+    $('savePurchaseUsedBtn').textContent='RECORD USAGE';
+    $('cancelPurchaseUsedEdit').hidden=true;
+    renderPurchaseUsageSources();
+  }
+  function renderPurchaseUsageSources(){
+    const select=$('purchaseUsedSource'); if(!select)return;
+    const previous=select.value;
+    select.innerHTML='<option value="">Select item from received purchases</option>';
+    purchaseUsageSources.forEach((x,i)=>{
+      const opt=document.createElement('option'); opt.value=String(i);
+      opt.textContent=`${x.item_name} · ${x.remaining} ${x.unit} remaining · Invoice ${x.invoice_number}`;
+      select.appendChild(opt);
+    });
+    if(previous && Number(previous)<purchaseUsageSources.length)select.value=previous;
+    const selected=purchaseUsageSources[Number(select.value)];
+    $('purchaseUsedUnit').value=selected?.unit||'';
+  }
+  async function loadPurchaseUsage(){
+    if(!activeRestaurant)return;
+    const receivedPurchaseIds=(window.nafPurchases||[]).filter(p=>p.status==='received').map(p=>p.id);
+    const itemsPromise=receivedPurchaseIds.length
+      ? client.from('purchase_items').select('purchase_id,item_name,quantity,unit').in('purchase_id',receivedPurchaseIds)
+      : Promise.resolve({data:[],error:null});
+    const [pRes,iRes,uRes,sRes]=await Promise.all([
+      client.from('purchases').select('id,invoice_number,purchase_date,status').eq('restaurant_id',activeRestaurant.id).eq('status','received'),
+      itemsPromise,
+      client.from('naf_purchase_usages').select('id,purchase_id,item_name,quantity_used,unit,usage_date,used_for,notes,created_at').eq('restaurant_id',activeRestaurant.id).order('usage_date',{ascending:false}).limit(1000),
+      client.from('suppliers').select('id,name').eq('restaurant_id',activeRestaurant.id)
+    ]);
+    if(pRes.error||iRes.error||uRes.error||sRes.error){
+      moduleError('Could not load Purchase Used',pRes.error||iRes.error||uRes.error||sRes.error);return;
+    }
+    const purchases=pRes.data||[], items=iRes.data||[], usages=uRes.data||[];
+    const purchaseMap=Object.fromEntries(purchases.map(p=>[p.id,p]));
+    const usedMap={};
+    usages.forEach(u=>{const k=purchaseUsageKey(u);usedMap[k]=(usedMap[k]||0)+Number(u.quantity_used||0);});
+    purchaseUsageSources=items.map(it=>{
+      const p=purchaseMap[it.purchase_id]; if(!p)return null;
+      const key=purchaseUsageKey(it), purchased=Number(it.quantity||0), used=Number(usedMap[key]||0);
+      return {...it,invoice_number:p.invoice_number||'—',purchase_date:p.purchase_date||'',purchased,used,remaining:Math.max(0,purchased-used),key};
+    }).filter(Boolean).filter(x=>x.remaining>0 || (editingPurchaseUsageId && usages.some(u=>u.id===editingPurchaseUsageId && purchaseUsageKey(u)===x.key)));
+    window.nafPurchaseUsages=usages;
+    const supplierMap=Object.fromEntries((sRes.data||[]).map(x=>[x.id,x.name]));
+    renderPurchaseUsageSources();
+    const q=($('purchaseUsedSearch')?.value||'').toLowerCase();
+    $('purchaseUsedRows').innerHTML=usages.filter(u=>(u.item_name||'').toLowerCase().includes(q)||(u.used_for||'').toLowerCase().includes(q)||(u.notes||'').toLowerCase().includes(q)).map(u=>{
+      const p=purchaseMap[u.purchase_id];
+      return `<tr><td>${safeText(u.usage_date||'')}</td><td>${safeText(u.item_name)}</td><td>${safeText(p?.invoice_number||'—')}</td><td>${Number(u.quantity_used||0)}</td><td>${safeText(u.unit||'')}</td><td>${safeText(u.used_for||'—')}</td><td><button class="edit" data-edit-purchase-used="${safeText(u.id)}">Edit</button> <button class="del" data-delete-purchase-used="${safeText(u.id)}">Delete</button></td></tr>`;
+    }).join('')||'<tr><td colspan="7" class="muted-empty">No usage recorded yet.</td></tr>';
+    $('purchaseStockRows').innerHTML=purchaseUsageSources.map(x=>`<tr><td>${safeText(x.item_name)}</td><td>${safeText(x.invoice_number)}</td><td>${x.purchased}</td><td>${x.used}</td><td><b>${x.remaining}</b></td><td>${safeText(x.unit)}</td></tr>`).join('')||'<tr><td colspan="6" class="muted-empty">No received purchase stock available.</td></tr>';
+  }
+  $('purchaseUsedSource').addEventListener('change',()=>{
+    const x=purchaseUsageSources[Number($('purchaseUsedSource').value)];
+    $('purchaseUsedUnit').value=x?.unit||'';
+  });
+  $('purchaseUsedForm').addEventListener('submit',async e=>{
+    e.preventDefault(); if(!activeRestaurant)return;
+    const source=purchaseUsageSources[Number($('purchaseUsedSource').value)];
+    const qty=Number($('purchaseUsedQty').value);
+    if(!source||!Number.isFinite(qty)||qty<=0){showAppNotice('Select a purchased item and enter a valid quantity.');return;}
+    const current=(window.nafPurchaseUsages||[]).find(x=>x.id===editingPurchaseUsageId);
+    const available=source.remaining+(current && purchaseUsageKey(current)===source.key?Number(current.quantity_used||0):0);
+    if(qty>available){showAppNotice(`Only ${available} ${source.unit} is available in stock.`);return;}
+    const user=(await client.auth.getUser()).data.user;
+    const payload={restaurant_id:activeRestaurant.id,purchase_id:source.purchase_id,item_name:source.item_name,quantity_used:qty,unit:source.unit,usage_date:$('purchaseUsedDate').value||todayISO(),used_for:$('purchaseUsedReason').value.trim()||null,notes:$('purchaseUsedNotes').value.trim()||null};
+    let result;
+    if(editingPurchaseUsageId) result=await client.from('naf_purchase_usages').update(payload).eq('id',editingPurchaseUsageId).eq('restaurant_id',activeRestaurant.id);
+    else result=await client.from('naf_purchase_usages').insert({...payload,created_by:user?.id||null});
+    if(result.error){moduleError('Could not record purchase usage',result.error);return;}
+    showAppNotice(editingPurchaseUsageId?'Usage record updated; stock recalculated.':'Usage recorded; stock reduced.');
+    resetPurchaseUsageForm();await loadPurchaseUsage();
+  });
+  $('purchaseUsedRows').addEventListener('click',async e=>{
+    const edit=e.target.closest('[data-edit-purchase-used]'),del=e.target.closest('[data-delete-purchase-used]');
+    if(edit){
+      const x=(window.nafPurchaseUsages||[]).find(v=>v.id===edit.dataset.editPurchaseUsed);if(!x)return;
+      editingPurchaseUsageId=x.id;await loadPurchaseUsage();
+      const idx=purchaseUsageSources.findIndex(v=>v.key===purchaseUsageKey(x));
+      $('purchaseUsedSource').value=idx>=0?String(idx):'';
+      $('purchaseUsedUnit').value=x.unit||'';$('purchaseUsedQty').value=x.quantity_used;
+      $('purchaseUsedDate').value=x.usage_date||todayISO();$('purchaseUsedReason').value=x.used_for||'';$('purchaseUsedNotes').value=x.notes||'';
+      $('savePurchaseUsedBtn').textContent='UPDATE USAGE';$('cancelPurchaseUsedEdit').hidden=false;
+      $('purchaseUsedCard').scrollIntoView({behavior:'smooth',block:'start'});return;
+    }
+    if(del&&confirm('Delete this usage record? The quantity will be returned to stock.')){
+      const {error}=await client.from('naf_purchase_usages').delete().eq('id',del.dataset.deletePurchaseUsed).eq('restaurant_id',activeRestaurant.id);
+      if(error)moduleError('Could not delete usage record',error);
+      else{showAppNotice('Usage deleted; stock quantity restored.');await loadPurchaseUsage();}
+    }
+  });
+  $('purchaseUsedSearch').addEventListener('input',loadPurchaseUsage);
+  $('cancelPurchaseUsedEdit').addEventListener('click',resetPurchaseUsageForm);
   function addPurchaseLine(name="", qty="1", cost="0", unit="piece") {
     const id = ++purchaseLineCount;
     const row = document.createElement("div"); row.className="module-form"; row.style.marginTop="8px"; row.dataset.lineId=id;
@@ -1608,6 +1732,7 @@
     const q=($('purchaseSearch').value||'').toLowerCase();
     $('purchaseRows').innerHTML=window.nafPurchases.filter(x=>(x.invoice_number||'').toLowerCase().includes(q)||(names[x.supplier_id]||'').toLowerCase().includes(q)).map(x=>`<tr><td>${safeText(x.purchase_date||'')}</td><td>${safeText(x.invoice_number||'—')}</td><td>${safeText(names[x.supplier_id]||'—')}</td><td>${money(x.total_amount)}</td><td>${safeText(x.status||'')}</td><td><button class="edit" data-edit-purchase="${safeText(x.id)}">Edit</button> <button class="del" data-delete-purchase="${safeText(x.id)}">Delete</button> <button class="edit" data-print-purchase="${safeText(x.id)}">Print</button></td></tr>`).join('')||'<tr><td colspan="6" class="muted-empty">No purchases found.</td></tr>';
     window.nafNextPurchaseInvoice=nextPurchaseInvoice(window.nafPurchases);if(!editingPurchaseId)$('purchaseInvoice').value=window.nafNextPurchaseInvoice;
+    await loadPurchaseUsage();
   }
   $('addPurchaseLine').addEventListener('click',()=>addPurchaseLine());
   $('purchaseSearch').addEventListener('input',loadPurchases);
@@ -2044,7 +2169,7 @@
   $("passwordForm").addEventListener("submit",async e=>{e.preventDefault();const a=$("newPassword").value,b=$("confirmPassword").value;if(a.length<8||a!==b){showAppNotice("Passwords must match and contain at least 8 characters.");return;}const {error}=await client.auth.updateUser({password:a});if(error)moduleError("Could not update password",error);else{showAppNotice("Password updated successfully.");$("passwordForm").reset();}});
   async function refreshDashboardTotals(){if(activeRestaurant){await refreshDashboardData();return;}const {data,error}=await client.auth.getUser();if(error||!data.user)return;await openDashboard(data.user);}
   // Default purchase line, date fields and current tax preference.
-  $("purchaseDate").value=todayISO();$("expenseDate").value=todayISO();$("budgetStart").value=todayISO();$("budgetEnd").value=todayISO();addPurchaseLine();
+  $("purchaseDate").value=todayISO();$("purchaseUsedDate").value=todayISO();$("expenseDate").value=todayISO();$("budgetStart").value=todayISO();$("budgetEnd").value=todayISO();addPurchaseLine();
 
   $("logoutBtn").addEventListener("click", async () => {
     const { error } = await client.auth.signOut();
