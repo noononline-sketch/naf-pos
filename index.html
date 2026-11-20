@@ -595,9 +595,9 @@
   }
 
   function showSubscriptionGate(message, statusText) {
-    $("subscriptionGateTitle").textContent = subscriptionSettingsCache?.expiry_title || "Subscription Required";
-    $("subscriptionGateMessage").textContent = subscriptionSettingsCache?.expiry_message || "Your free trial has ended. Select a plan and submit payment proof.";
-    $("subscriptionGateStatus").textContent = statusText || message || "Your restaurant subscription is not active.";
+    if ($("subscriptionGateTitle")) $("subscriptionGateTitle").textContent = subscriptionSettingsCache?.expiry_title || "Subscription Required";
+    if ($("subscriptionGateMessage")) $("subscriptionGateMessage").textContent = subscriptionSettingsCache?.expiry_message || "Your free trial has ended. Select a plan and submit payment proof.";
+    if ($("subscriptionGateStatus")) $("subscriptionGateStatus").textContent = statusText || message || "Your restaurant subscription is not active.";
     $("subscriptionGate").classList.add("visible");
     $("appShell").classList.add("visible");
     document.body.classList.add("app-mode");
@@ -626,17 +626,17 @@
     if(error) throw new Error("Could not load subscription details: "+error.message);
     const row=Array.isArray(data)?data[0]:data;
     if(!row){
-      $("customerSubStatus").textContent="Not found";
-      $("customerSubPlan").textContent="—";
-      $("customerSubExpiry").textContent="—";
-      $("customerSubNote").textContent="No subscription record was found for this restaurant.";
+      if ($("customerSubStatus")) $("customerSubStatus").textContent ="Not found";
+      if ($("customerSubPlan")) $("customerSubPlan").textContent ="—";
+      if ($("customerSubExpiry")) $("customerSubExpiry").textContent ="—";
+      if ($("customerSubNote")) $("customerSubNote").textContent ="No subscription record was found for this restaurant.";
       return null;
     }
     const expiry=row.expires_at?new Date(row.expires_at).toLocaleDateString():"No expiry";
-    $("customerSubStatus").textContent=String(row.subscription_status||"unknown").toUpperCase();
-    $("customerSubPlan").textContent=row.plan_name||"Free Trial";
-    $("customerSubExpiry").textContent=expiry;
-    $("customerSubNote").textContent=(row.currency&&row.price!==null&&row.price!==undefined)
+    if ($("customerSubStatus")) $("customerSubStatus").textContent =String(row.subscription_status||"unknown").toUpperCase();
+    if ($("customerSubPlan")) $("customerSubPlan").textContent =row.plan_name||"Free Trial";
+    if ($("customerSubExpiry")) $("customerSubExpiry").textContent =expiry;
+    if ($("customerSubNote")) $("customerSubNote").textContent =(row.currency&&row.price!==null&&row.price!==undefined)
       ?`Plan price: ${row.currency} ${Number(row.price).toFixed(2)} · ${Number(row.days_remaining||0)} day(s) remaining`
       :`${Number(row.days_remaining||0)} day(s) remaining`;
     return row;
@@ -658,7 +658,7 @@
     showSubscriptionGate("",`Status: ${status}. Expiry: ${expiry}.`+(pending?.status?` Latest payment request: ${pending.status}.`:""));
     if(currentCashier){
       $("subscriptionPaymentForm").hidden=true;
-      $("subscriptionGateMessage").textContent="This restaurant subscription is not active. Please contact the restaurant owner.";
+      if ($("subscriptionGateMessage")) $("subscriptionGateMessage").textContent ="This restaurant subscription is not active. Please contact the restaurant owner.";
     } else {
       $("subscriptionPaymentForm").hidden=false;
       $("subscriptionPaymentForm").dataset.restaurantId=restaurantId;
@@ -680,7 +680,7 @@
       const {data:{user},error:userError}=await client.auth.getUser();if(userError)throw userError;
       const ins=await client.from("naf_payment_requests").insert({restaurant_id:activeRestaurant.id,plan_id:plan.id,owner_user_id:user.id,amount:Number(plan.price),currency:plan.currency,transaction_reference:$("subscriptionReference").value.trim()||null,receipt_path:path,status:"pending"});
       if(ins.error)throw ins.error;
-      $("subscriptionGateStatus").textContent="Payment request submitted. Waiting for Super Admin review.";
+      if ($("subscriptionGateStatus")) $("subscriptionGateStatus").textContent ="Payment request submitted. Waiting for Super Admin review.";
       $("subscriptionPaymentForm").reset();
     }catch(err){moduleError("Could not submit payment request",err);}
   });
@@ -720,11 +720,11 @@
       document.body.classList.add("app-mode");
       document.querySelector(".shell").classList.add("hidden");
       $("appShell").classList.add("visible");
-      $("dashUserName").textContent = cashierRecord.name;
-      $("dashRestaurantName").textContent = cashierRestaurant.name;
-      $("welcomeTitle").textContent = "Welcome, " + cashierRecord.name;
-      $("userAvatar").textContent = (cashierRecord.name || "C").trim().charAt(0).toUpperCase();
-      $("restaurantInfo").textContent = cashierRestaurant.name + " · Cashier";
+      if ($("dashUserName")) $("dashUserName").textContent = cashierRecord.name;
+      if ($("dashRestaurantName")) $("dashRestaurantName").textContent = cashierRestaurant.name;
+      if ($("welcomeTitle")) $("welcomeTitle").textContent = "Welcome, " + cashierRecord.name;
+      if ($("userAvatar")) $("userAvatar").textContent = (cashierRecord.name || "C").trim().charAt(0).toUpperCase();
+      if ($("restaurantInfo")) $("restaurantInfo").textContent = cashierRestaurant.name + " · Cashier";
       document.querySelectorAll(".navitem[data-page]").forEach(el => {
         const allowed = ["pos", "sales-history", "reports", "settings"].includes(el.dataset.page);
         el.hidden = !allowed;
@@ -762,11 +762,11 @@
     activeRestaurant = restaurant;
     if(!(await checkSubscriptionAccess(restaurant.id))) return;
     hideSubscriptionGate();
-    $("dashUserName").textContent = metadata.full_name || user.email || "Admin";
-    $("dashRestaurantName").textContent = restaurant.name;
-    $("welcomeTitle").textContent = "Welcome, " + (metadata.full_name || "Admin");
-    $("userAvatar").textContent = (metadata.full_name || user.email || "N").trim().charAt(0).toUpperCase();
-    $("restaurantInfo").textContent = restaurant.name + " · " + (restaurant.currency || "SAR");
+    if ($("dashUserName")) $("dashUserName").textContent = metadata.full_name || user.email || "Admin";
+    if ($("dashRestaurantName")) $("dashRestaurantName").textContent = restaurant.name;
+    if ($("welcomeTitle")) $("welcomeTitle").textContent = "Welcome, " + (metadata.full_name || "Admin");
+    if ($("userAvatar")) $("userAvatar").textContent = (metadata.full_name || user.email || "N").trim().charAt(0).toUpperCase();
+    if ($("restaurantInfo")) $("restaurantInfo").textContent = restaurant.name + " · " + (restaurant.currency || "SAR");
     document.body.classList.add("app-mode");
     document.querySelector(".shell").classList.add("hidden");
     $("appShell").classList.add("visible");
@@ -826,11 +826,11 @@
     const sum=(rows,key)=>(rows||[]).reduce((a,r)=>a+Number(r[key]||0),0);
     const budgetTotal=sum(budgetsRes.data,"amount"),purchaseTotal=sum(purchasesRes.data,"total_amount"),expenseTotal=sum(expensesRes.data,"amount"),salesTotal=sum(salesRes.data,"total_amount");
     const netProfit=salesTotal-purchaseTotal-expenseTotal,pendingTotal=pendingRes.error?null:sum(pendingRes.data,"total_amount");
-    $("totalBudget").textContent=fmt(budgetTotal);$("purchaseCost").textContent=fmt(purchaseTotal);$("totalExpenses").textContent=fmt(expenseTotal);
-    $("budgetBalance").textContent=fmt(budgetTotal-purchaseTotal-expenseTotal);$("budgetBalance").style.color=(budgetTotal-purchaseTotal-expenseTotal)<0?"#b42318":"#16804a";
-    $("totalSales").textContent=fmt(salesTotal);$("overviewSales").textContent=fmt(salesTotal);$("overviewPurchases").textContent=fmt(purchaseTotal);
-    $("overviewExpenses").textContent=fmt(expenseTotal);$("overviewNetProfit").textContent=fmt(netProfit);$("overviewNetProfit").style.color=netProfit<0?"#b42318":"#16804a";
-    $("overviewPendingPayments").textContent=pendingTotal===null?"Unavailable":fmt(pendingTotal);
+    if ($("totalBudget")) $("totalBudget").textContent =fmt(budgetTotal);if ($("purchaseCost")) $("purchaseCost").textContent =fmt(purchaseTotal);if ($("totalExpenses")) $("totalExpenses").textContent =fmt(expenseTotal);
+    if ($("budgetBalance")) $("budgetBalance").textContent =fmt(budgetTotal-purchaseTotal-expenseTotal);$("budgetBalance").style.color=(budgetTotal-purchaseTotal-expenseTotal)<0?"#b42318":"#16804a";
+    if ($("totalSales")) $("totalSales").textContent =fmt(salesTotal);if ($("overviewSales")) $("overviewSales").textContent =fmt(salesTotal);if ($("overviewPurchases")) $("overviewPurchases").textContent =fmt(purchaseTotal);
+    if ($("overviewExpenses")) $("overviewExpenses").textContent =fmt(expenseTotal);if ($("overviewNetProfit")) $("overviewNetProfit").textContent =fmt(netProfit);$("overviewNetProfit").style.color=netProfit<0?"#b42318":"#16804a";
+    if ($("overviewPendingPayments")) $("overviewPendingPayments").textContent =pendingTotal===null?"Unavailable":fmt(pendingTotal);
     const activity=[
       ...(recentSalesRes.data||[]).map(x=>({kind:"Sale",icon:"S",title:x.invoice_number||"New sale",amount:x.total_amount,at:x.created_at,actorId:x.created_by||x.cashier_id,detail:"Payment: "+(x.payment_method||"—")})),
       ...(recentPurchasesRes.data||[]).map(x=>({kind:"Purchase",icon:"P",title:x.invoice_number||"New purchase",amount:x.total_amount,at:x.created_at||x.purchase_date,actorId:x.created_by,detail:"Status: "+(x.status||"—")})),
@@ -869,7 +869,7 @@
     const pageIds = {dashboard:"dashboardPage",pos:"posPage",menu:"menuPage",purchases:"purchasesPage",expenses:"expensesPage",customers:"customersPage",suppliers:"suppliersPage","sales-history":"salesHistoryPage",reports:"reportsPage","cashier-management":"cashier-managementPage",employees:"employeesPage",budget:"budgetPage",settings:"settingsPage",subscription:"subscriptionPage","super-admin":"super-adminPage"};
     const target = $(pageIds[page] || "dashboardPage");
     target.classList.add("active");
-    $("pageheading").textContent = titles[page] || "Dashboard";
+    if ($("pageheading")) $("pageheading").textContent = titles[page] || "Dashboard";
     if (page === "pos") loadMenuItems();
     if (page === "menu") loadMenuManager();
     if (page === "purchases") loadPurchases();
@@ -895,7 +895,7 @@
     try{
       await loadSubscriptionPublicData();
       showSubscriptionGate("","Choose a subscription plan and submit your payment receipt for review.");
-      $("subscriptionGateMessage").textContent="Choose a subscription plan and submit your payment receipt for review.";
+      if ($("subscriptionGateMessage")) $("subscriptionGateMessage").textContent ="Choose a subscription plan and submit your payment receipt for review.";
       $("subscriptionPaymentForm").hidden=false;
       $("subscriptionPaymentForm").dataset.restaurantId=activeRestaurant.id;
     }catch(err){moduleError("Could not load subscription plans",err);}
@@ -939,14 +939,14 @@
     selectedMenuImage = null;
     $("menuItemImageFile").value = "";
     $("menuImagePreview").style.display = "none";
-    $("menuItemFormTitle").textContent = "Add Menu Item";
-    $("saveMenuItemBtn").textContent = "SAVE MENU ITEM";
+    if ($("menuItemFormTitle")) $("menuItemFormTitle").textContent = "Add Menu Item";
+    if ($("saveMenuItemBtn")) $("saveMenuItemBtn").textContent = "SAVE MENU ITEM";
     $("cancelMenuEditBtn").hidden = true;
   }
 
   async function loadMenuManager() {
     if (!activeRestaurant) return;
-    $("menuCategoriesList").textContent = "Loading categories…";
+    if ($("menuCategoriesList")) $("menuCategoriesList").textContent = "Loading categories…";
     $("menuItemsTable").innerHTML = '<tr><td colspan="6" class="muted-empty">Loading menu items…</td></tr>';
     const rid = activeRestaurant.id;
     const [categoriesRes, itemsRes] = await Promise.all([
@@ -956,7 +956,7 @@
     if (categoriesRes.error || itemsRes.error) {
       const err = categoriesRes.error || itemsRes.error;
       showAppNotice("Could not load menu data: " + err.message);
-      $("menuCategoriesList").textContent = "Could not load categories.";
+      if ($("menuCategoriesList")) $("menuCategoriesList").textContent = "Could not load categories.";
       $("menuItemsTable").innerHTML = '<tr><td colspan="6" class="muted-empty">Could not load menu items.</td></tr>';
       return;
     }
@@ -1075,8 +1075,8 @@
     $("menuItemCost").value = item.cost_price ?? "";
     $("menuItemImage").value = item.image_url || "";
     $("menuItemAvailable").checked = item.available !== false && item.is_available !== false;
-    $("menuItemFormTitle").textContent = "Edit Menu Item";
-    $("saveMenuItemBtn").textContent = "UPDATE MENU ITEM";
+    if ($("menuItemFormTitle")) $("menuItemFormTitle").textContent = "Edit Menu Item";
+    if ($("saveMenuItemBtn")) $("saveMenuItemBtn").textContent = "UPDATE MENU ITEM";
     $("cancelMenuEditBtn").hidden = false;
     $("menuItemFormTitle").scrollIntoView({behavior:"smooth",block:"center"});
   }
@@ -1293,9 +1293,9 @@
     const taxableAmount = Math.max(0, subtotal - discount);
     const tax = Math.round(taxableAmount * taxRate) / 100;
     const total = taxableAmount + tax;
-    $("cartSubtotal").textContent = money(subtotal);
-    $("cartTax").textContent = money(tax) + " (" + taxRate + "%)";
-    $("cartTotal").textContent = money(total);
+    if ($("cartSubtotal")) $("cartSubtotal").textContent = money(subtotal);
+    if ($("cartTax")) $("cartTax").textContent = money(tax) + " (" + taxRate + "%)";
+    if ($("cartTotal")) $("cartTotal").textContent = money(total);
   }
   $("posSearch").addEventListener("input", renderProducts);
   $("posCategory").addEventListener("change", renderProducts);
@@ -1542,7 +1542,7 @@
   function resetPurchaseForm(){
     editingPurchaseId=null;$('purchaseForm').reset();$('purchaseDate').value=todayISO();$('purchaseStatus').value='received';
     $('purchaseForm').querySelector('h3')?.replaceChildren(document.createTextNode('New Purchase'));
-    $('savePurchaseBtn').textContent='SAVE PURCHASE';$('purchaseSupplier').value='';$('purchaseLines').innerHTML='';purchaseLineCount=0;addPurchaseLine();
+    if ($('savePurchaseBtn')) $('savePurchaseBtn').textContent ='SAVE PURCHASE';$('purchaseSupplier').value='';$('purchaseLines').innerHTML='';purchaseLineCount=0;addPurchaseLine();
     $('purchaseInvoice').value=window.nafNextPurchaseInvoice||'001';
   }
   async function loadPurchases(){
@@ -1584,19 +1584,19 @@
     const edit=e.target.closest('[data-edit-purchase]'),del=e.target.closest('[data-delete-purchase]');
     if(edit){const x=window.nafPurchases.find(r=>r.id===edit.dataset.editPurchase);if(!x)return;
       const {data,error}=await client.from('purchase_items').select('item_name,quantity,unit_cost').eq('purchase_id',x.id);if(error){moduleError('Could not load purchase items',error);return;}
-      editingPurchaseId=x.id;$('purchaseSupplier').value=x.supplier_id||'';$('purchaseInvoice').value=x.invoice_number||'';$('purchaseDate').value=x.purchase_date||todayISO();$('purchaseStatus').value=x.status||'received';$('purchaseLines').innerHTML='';purchaseLineCount=0;(data||[]).forEach(it=>addPurchaseLine(it.item_name,it.quantity,it.unit_cost));if(!(data||[]).length)addPurchaseLine();$('savePurchaseBtn').textContent='UPDATE PURCHASE';$('purchaseForm').scrollIntoView({behavior:'smooth',block:'start'});return;
+      editingPurchaseId=x.id;$('purchaseSupplier').value=x.supplier_id||'';$('purchaseInvoice').value=x.invoice_number||'';$('purchaseDate').value=x.purchase_date||todayISO();$('purchaseStatus').value=x.status||'received';$('purchaseLines').innerHTML='';purchaseLineCount=0;(data||[]).forEach(it=>addPurchaseLine(it.item_name,it.quantity,it.unit_cost));if(!(data||[]).length)addPurchaseLine();if ($('savePurchaseBtn')) $('savePurchaseBtn').textContent ='UPDATE PURCHASE';$('purchaseForm').scrollIntoView({behavior:'smooth',block:'start'});return;
     }
     if(del&&confirm('Delete this purchase and its items?')){const id=del.dataset.deletePurchase;const {error:itemError}=await client.from('purchase_items').delete().eq('purchase_id',id);if(itemError){moduleError('Could not delete purchase items',itemError);return;}const {error}=await client.from('purchases').delete().eq('id',id).eq('restaurant_id',activeRestaurant.id);if(error)moduleError('Could not delete purchase',error);else{if(editingPurchaseId===id)resetPurchaseForm();showAppNotice('Purchase deleted.');await loadPurchases();await refreshDashboardTotals();}}
   });
-  $('supplierForm').addEventListener('submit',async e=>{e.preventDefault();const payload={restaurant_id:activeRestaurant.id,name:$('supplierName').value.trim()};if(!payload.name)return;const result=editingSupplierId?await client.from('suppliers').update({name:payload.name}).eq('id',editingSupplierId).eq('restaurant_id',activeRestaurant.id):await client.from('suppliers').insert(payload);if(result.error){moduleError('Could not save supplier',result.error);return;}showAppNotice(editingSupplierId?'Supplier updated.':'Supplier added.');editingSupplierId=null;$('supplierForm').reset();$('saveSupplierBtn').textContent='ADD SUPPLIER';$('cancelSupplierEdit').hidden=true;await loadPurchases();});
-  $('supplierRows').addEventListener('click',async e=>{const edit=e.target.closest('[data-edit-supplier]'),del=e.target.closest('[data-delete-supplier]');if(edit){const x=window.nafSuppliers.find(r=>r.id===edit.dataset.editSupplier);if(!x)return;editingSupplierId=x.id;$('supplierName').value=x.name;$('saveSupplierBtn').textContent='UPDATE SUPPLIER';$('cancelSupplierEdit').hidden=false;return;}if(del&&confirm('Delete this supplier? Purchases already recorded will remain.')){const {error}=await client.from('suppliers').delete().eq('id',del.dataset.deleteSupplier).eq('restaurant_id',activeRestaurant.id);if(error)moduleError('Could not delete supplier',error);else{showAppNotice('Supplier deleted.');await loadPurchases();}}});
-  $('cancelSupplierEdit').addEventListener('click',()=>{editingSupplierId=null;$('supplierForm').reset();$('saveSupplierBtn').textContent='ADD SUPPLIER';$('cancelSupplierEdit').hidden=true;});
+  $('supplierForm').addEventListener('submit',async e=>{e.preventDefault();const payload={restaurant_id:activeRestaurant.id,name:$('supplierName').value.trim()};if(!payload.name)return;const result=editingSupplierId?await client.from('suppliers').update({name:payload.name}).eq('id',editingSupplierId).eq('restaurant_id',activeRestaurant.id):await client.from('suppliers').insert(payload);if(result.error){moduleError('Could not save supplier',result.error);return;}showAppNotice(editingSupplierId?'Supplier updated.':'Supplier added.');editingSupplierId=null;$('supplierForm').reset();if ($('saveSupplierBtn')) $('saveSupplierBtn').textContent ='ADD SUPPLIER';$('cancelSupplierEdit').hidden=true;await loadPurchases();});
+  $('supplierRows').addEventListener('click',async e=>{const edit=e.target.closest('[data-edit-supplier]'),del=e.target.closest('[data-delete-supplier]');if(edit){const x=window.nafSuppliers.find(r=>r.id===edit.dataset.editSupplier);if(!x)return;editingSupplierId=x.id;$('supplierName').value=x.name;if ($('saveSupplierBtn')) $('saveSupplierBtn').textContent ='UPDATE SUPPLIER';$('cancelSupplierEdit').hidden=false;return;}if(del&&confirm('Delete this supplier? Purchases already recorded will remain.')){const {error}=await client.from('suppliers').delete().eq('id',del.dataset.deleteSupplier).eq('restaurant_id',activeRestaurant.id);if(error)moduleError('Could not delete supplier',error);else{showAppNotice('Supplier deleted.');await loadPurchases();}}});
+  $('cancelSupplierEdit').addEventListener('click',()=>{editingSupplierId=null;$('supplierForm').reset();if ($('saveSupplierBtn')) $('saveSupplierBtn').textContent ='ADD SUPPLIER';$('cancelSupplierEdit').hidden=true;});
 
   async function loadExpenses(){if(!activeRestaurant)return;$("expenseDate").value||=todayISO();const {data,error}=await client.from("expenses").select("id,title,category,amount,description,expense_date,created_at").eq("restaurant_id",activeRestaurant.id).order("expense_date",{ascending:false}).limit(300);if(error){moduleError("Could not load expenses",error);return;}window.nafExpenses=data||[];renderExpenses();}
   function renderExpenses(){const q=($("expenseSearch").value||"").toLowerCase();const rows=(window.nafExpenses||[]).filter(x=>(x.title||"").toLowerCase().includes(q)||(x.category||"").toLowerCase().includes(q));$("expenseRows").innerHTML=rows.map(x=>`<tr><td>${safeText(x.expense_date||"")}</td><td>${safeText(x.title)}</td><td>${safeText(x.category||"")}</td><td>${money(x.amount)}</td><td><button class="edit" data-edit-expense="${safeText(x.id)}">Edit</button> <button class="del" data-delete-expense="${safeText(x.id)}">Delete</button></td></tr>`).join("")||'<tr><td colspan="5" class="muted-empty">No expenses recorded.</td></tr>';}
   $("expenseSearch").addEventListener("input",renderExpenses);
-  $("expenseRows").addEventListener("click",async e=>{const edit=e.target.closest("[data-edit-expense]");const del=e.target.closest("[data-delete-expense]");if(edit){const x=window.nafExpenses.find(r=>r.id===edit.dataset.editExpense);if(!x)return;editingExpenseId=x.id;$("expenseTitle").value=x.title;$("expenseCategory").value=x.category||"Other";$("expenseAmount").value=x.amount;$("expenseDate").value=x.expense_date||todayISO();$("expenseDescription").value=x.description||"";$("expenseFormTitle").textContent="Edit Expense";$("saveExpenseBtn").textContent="UPDATE EXPENSE";$("cancelExpenseEdit").hidden=false;return;}if(del&&confirm("Delete this expense?")){const {error}=await client.from("expenses").delete().eq("id",del.dataset.deleteExpense).eq("restaurant_id",activeRestaurant.id);if(error)moduleError("Could not delete expense",error);else{showAppNotice("Expense deleted.");await loadExpenses();await refreshDashboardTotals();}}});
-  function resetExpense(){editingExpenseId=null;$("expenseForm").reset();$("expenseDate").value=todayISO();$("expenseFormTitle").textContent="Add Expense";$("saveExpenseBtn").textContent="SAVE EXPENSE";$("cancelExpenseEdit").hidden=true;}
+  $("expenseRows").addEventListener("click",async e=>{const edit=e.target.closest("[data-edit-expense]");const del=e.target.closest("[data-delete-expense]");if(edit){const x=window.nafExpenses.find(r=>r.id===edit.dataset.editExpense);if(!x)return;editingExpenseId=x.id;$("expenseTitle").value=x.title;$("expenseCategory").value=x.category||"Other";$("expenseAmount").value=x.amount;$("expenseDate").value=x.expense_date||todayISO();$("expenseDescription").value=x.description||"";if ($("expenseFormTitle")) $("expenseFormTitle").textContent ="Edit Expense";if ($("saveExpenseBtn")) $("saveExpenseBtn").textContent ="UPDATE EXPENSE";$("cancelExpenseEdit").hidden=false;return;}if(del&&confirm("Delete this expense?")){const {error}=await client.from("expenses").delete().eq("id",del.dataset.deleteExpense).eq("restaurant_id",activeRestaurant.id);if(error)moduleError("Could not delete expense",error);else{showAppNotice("Expense deleted.");await loadExpenses();await refreshDashboardTotals();}}});
+  function resetExpense(){editingExpenseId=null;$("expenseForm").reset();$("expenseDate").value=todayISO();if ($("expenseFormTitle")) $("expenseFormTitle").textContent ="Add Expense";if ($("saveExpenseBtn")) $("saveExpenseBtn").textContent ="SAVE EXPENSE";$("cancelExpenseEdit").hidden=true;}
   $("cancelExpenseEdit").addEventListener("click",resetExpense);
   $("expenseForm").addEventListener("submit",async e=>{e.preventDefault();const signedInUser=(await client.auth.getUser()).data.user;const payload={restaurant_id:activeRestaurant.id,created_by:editingExpenseId?undefined:(signedInUser?.id||null),title:$("expenseTitle").value.trim(),category:$("expenseCategory").value,amount:Number($("expenseAmount").value),description:$("expenseDescription").value.trim()||null,expense_date:$("expenseDate").value||todayISO()};try{if(editingExpenseId)delete payload.created_by;const result=editingExpenseId?await client.from("expenses").update(payload).eq("id",editingExpenseId).eq("restaurant_id",activeRestaurant.id):await client.from("expenses").insert(payload);if(result.error)throw result.error;showAppNotice(editingExpenseId?"Expense updated.":"Expense saved.");resetExpense();await loadExpenses();await refreshDashboardTotals();}catch(err){moduleError("Could not save expense",err)}});
 
@@ -1610,17 +1610,17 @@
   async function loadCustomers(){const {data,error}=await client.from('customers').select('id,restaurant_id,name,phone,email,notes,created_at').eq('restaurant_id',activeRestaurant.id).order('created_at',{ascending:false}).limit(500);if(error){moduleError('Could not load customers. Check customers table columns.',error);return;}window.nafCustomers=data||[];renderCustomers();}
   function renderCustomers(){const q=($('customerSearch').value||'').toLowerCase();$('customerRows').innerHTML=(window.nafCustomers||[]).filter(x=>[x.name,x.phone,x.email].join(' ').toLowerCase().includes(q)).map(x=>`<tr><td>${safeText(x.name)}</td><td>${safeText(x.phone||'')}</td><td>${safeText(x.email||'')}</td><td>${safeText(x.notes||'')}</td><td><button class="edit" data-edit-customer="${safeText(x.id)}">Edit</button> <button class="del" data-delete-customer="${safeText(x.id)}">Delete</button></td></tr>`).join('')||'<tr><td colspan="5">No customers found.</td></tr>';}
   $('customerSearch').addEventListener('input',renderCustomers);
-  $('customerRows').addEventListener('click',async e=>{const ed=e.target.closest('[data-edit-customer]'),dl=e.target.closest('[data-delete-customer]');if(ed){const x=window.nafCustomers.find(v=>v.id===ed.dataset.editCustomer);editingCustomerId=x.id;$('customerName').value=x.name||'';$('customerPhone').value=x.phone||'';$('customerEmail').value=x.email||'';$('customerNotes').value=x.notes||'';$('customerFormTitle').textContent='Edit Customer';$('saveCustomerBtn').textContent='UPDATE CUSTOMER';$('cancelCustomerEdit').hidden=false;}if(dl&&confirm('Delete this customer?')){const {error}=await client.from('customers').delete().eq('id',dl.dataset.deleteCustomer).eq('restaurant_id',activeRestaurant.id);if(error)moduleError('Could not delete customer',error);else{showAppNotice('Customer deleted.');loadCustomers();}}});
-  function resetCustomer(){$('customerForm').reset();editingCustomerId=null;$('customerFormTitle').textContent='Add Customer';$('saveCustomerBtn').textContent='ADD CUSTOMER';$('cancelCustomerEdit').hidden=true;}
+  $('customerRows').addEventListener('click',async e=>{const ed=e.target.closest('[data-edit-customer]'),dl=e.target.closest('[data-delete-customer]');if(ed){const x=window.nafCustomers.find(v=>v.id===ed.dataset.editCustomer);editingCustomerId=x.id;$('customerName').value=x.name||'';$('customerPhone').value=x.phone||'';$('customerEmail').value=x.email||'';$('customerNotes').value=x.notes||'';if ($('customerFormTitle')) $('customerFormTitle').textContent ='Edit Customer';if ($('saveCustomerBtn')) $('saveCustomerBtn').textContent ='UPDATE CUSTOMER';$('cancelCustomerEdit').hidden=false;}if(dl&&confirm('Delete this customer?')){const {error}=await client.from('customers').delete().eq('id',dl.dataset.deleteCustomer).eq('restaurant_id',activeRestaurant.id);if(error)moduleError('Could not delete customer',error);else{showAppNotice('Customer deleted.');loadCustomers();}}});
+  function resetCustomer(){$('customerForm').reset();editingCustomerId=null;if ($('customerFormTitle')) $('customerFormTitle').textContent ='Add Customer';if ($('saveCustomerBtn')) $('saveCustomerBtn').textContent ='ADD CUSTOMER';$('cancelCustomerEdit').hidden=true;}
   $('cancelCustomerEdit').addEventListener('click',resetCustomer);
   $('customerForm').addEventListener('submit',async e=>{e.preventDefault();const payload={restaurant_id:activeRestaurant.id,name:$('customerName').value.trim(),phone:$('customerPhone').value.trim()||null,email:$('customerEmail').value.trim()||null,notes:$('customerNotes').value.trim()||null};const q=editingCustomerId?client.from('customers').update(payload).eq('id',editingCustomerId).eq('restaurant_id',activeRestaurant.id):client.from('customers').insert(payload);const {error}=await q;if(error)moduleError('Could not save customer',error);else{showAppNotice('Customer saved.');resetCustomer();loadCustomers();}});
   // Separate supplier page uses the same suppliers table as Purchases.
   async function loadSupplierPage(){const {data,error}=await client.from('suppliers').select('id,name').eq('restaurant_id',activeRestaurant.id).order('name');if(error){moduleError('Could not load suppliers',error);return;}window.nafSupplierPage=data||[];renderSupplierPage();}
   function renderSupplierPage(){const q=($('supplierPageSearch').value||'').toLowerCase();$('supplierPageRows').innerHTML=(window.nafSupplierPage||[]).filter(x=>x.name.toLowerCase().includes(q)).map(x=>`<tr><td>${safeText(x.name)}</td><td><button class="edit" data-sp-edit="${safeText(x.id)}">Edit</button> <button class="del" data-sp-delete="${safeText(x.id)}">Delete</button></td></tr>`).join('')||'<tr><td colspan="2">No suppliers found.</td></tr>';}
   $('supplierPageSearch').addEventListener('input',renderSupplierPage);
-  $('supplierPageRows').addEventListener('click',async e=>{const ed=e.target.closest('[data-sp-edit]'),dl=e.target.closest('[data-sp-delete]');if(ed){const x=window.nafSupplierPage.find(v=>v.id===ed.dataset.spEdit);editingSupplierPageId=x.id;$('supplierPageName').value=x.name;$('supplierPageSave').textContent='UPDATE SUPPLIER';$('supplierPageCancel').hidden=false;}if(dl&&confirm('Delete supplier? Existing purchases remain.')){const {error}=await client.from('suppliers').delete().eq('id',dl.dataset.spDelete).eq('restaurant_id',activeRestaurant.id);if(error)moduleError('Could not delete supplier',error);else loadSupplierPage();}});
-  $('supplierPageForm').addEventListener('submit',async e=>{e.preventDefault();const name=$('supplierPageName').value.trim();const q=editingSupplierPageId?client.from('suppliers').update({name}).eq('id',editingSupplierPageId).eq('restaurant_id',activeRestaurant.id):client.from('suppliers').insert({restaurant_id:activeRestaurant.id,name});const {error}=await q;if(error)moduleError('Could not save supplier',error);else{editingSupplierPageId=null;$('supplierPageForm').reset();$('supplierPageSave').textContent='ADD SUPPLIER';$('supplierPageCancel').hidden=true;loadSupplierPage();loadPurchases();}});
-  $('supplierPageCancel').addEventListener('click',()=>{editingSupplierPageId=null;$('supplierPageForm').reset();$('supplierPageSave').textContent='ADD SUPPLIER';$('supplierPageCancel').hidden=true;});
+  $('supplierPageRows').addEventListener('click',async e=>{const ed=e.target.closest('[data-sp-edit]'),dl=e.target.closest('[data-sp-delete]');if(ed){const x=window.nafSupplierPage.find(v=>v.id===ed.dataset.spEdit);editingSupplierPageId=x.id;$('supplierPageName').value=x.name;if ($('supplierPageSave')) $('supplierPageSave').textContent ='UPDATE SUPPLIER';$('supplierPageCancel').hidden=false;}if(dl&&confirm('Delete supplier? Existing purchases remain.')){const {error}=await client.from('suppliers').delete().eq('id',dl.dataset.spDelete).eq('restaurant_id',activeRestaurant.id);if(error)moduleError('Could not delete supplier',error);else loadSupplierPage();}});
+  $('supplierPageForm').addEventListener('submit',async e=>{e.preventDefault();const name=$('supplierPageName').value.trim();const q=editingSupplierPageId?client.from('suppliers').update({name}).eq('id',editingSupplierPageId).eq('restaurant_id',activeRestaurant.id):client.from('suppliers').insert({restaurant_id:activeRestaurant.id,name});const {error}=await q;if(error)moduleError('Could not save supplier',error);else{editingSupplierPageId=null;$('supplierPageForm').reset();if ($('supplierPageSave')) $('supplierPageSave').textContent ='ADD SUPPLIER';$('supplierPageCancel').hidden=true;loadSupplierPage();loadPurchases();}});
+  $('supplierPageCancel').addEventListener('click',()=>{editingSupplierPageId=null;$('supplierPageForm').reset();if ($('supplierPageSave')) $('supplierPageSave').textContent ='ADD SUPPLIER';$('supplierPageCancel').hidden=true;});
   // Reports from saved sales, purchases and expenses.
   async function runReports(){
     if(!activeRestaurant)return;
@@ -1634,10 +1634,10 @@
       const salesRes=await sq;
       if(salesRes.error){moduleError('Could not generate cashier report',salesRes.error);return;}
       const sales=(salesRes.data||[]).reduce((a,r)=>a+Number(r.total_amount||0),0);
-      $('reportSales').textContent=money(sales);
-      $('reportPurchases').textContent='—';
-      $('reportExpenses').textContent='—';
-      $('reportNet').textContent=money(sales);
+      if ($('reportSales')) $('reportSales').textContent =money(sales);
+      if ($('reportPurchases')) $('reportPurchases').textContent ='—';
+      if ($('reportExpenses')) $('reportExpenses').textContent ='—';
+      if ($('reportNet')) $('reportNet').textContent =money(sales);
       return;
     }
 
@@ -1650,10 +1650,10 @@
     const sales=(salesRes.data||[]).reduce((a,r)=>a+Number(r.total_amount||0),0);
     const purchases=(purchasesRes.data||[]).reduce((a,r)=>a+Number(r.total_amount||0),0);
     const expenses=(expensesRes.data||[]).reduce((a,r)=>a+Number(r.amount||0),0);
-    $('reportSales').textContent=money(sales);
-    $('reportPurchases').textContent=money(purchases);
-    $('reportExpenses').textContent=money(expenses);
-    $('reportNet').textContent=money(sales-purchases-expenses);
+    if ($('reportSales')) $('reportSales').textContent =money(sales);
+    if ($('reportPurchases')) $('reportPurchases').textContent =money(purchases);
+    if ($('reportExpenses')) $('reportExpenses').textContent =money(expenses);
+    if ($('reportNet')) $('reportNet').textContent =money(sales-purchases-expenses);
   }
   $('runReport').addEventListener('click',runReports);
   $('printReportBtn').addEventListener('click',()=>{
@@ -1717,17 +1717,17 @@
   $('cashierRows').addEventListener('click',async e=>{
     const ed=e.target.closest('[data-cashier-edit]'),dl=e.target.closest('[data-cashier-del]'),tg=e.target.closest('[data-cashier-toggle]');
     try{
-      if(ed){const x=window.nafCashiers.find(v=>v.id===ed.dataset.cashierEdit);if(!x)return;editingCashierId=x.id;$('cashierName').value=x.name;$('cashierEmail').value=x.email;$('cashierPhone').value=x.phone||'';$('cashierStatus').value=x.status;$('cashierPassword').required=false;$('cashierPassword').value='';$('cashierSave').textContent='UPDATE CASHIER';$('cashierCancel').hidden=false;return;}
+      if(ed){const x=window.nafCashiers.find(v=>v.id===ed.dataset.cashierEdit);if(!x)return;editingCashierId=x.id;$('cashierName').value=x.name;$('cashierEmail').value=x.email;$('cashierPhone').value=x.phone||'';$('cashierStatus').value=x.status;$('cashierPassword').required=false;$('cashierPassword').value='';if ($('cashierSave')) $('cashierSave').textContent ='UPDATE CASHIER';$('cashierCancel').hidden=false;return;}
       if(tg){const x=window.nafCashiers.find(v=>v.id===tg.dataset.cashierToggle);if(!x)return;await callCashierFunction({action:'set_status',cashier_id:x.id,status:x.status==='active'?'inactive':'active'});showAppNotice('Cashier status updated.');await loadCashiers();return;}
       if(dl&&confirm('Delete cashier and disable their login account?')){await callCashierFunction({action:'delete',cashier_id:dl.dataset.cashierDel});showAppNotice('Cashier deleted and login disabled.');await loadCashiers();}
     }catch(err){moduleError('Cashier action failed',err);}
   });
   $('cashierForm').addEventListener('submit',async e=>{
     e.preventDefault();const payload={action:editingCashierId?'update':'create',cashier_id:editingCashierId,restaurant_id:activeRestaurant.id,name:$('cashierName').value.trim(),email:$('cashierEmail').value.trim().toLowerCase(),phone:$('cashierPhone').value.trim()||null,status:$('cashierStatus').value,password:$('cashierPassword').value};
-    try{await callCashierFunction(payload);editingCashierId=null;$('cashierForm').reset();$('cashierPassword').required=true;$('cashierSave').textContent='ADD CASHIER';$('cashierCancel').hidden=true;showAppNotice(payload.action==='create'?'Cashier login created. Share the password securely with the cashier.':'Cashier updated.');await loadCashiers();}
+    try{await callCashierFunction(payload);editingCashierId=null;$('cashierForm').reset();$('cashierPassword').required=true;if ($('cashierSave')) $('cashierSave').textContent ='ADD CASHIER';$('cashierCancel').hidden=true;showAppNotice(payload.action==='create'?'Cashier login created. Share the password securely with the cashier.':'Cashier updated.');await loadCashiers();}
     catch(err){moduleError('Could not save cashier',err);}
   });
-  $('cashierCancel').addEventListener('click',()=>{editingCashierId=null;$('cashierForm').reset();$('cashierPassword').required=true;$('cashierSave').textContent='ADD CASHIER';$('cashierCancel').hidden=true;});
+  $('cashierCancel').addEventListener('click',()=>{editingCashierId=null;$('cashierForm').reset();$('cashierPassword').required=true;if ($('cashierSave')) $('cashierSave').textContent ='ADD CASHIER';$('cashierCancel').hidden=true;});
   async function requireNafSuperAdmin(){const {data:{user},error}=await client.auth.getUser();if(error)throw error;if(!user)throw new Error("Please sign in.");const {data:ok,error:checkError}=await client.rpc("naf_is_super_admin");if(checkError)throw checkError;if(ok!==true)throw new Error("Access denied: this account is not a Super Admin.");return user;}
   async function loadAdminSubscriptionSettings(){await requireNafSuperAdmin();const {data,error}=await client.from("naf_subscription_settings").select("*").eq("setting_key","main").single();if(error)throw error;subscriptionSettingsCache=data;$('adminTrialDays').value=data.trial_days??5;$('adminSubCurrency').value=data.currency||'SAR';$('adminSubEmail').value=data.contact_email||'';$('adminSubPhone').value=data.contact_phone||'';$('adminSubWhatsapp').value=data.whatsapp_number||'';$('adminSubBank').value=data.bank_name||'';$('adminSubHolder').value=data.account_holder||'';$('adminSubAccount').value=data.account_number||'';$('adminExpiryTitle').value=data.expiry_title||'';$('adminExpiryMessage').value=data.expiry_message||'';}
   $('adminSubscriptionSettingsForm').addEventListener('submit',async e=>{e.preventDefault();try{const user=await requireNafSuperAdmin();const payload={trial_days:Number($('adminTrialDays').value),currency:$('adminSubCurrency').value.trim()||'SAR',contact_email:$('adminSubEmail').value.trim()||null,contact_phone:$('adminSubPhone').value.trim()||null,whatsapp_number:$('adminSubWhatsapp').value.trim()||null,bank_name:$('adminSubBank').value.trim()||null,account_holder:$('adminSubHolder').value.trim()||null,account_number:$('adminSubAccount').value.trim()||null,expiry_title:$('adminExpiryTitle').value.trim()||'Subscription Expired',expiry_message:$('adminExpiryMessage').value.trim()||'Please subscribe to continue.',updated_at:new Date().toISOString(),updated_by:user.id};const {error}=await client.from('naf_subscription_settings').update(payload).eq('setting_key','main');if(error)throw error;showAppNotice('Subscription settings saved. New trial duration applies to newly created restaurants.');await loadAdminSubscriptionSettings();}catch(err){moduleError('Could not save subscription settings',err);}});
@@ -1745,15 +1745,15 @@
   function employeeName(x){return x.name||"";}
   function renderEmployees(){const q=($("employeeSearch").value||"").toLowerCase();const rows=(window.nafEmployees||[]).filter(x=>employeeName(x).toLowerCase().includes(q)||(x.role||"").toLowerCase().includes(q));$("employeeRows").innerHTML=rows.map(x=>`<tr><td>${safeText(employeeName(x))}</td><td>${safeText(x.role||"")}</td><td>${safeText(x.phone||"")}</td><td>${safeText(x.email||"")}</td><td>${money(x.salary)}</td><td><button class="edit" data-edit-employee="${safeText(x.id)}">Edit</button> <button class="del" data-delete-employee="${safeText(x.id)}">Delete</button></td></tr>`).join("")||'<tr><td colspan="6" class="muted-empty">No employees found.</td></tr>';}
   $("employeeSearch").addEventListener("input",renderEmployees);
-  $("employeeRows").addEventListener("click",async e=>{const edit=e.target.closest("[data-edit-employee]"),del=e.target.closest("[data-delete-employee]");if(edit){const x=window.nafEmployees.find(r=>r.id===edit.dataset.editEmployee);editingEmployeeId=x.id;$("employeeName").value=employeeName(x);$("employeeRole").value=x.role||"Other";$("employeePhone").value=x.phone||"";$("employeeEmail").value=x.email||"";$("employeeSalary").value=x.salary||0;$("employeeFormTitle").textContent="Edit Employee";$("saveEmployeeBtn").textContent="UPDATE EMPLOYEE";$("cancelEmployeeEdit").hidden=false;return;}if(del&&confirm("Delete this employee record?")){const {error}=await client.from("employees").delete().eq("id",del.dataset.deleteEmployee).eq("restaurant_id",activeRestaurant.id);if(error)moduleError("Could not delete employee",error);else{showAppNotice("Employee deleted.");loadEmployees();}}});
-  function resetEmployee(){editingEmployeeId=null;$("employeeForm").reset();$("employeeSalary").value="0";$("employeeFormTitle").textContent="Add Employee";$("saveEmployeeBtn").textContent="SAVE EMPLOYEE";$("cancelEmployeeEdit").hidden=true;}
+  $("employeeRows").addEventListener("click",async e=>{const edit=e.target.closest("[data-edit-employee]"),del=e.target.closest("[data-delete-employee]");if(edit){const x=window.nafEmployees.find(r=>r.id===edit.dataset.editEmployee);editingEmployeeId=x.id;$("employeeName").value=employeeName(x);$("employeeRole").value=x.role||"Other";$("employeePhone").value=x.phone||"";$("employeeEmail").value=x.email||"";$("employeeSalary").value=x.salary||0;if ($("employeeFormTitle")) $("employeeFormTitle").textContent ="Edit Employee";if ($("saveEmployeeBtn")) $("saveEmployeeBtn").textContent ="UPDATE EMPLOYEE";$("cancelEmployeeEdit").hidden=false;return;}if(del&&confirm("Delete this employee record?")){const {error}=await client.from("employees").delete().eq("id",del.dataset.deleteEmployee).eq("restaurant_id",activeRestaurant.id);if(error)moduleError("Could not delete employee",error);else{showAppNotice("Employee deleted.");loadEmployees();}}});
+  function resetEmployee(){editingEmployeeId=null;$("employeeForm").reset();$("employeeSalary").value="0";if ($("employeeFormTitle")) $("employeeFormTitle").textContent ="Add Employee";if ($("saveEmployeeBtn")) $("saveEmployeeBtn").textContent ="SAVE EMPLOYEE";$("cancelEmployeeEdit").hidden=true;}
   $("cancelEmployeeEdit").addEventListener("click",resetEmployee);
   $("employeeForm").addEventListener("submit",async e=>{e.preventDefault();const payload={restaurant_id:activeRestaurant.id,name:$("employeeName").value.trim(),role:$("employeeRole").value,phone:$("employeePhone").value.trim()||null,email:$("employeeEmail").value.trim()||null,salary:Number($("employeeSalary").value||0)};try{const result=editingEmployeeId?await client.from("employees").update(payload).eq("id",editingEmployeeId).eq("restaurant_id",activeRestaurant.id):await client.from("employees").insert(payload);if(result.error)throw result.error;showAppNotice(editingEmployeeId?"Employee updated.":"Employee saved.");resetEmployee();await loadEmployees();}catch(err){moduleError("Could not save employee. Check employee column names",err)}});
 
   async function loadBudget(){if(!activeRestaurant)return;const {data,error}=await client.from("budgets").select("id,title,amount,spent,start_date,end_date,created_at").eq("restaurant_id",activeRestaurant.id).order("start_date",{ascending:false}).limit(300);if(error){moduleError("Could not load budgets",error);return;}window.nafBudgets=data||[];renderBudget();}
-  function renderBudget(){const rows=window.nafBudgets||[];const total=rows.reduce((a,x)=>a+Number(x.amount||0),0),spent=rows.reduce((a,x)=>a+Number(x.spent||0),0);$("budgetModuleTotal").textContent=money(total);$("budgetModuleSpent").textContent=money(spent);$("budgetModuleRemaining").textContent=money(total-spent);$("budgetRows").innerHTML=rows.map(x=>`<tr><td>${safeText(x.title)}</td><td>${safeText(x.start_date||"")} – ${safeText(x.end_date||"")}</td><td>${money(x.amount)}</td><td>${money(x.spent)}</td><td>${money(Number(x.amount||0)-Number(x.spent||0))}</td><td><button class="edit" data-edit-budget="${safeText(x.id)}">Edit</button> <button class="del" data-delete-budget="${safeText(x.id)}">Delete</button></td></tr>`).join("")||'<tr><td colspan="6" class="muted-empty">No budgets created.</td></tr>';}
-  $("budgetRows").addEventListener("click",async e=>{const edit=e.target.closest("[data-edit-budget]"),del=e.target.closest("[data-delete-budget]");if(edit){const x=window.nafBudgets.find(r=>r.id===edit.dataset.editBudget);editingBudgetId=x.id;$("budgetTitle").value=x.title;$("budgetAmount").value=x.amount;$("budgetStart").value=x.start_date;$("budgetEnd").value=x.end_date;$("budgetFormTitle").textContent="Edit Budget";$("saveBudgetBtn").textContent="UPDATE BUDGET";$("cancelBudgetEdit").hidden=false;return;}if(del&&confirm("Delete this budget?")){const {error}=await client.from("budgets").delete().eq("id",del.dataset.deleteBudget).eq("restaurant_id",activeRestaurant.id);if(error)moduleError("Could not delete budget",error);else{showAppNotice("Budget deleted.");await loadBudget();await refreshDashboardTotals();}}});
-  function resetBudget(){editingBudgetId=null;$("budgetForm").reset();$("budgetFormTitle").textContent="Set Budget";$("saveBudgetBtn").textContent="SAVE BUDGET";$("cancelBudgetEdit").hidden=true;}
+  function renderBudget(){const rows=window.nafBudgets||[];const total=rows.reduce((a,x)=>a+Number(x.amount||0),0),spent=rows.reduce((a,x)=>a+Number(x.spent||0),0);if ($("budgetModuleTotal")) $("budgetModuleTotal").textContent =money(total);if ($("budgetModuleSpent")) $("budgetModuleSpent").textContent =money(spent);if ($("budgetModuleRemaining")) $("budgetModuleRemaining").textContent =money(total-spent);$("budgetRows").innerHTML=rows.map(x=>`<tr><td>${safeText(x.title)}</td><td>${safeText(x.start_date||"")} – ${safeText(x.end_date||"")}</td><td>${money(x.amount)}</td><td>${money(x.spent)}</td><td>${money(Number(x.amount||0)-Number(x.spent||0))}</td><td><button class="edit" data-edit-budget="${safeText(x.id)}">Edit</button> <button class="del" data-delete-budget="${safeText(x.id)}">Delete</button></td></tr>`).join("")||'<tr><td colspan="6" class="muted-empty">No budgets created.</td></tr>';}
+  $("budgetRows").addEventListener("click",async e=>{const edit=e.target.closest("[data-edit-budget]"),del=e.target.closest("[data-delete-budget]");if(edit){const x=window.nafBudgets.find(r=>r.id===edit.dataset.editBudget);editingBudgetId=x.id;$("budgetTitle").value=x.title;$("budgetAmount").value=x.amount;$("budgetStart").value=x.start_date;$("budgetEnd").value=x.end_date;if ($("budgetFormTitle")) $("budgetFormTitle").textContent ="Edit Budget";if ($("saveBudgetBtn")) $("saveBudgetBtn").textContent ="UPDATE BUDGET";$("cancelBudgetEdit").hidden=false;return;}if(del&&confirm("Delete this budget?")){const {error}=await client.from("budgets").delete().eq("id",del.dataset.deleteBudget).eq("restaurant_id",activeRestaurant.id);if(error)moduleError("Could not delete budget",error);else{showAppNotice("Budget deleted.");await loadBudget();await refreshDashboardTotals();}}});
+  function resetBudget(){editingBudgetId=null;$("budgetForm").reset();if ($("budgetFormTitle")) $("budgetFormTitle").textContent ="Set Budget";if ($("saveBudgetBtn")) $("saveBudgetBtn").textContent ="SAVE BUDGET";$("cancelBudgetEdit").hidden=true;}
   $("cancelBudgetEdit").addEventListener("click",resetBudget);
   $("budgetForm").addEventListener("submit",async e=>{e.preventDefault();const start=$("budgetStart").value,end=$("budgetEnd").value;if(end<start){showAppNotice("Budget end date must be on or after start date.");return;}const payload={restaurant_id:activeRestaurant.id,title:$("budgetTitle").value.trim(),amount:Number($("budgetAmount").value),start_date:start,end_date:end};try{const result=editingBudgetId?await client.from("budgets").update(payload).eq("id",editingBudgetId).eq("restaurant_id",activeRestaurant.id):await client.from("budgets").insert(payload);if(result.error)throw result.error;showAppNotice(editingBudgetId?"Budget updated.":"Budget created.");resetBudget();await loadBudget();await refreshDashboardTotals();}catch(err){moduleError("Could not save budget",err)}});
 
@@ -1791,14 +1791,14 @@
     $("restaurantDataConfirmPanel").hidden=true;
     $("restaurantDataConfirmForm").reset();
     $("restaurantDataConfirmSubmit").disabled=false;
-    $("restaurantDataConfirmSubmit").textContent="CONFIRM & CONTINUE";
+    if ($("restaurantDataConfirmSubmit")) $("restaurantDataConfirmSubmit").textContent ="CONFIRM & CONTINUE";
   }
   function openRestaurantDataConfirm(mode){
     if(currentCashier || !activeRestaurant){showAppNotice("Only the restaurant owner can manage restaurant data.");return;}
     pendingRestaurantDataAction=mode;
     const isFull=mode==="delete_all";
-    $("restaurantDataConfirmTitle").textContent=isFull?"Confirm Delete All Operational Data":"Confirm Reset Restaurant Data";
-    $("restaurantDataConfirmDescription").textContent=isFull
+    if ($("restaurantDataConfirmTitle")) $("restaurantDataConfirmTitle").textContent =isFull?"Confirm Delete All Operational Data":"Confirm Reset Restaurant Data";
+    if ($("restaurantDataConfirmDescription")) $("restaurantDataConfirmDescription").textContent =isFull
       ? `This permanently deletes all operational data for ${activeRestaurant.name}, including menu, customers, suppliers, employees and pending invitations. Cashier accounts, owner login and subscription remain.`
       : `This permanently deletes sales, purchases, expenses and budgets for ${activeRestaurant.name}. Menu, customers, suppliers, employees and cashier accounts remain.`;
     $("restaurantDataConfirmPanel").hidden=false;
