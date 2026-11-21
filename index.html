@@ -724,6 +724,50 @@
     </main>
   </section>
 
+
+  <!-- Personal PIN settings modal -->
+  <section id="pinSettingsModal" class="pin-modal" hidden role="dialog" aria-modal="true" aria-labelledby="pinSettingsTitle">
+    <div class="pin-card">
+      <h2 id="pinSettingsTitle">Personal PIN Lock</h2>
+      <p>Optional screen lock for this account on this browser/device. It does not replace your Supabase login.</p>
+      <label style="display:flex;align-items:center;gap:9px;font-weight:750;margin:12px 0">
+        <input id="pinEnabled" type="checkbox"> Enable my PIN lock
+      </label>
+      <div id="pinSetupFields" hidden>
+        <label for="pinNew">Create 4-digit PIN</label>
+        <input id="pinNew" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="new-password" placeholder="4 digits">
+        <label for="pinConfirm">Confirm 4-digit PIN</label>
+        <input id="pinConfirm" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="new-password" placeholder="Repeat PIN">
+        <label for="pinAutoMinutes">Auto-lock after inactivity</label>
+        <select id="pinAutoMinutes">
+          <option value="0">Off</option><option value="1">1 minute</option><option value="5" selected>5 minutes</option><option value="10">10 minutes</option><option value="15">15 minutes</option><option value="30">30 minutes</option>
+        </select>
+        <p class="smallnote">Leave both PIN fields empty to keep your existing PIN.</p>
+      </div>
+      <p id="pinSettingsError" class="pin-error" role="alert"></p>
+      <div class="pin-actions">
+        <button id="pinSaveBtn" type="button">Save settings</button>
+        <button id="pinLockNowBtn" type="button" class="secondary">Lock now</button>
+        <button id="pinCloseBtn" type="button" class="secondary">Close</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- PIN unlock modal -->
+  <section id="pinUnlockModal" class="pin-modal" hidden role="dialog" aria-modal="true" aria-labelledby="pinUnlockTitle">
+    <div class="pin-card">
+      <h2 id="pinUnlockTitle">NAF POS is locked</h2>
+      <p>Enter your personal 4-digit PIN to continue.</p>
+      <label for="pinUnlockInput">Your PIN</label>
+      <input id="pinUnlockInput" type="password" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="Enter 4-digit PIN">
+      <p id="pinUnlockError" class="pin-error" role="alert"></p>
+      <div class="pin-actions">
+        <button id="pinUnlockBtn" type="button">Unlock</button>
+        <button id="pinLogoutBtn" type="button" class="secondary">Log out</button>
+      </div>
+    </div>
+  </section>
+
  <script>
 (() => {
   const SUPABASE_URL = "https://ymdvlkbzrzcmshnvjspk.supabase.co";
