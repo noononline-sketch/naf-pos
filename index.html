@@ -980,7 +980,33 @@
   $("applyDashboardDates")?.addEventListener("click",refreshDashboardData);
   $("dashboardFromDate")?.addEventListener("change",()=>{if($("dashboardToDate").value&&$("dashboardFromDate").value>$("dashboardToDate").value)$("dashboardToDate").value=$("dashboardFromDate").value;});
   $("dashboardToDate")?.addEventListener("change",()=>{if($("dashboardFromDate").value&&$("dashboardToDate").value<$("dashboardFromDate").value)$("dashboardFromDate").value=$("dashboardToDate").value;});
-  $("refreshAppBtn")?.addEventListener("click",()=>window.location.reload());
+  $("refreshAppBtn")?.addEventListener("click", async () => {
+    const btn = $("refreshAppBtn");
+    if (!btn || btn.disabled) return;
+
+    // Refresh the currently open page without reloading the browser or ending the session.
+    const activeNav = document.querySelector(".navitem.active[data-page]");
+    const currentPage = activeNav?.dataset.page || "dashboard";
+    const originalText = btn.textContent;
+
+    btn.disabled = true;
+    btn.textContent = "↻ Loading…";
+
+    try {
+      if (currentPage === "dashboard") {
+        await refreshDashboardData();
+      } else {
+        // showPage keeps the current page selected and runs that page's data loader.
+        showPage(currentPage);
+      }
+      showAppNotice("Page refreshed successfully.");
+    } catch (err) {
+      moduleError("Could not refresh this page", err);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  });
 
   function showPage(page) {
     // Enforce Super Admin navigation visibility in the UI; database RPC/RLS remains the real security boundary.
