@@ -2693,8 +2693,8 @@
   async function sendSupportMessage(subject,message,threadId=null){
     const {data:{user},error:userErr}=await client.auth.getUser(); if(userErr) throw userErr; if(!user) throw new Error("Please sign in again.");
     let recipient=null, restaurantId=activeRestaurant?.id||null;
-    let senderRole=currentCashier?"cashier":currentManager?"manager":(isNafSuperAdmin&&!activeRestaurant?"super_admin":"owner");
-    if(isNafSuperAdmin && !currentCashier && !currentManager && !activeRestaurant){throw new Error("Open a restaurant Owner message and use Reply there.");}
+    let senderRole=isNafSuperAdmin?"super_admin":currentCashier?"cashier":currentManager?"manager":"owner";
+    if(isNafSuperAdmin && !currentCashier && !currentManager){throw new Error("Super Admin must reply from an Owner support conversation.");}
     if(currentCashier||currentManager){
       if(!restaurantId) throw new Error("Restaurant was not found.");
       const {data:r,error}=await client.from("restaurants").select("owner_id").eq("id",restaurantId).single(); if(error) throw error; recipient=r.owner_id;
@@ -2724,8 +2724,8 @@
       const rows=nafSupportCache.filter(x=>x.thread_id===supportReplyThread);if(!rows.length)throw new Error("Support conversation was not found.");
       const last=rows[0];const {data:{user},error:userErr}=await client.auth.getUser();if(userErr)throw userErr;if(!user)throw new Error("Please sign in again.");
       let recipient=last.sender_role==="super_admin"?null:last.sender_user_id;
-      if(isNafSuperAdmin&&!activeRestaurant){const {data:r,error}=await client.from("restaurants").select("owner_id").eq("id",last.restaurant_id).single();if(error)throw error;recipient=r.owner_id;}
-      const {error}=await client.from("naf_support_messages").insert({thread_id:supportReplyThread,restaurant_id:last.restaurant_id,sender_user_id:user.id,recipient_user_id:recipient,sender_role:currentCashier?"cashier":currentManager?"manager":(isNafSuperAdmin&&!activeRestaurant?"super_admin":"owner"),subject:last.subject,message:answer,status:"Replied"});if(error)throw error;
+      if(isNafSuperAdmin){const {data:r,error}=await client.from("restaurants").select("owner_id").eq("id",last.restaurant_id).single();if(error)throw error;recipient=r.owner_id;}
+      const {error}=await client.from("naf_support_messages").insert({thread_id:supportReplyThread,restaurant_id:last.restaurant_id,sender_user_id:user.id,recipient_user_id:recipient,sender_role:isNafSuperAdmin?"super_admin":currentCashier?"cashier":currentManager?"manager":"owner",subject:last.subject,message:answer,status:"Replied"});if(error)throw error;
       const {error:updateError}=await client.from("naf_support_messages").update({status:"Replied"}).eq("thread_id",supportReplyThread);if(updateError)throw updateError;
       closeSupportReplyModal();showAppNotice("Reply sent.");await loadSupportMessages();
     }catch(err){showAppNotice("Could not send reply: "+err.message);}finally{btn.disabled=false;}
