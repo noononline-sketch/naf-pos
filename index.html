@@ -287,7 +287,10 @@
     <div class="subscription-card">
       <div class="between" style="align-items:center;gap:12px">
         <div><h2 id="subscriptionGateTitle">Subscription Required</h2><p id="subscriptionGateMessage" class="sub">Your free trial has ended. Select a plan and submit payment proof.</p></div>
-        <button id="subscriptionLogout" class="btn" type="button" style="width:auto;padding:10px 16px">Sign out</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+          <button id="subscriptionBackHome" class="menu-btn secondary" type="button" style="width:auto;padding:10px 14px">← Back to Home</button>
+          <button id="subscriptionLogout" class="btn" type="button" style="width:auto;padding:10px 16px">Sign out</button>
+        </div>
       </div>
       <p id="subscriptionGateStatus" class="notice" style="display:block"></p>
       <h3>Available subscription plans</h3>
@@ -561,7 +564,7 @@
         </div>
         <div class="module-card">
           <h3>Subscription Management</h3>
-          <p class="module-note">View available plans, submit your payment receipt, and check your subscription request status. Only the restaurant owner can submit a payment request.</p>
+          <p class="module-note" id="subscriptionManagementNote">View available plans and submit a payment receipt when your current subscription has expired. Only the restaurant owner can submit a payment request.</p>
           <div class="module-actions"><button type="button" class="menu-btn" id="openSubscriptionRequest">VIEW PLANS & REQUEST SUBSCRIPTION</button></div>
         </div>
       </section>
@@ -711,13 +714,27 @@
       :`${Number(row.days_remaining||0)} day(s) remaining`;
     return row;
   }
+  async function getRestaurantSubscriptionAccess(restaurantId){
+    const {data,error}=await client.rpc("naf_my_subscription_access");
+    if(error) throw new Error("Could not verify subscription access: "+error.message);
+    const row=(data||[]).find(x=>x.restaurant_id===restaurantId)||null;
+    currentSubscription=row;
+    return row;
+  }
+  function updateSubscriptionRequestAvailability(accessRow){
+    const button=$("openSubscriptionRequest");
+    const note=$("subscriptionManagementNote");
+    const active=accessRow?.can_access===true;
+    if(button) button.hidden=active || currentCashier || !activeRestaurant;
+    if(note) note.textContent=active
+      ? "Your subscription is active. You cannot select or pay for another plan until the current plan expires."
+      : "Your subscription has expired. You can now choose a new plan and submit your payment receipt for review.";
+  }
+
   async function checkSubscriptionAccess(restaurantId){
     if(isNafSuperAdmin) return true;
     await loadCustomerSubscriptionDetails(restaurantId);
-    const {data,error}=await client.rpc("naf_my_subscription_access");
-    if(error) throw new Error("Could not verify subscription access: "+error.message);
-    const row=(data||[]).find(x=>x.restaurant_id===restaurantId);
-    currentSubscription=row||null;
+    const row=await getRestaurantSubscriptionAccess(restaurantId);
     if(row?.can_access===true) return true;
     await loadSubscriptionPublicData();
     const status=row?.subscription_status||"not_found";
@@ -738,6 +755,15 @@
   $("subscriptionPaymentForm")?.addEventListener("submit",async e=>{
     e.preventDefault();
     if(currentCashier||!activeRestaurant){showAppNotice("Only the restaurant owner can submit a subscription payment.");return;}
+    try{
+      const accessRow=await getRestaurantSubscriptionAccess(activeRestaurant.id);
+      if(accessRow?.can_access===true){
+        hideSubscriptionGate();
+        showAppNotice("Your current subscription is still active. You can choose another plan only after it expires.");
+        updateSubscriptionRequestAvailability(accessRow);
+        return;
+      }
+    }catch(err){moduleError("Could not verify subscription before payment",err);return;}
     const plan=subscriptionPlansCache.find(p=>p.id===$("subscriptionPlanSelect").value);
     const file=$("subscriptionReceipt").files[0];
     if(!plan||!file){showAppNotice("Choose a plan and attach the payment receipt.");return;}
@@ -753,6 +779,35 @@
       if ($("subscriptionGateStatus")) $("subscriptionGateStatus").textContent ="Payment request submitted. Waiting for Super Admin review.";
       $("subscriptionPaymentForm").reset();
     }catch(err){moduleError("Could not submit payment request",err);}
+  });
+  $("subscriptionBackHome")?.addEventListener("click",async()=>{
+    if(currentCashier || !activeRestaurant){
+      hideSubscriptionGate();
+      document.querySelector(".shell").classList.remove("hidden");
+      document.body.classList.remove("app-mode");
+      $("appShell").classList.remove("visible");
+      switchTab("login");
+      return;
+    }
+    try{
+      const accessRow=await getRestaurantSubscriptionAccess(activeRestaurant.id);
+      if(accessRow?.can_access===true){
+        hideSubscriptionGate();
+        $("appShell").classList.add("visible");
+        document.body.classList.add("app-mode");
+        document.querySelector(".shell").classList.add("hidden");
+        showPage("dashboard");
+        updateSubscriptionRequestAvailability(accessRow);
+      }else{
+        showAppNotice("Your subscription has expired. Sign in again after choosing a plan and receiving approval.");
+        await client.auth.signOut();
+        hideSubscriptionGate();
+        $("appShell").classList.remove("visible");
+        document.body.classList.remove("app-mode");
+        document.querySelector(".shell").classList.remove("hidden");
+        switchTab("login");
+      }
+    }catch(err){moduleError("Could not return home",err);}
   });
   $("subscriptionLogout")?.addEventListener("click",async()=>{await client.auth.signOut();hideSubscriptionGate();$("appShell").classList.remove("visible");document.body.classList.remove("app-mode");document.querySelector(".shell").classList.remove("hidden");switchTab("login");});
 
@@ -957,15 +1012,24 @@
 
   async function refreshCustomerSubscriptionCard(){
     if(!activeRestaurant || isNafSuperAdmin) return;
-    try{ await loadCustomerSubscriptionDetails(activeRestaurant.id); }
-    catch(err){ moduleError("Could not refresh subscription details",err); }
+    try{
+      await loadCustomerSubscriptionDetails(activeRestaurant.id);
+      const accessRow=await getRestaurantSubscriptionAccess(activeRestaurant.id);
+      updateSubscriptionRequestAvailability(accessRow);
+    }catch(err){ moduleError("Could not refresh subscription details",err); }
   }
     $("openSubscriptionRequest")?.addEventListener("click",async()=>{
     if(currentCashier || !activeRestaurant){showAppNotice("Only the restaurant owner can manage subscription requests.");return;}
     try{
+      const accessRow=await getRestaurantSubscriptionAccess(activeRestaurant.id);
+      updateSubscriptionRequestAvailability(accessRow);
+      if(accessRow?.can_access===true){
+        showAppNotice("Your current plan is active. A new plan can be selected only after the expiry date.");
+        return;
+      }
       await loadSubscriptionPublicData();
       showSubscriptionGate("","Choose a subscription plan and submit your payment receipt for review.");
-      if ($("subscriptionGateMessage")) $("subscriptionGateMessage").textContent ="Choose a subscription plan and submit your payment receipt for review.";
+      if ($("subscriptionGateMessage")) $("subscriptionGateMessage").textContent ="Your current subscription has expired. Choose a new plan and submit your payment receipt for review.";
       $("subscriptionPaymentForm").hidden=false;
       $("subscriptionPaymentForm").dataset.restaurantId=activeRestaurant.id;
     }catch(err){moduleError("Could not load subscription plans",err);}
