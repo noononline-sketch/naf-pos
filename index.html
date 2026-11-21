@@ -466,12 +466,12 @@
           </form>
         </div>
         <div class="module-card">
-          <div class="module-toolbar"><h3 style="margin:0">Purchase Used History</h3><input id="purchaseUsedSearch" placeholder="Search item or reason"></div>
+          <div class="module-toolbar"><h3 style="margin:0">Purchase Used History</h3><input id="purchaseUsedSearch" placeholder="Search item or reason"><button class="menu-btn secondary" id="printPurchaseUsedBtn" type="button">PRINT HISTORY</button></div>
           <div class="module-table-wrap"><table class="module-table"><thead><tr><th>DATE</th><th>ITEM</th><th>INVOICE</th><th>QUANTITY USED</th><th>UNIT</th><th>REASON</th><th>ACTIONS</th></tr></thead><tbody id="purchaseUsedRows"></tbody></table></div>
         </div>
         <div class="module-card">
-          <h3>Current Purchase Stock</h3>
-          <div class="module-table-wrap"><table class="module-table"><thead><tr><th>ITEM</th><th>INVOICE</th><th>PURCHASED</th><th>USED</th><th>IN STOCK</th><th>UNIT</th></tr></thead><tbody id="purchaseStockRows"></tbody></table></div>
+          <div class="module-toolbar"><h3 style="margin:0">Current Purchase Stock</h3><input id="purchaseStockSearch" type="search" placeholder="Search item, invoice or unit"><button class="menu-btn secondary" id="printPurchaseStockBtn" type="button">PRINT STOCK</button></div>
+          <div class="module-table-wrap"><table class="module-table"><thead><tr><th>ITEM</th><th>INVOICE</th><th>PURCHASED</th><th>USED</th><th>IN STOCK</th><th>UNIT</th><th>ACTIONS</th></tr></thead><tbody id="purchaseStockRows"></tbody></table></div>
         </div>
         <div class="module-card"><h3>Suppliers</h3><form id="supplierForm"><div class="module-form"><div class="module-field"><label>SUPPLIER NAME</label><input id="supplierName" required maxlength="120" placeholder="Supplier name"></div></div><div class="module-actions"><button class="menu-btn" id="saveSupplierBtn" type="submit">ADD SUPPLIER</button><button class="menu-btn secondary" id="cancelSupplierEdit" type="button" hidden>Cancel</button></div></form><div class="module-table-wrap"><table class="module-table"><thead><tr><th>SUPPLIER</th><th>ACTIONS</th></tr></thead><tbody id="supplierRows"></tbody></table></div></div>
       </section>
@@ -1730,7 +1730,7 @@
     if(!activeRestaurant)return;
     const receivedPurchaseIds=(window.nafPurchases||[]).filter(p=>p.status==='received').map(p=>p.id);
     const itemsPromise=receivedPurchaseIds.length
-      ? client.from('purchase_items').select('purchase_id,item_name,quantity,unit').in('purchase_id',receivedPurchaseIds)
+      ? client.from('purchase_items').select('id,purchase_id,item_name,quantity,unit,unit_cost,total_cost').in('purchase_id',receivedPurchaseIds)
       : Promise.resolve({data:[],error:null});
     const [pRes,iRes,uRes,sRes]=await Promise.all([
       client.from('purchases').select('id,invoice_number,purchase_date,status').eq('restaurant_id',activeRestaurant.id).eq('status','received'),
@@ -1754,11 +1754,16 @@
     const supplierMap=Object.fromEntries((sRes.data||[]).map(x=>[x.id,x.name]));
     renderPurchaseUsageSources();
     const q=($('purchaseUsedSearch')?.value||'').toLowerCase();
-    $('purchaseUsedRows').innerHTML=usages.filter(u=>(u.item_name||'').toLowerCase().includes(q)||(u.used_for||'').toLowerCase().includes(q)||(u.notes||'').toLowerCase().includes(q)).map(u=>{
+    const visibleUsages=usages.filter(u=>(u.item_name||'').toLowerCase().includes(q)||(u.used_for||'').toLowerCase().includes(q)||(u.notes||'').toLowerCase().includes(q));
+    $('purchaseUsedRows').innerHTML=visibleUsages.map(u=>{
       const p=purchaseMap[u.purchase_id];
       return `<tr><td>${safeText(u.usage_date||'')}</td><td>${safeText(u.item_name)}</td><td>${safeText(p?.invoice_number||'—')}</td><td>${Number(u.quantity_used||0)}</td><td>${safeText(u.unit||'')}</td><td>${safeText(u.used_for||'—')}</td><td><button class="edit" data-edit-purchase-used="${safeText(u.id)}">Edit</button> <button class="del" data-delete-purchase-used="${safeText(u.id)}">Delete</button></td></tr>`;
     }).join('')||'<tr><td colspan="7" class="muted-empty">No usage recorded yet.</td></tr>';
-    $('purchaseStockRows').innerHTML=purchaseUsageSources.map(x=>`<tr><td>${safeText(x.item_name)}</td><td>${safeText(x.invoice_number)}</td><td>${x.purchased}</td><td>${x.used}</td><td><b>${x.remaining}</b></td><td>${safeText(x.unit)}</td></tr>`).join('')||'<tr><td colspan="6" class="muted-empty">No received purchase stock available.</td></tr>';
+    const stockQ=($('purchaseStockSearch')?.value||'').toLowerCase();
+    const visibleStock=purchaseUsageSources.filter(x=>[x.item_name,x.invoice_number,x.unit].join(' ').toLowerCase().includes(stockQ));
+    $('purchaseStockRows').innerHTML=visibleStock.map(x=>`<tr><td>${safeText(x.item_name)}</td><td>${safeText(x.invoice_number)}</td><td>${x.purchased}</td><td>${x.used}</td><td><b>${x.remaining}</b></td><td>${safeText(x.unit)}</td><td><button class="edit" data-edit-stock="${safeText(x.id)}">Edit</button> <button class="del" data-delete-stock="${safeText(x.id)}">Delete</button></td></tr>`).join('')||'<tr><td colspan="7" class="muted-empty">No received purchase stock available.</td></tr>';
+    window.nafVisiblePurchaseUsages=visibleUsages;
+    window.nafVisiblePurchaseStock=visibleStock;
   }
   $('purchaseUsedSource').addEventListener('change',()=>{
     const x=purchaseUsageSources[Number($('purchaseUsedSource').value)];
@@ -1800,6 +1805,62 @@
     }
   });
   $('purchaseUsedSearch').addEventListener('input',loadPurchaseUsage);
+  $('purchaseStockSearch').addEventListener('input',loadPurchaseUsage);
+  function printPurchaseTable(title, headers, rows){
+    const w=window.open('','_blank','width=1000,height=750');
+    if(!w){showAppNotice('Please allow pop-ups to print this report.');return;}
+    const head=headers.map(x=>`<th>${safeText(x)}</th>`).join('');
+    const body=rows.length?rows.map(r=>`<tr>${r.map(v=>`<td>${safeText(v??'')}</td>`).join('')}</tr>`).join(''):`<tr><td colspan="${headers.length}">No records found.</td></tr>`;
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${safeText(title)}</title><style>body{font-family:Arial,sans-serif;color:#172033;padding:25px}h2{margin:0 0 8px}p{color:#64748b;font-size:12px}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{padding:9px;border:1px solid #dbe1ea;text-align:left;font-size:12px}th{background:#eef2f7}button{padding:9px 15px;border:0;border-radius:7px;background:#d8aa38;font-weight:bold;cursor:pointer}@media print{button{display:none}body{padding:5mm}}</style></head><body><button onclick="window.print()">PRINT</button><h2>${safeText(title)}</h2><p>${safeText(activeRestaurant?.name||'NAF POS')} · Printed ${safeText(new Date().toLocaleString())}</p><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></body></html>`);
+    w.document.close();
+  }
+  $('printPurchaseUsedBtn').addEventListener('click',()=>{
+    const rows=(window.nafVisiblePurchaseUsages||[]).map(u=>{
+      const p=(window.nafPurchases||[]).find(x=>x.id===u.purchase_id);
+      return [u.usage_date,u.item_name,p?.invoice_number||'—',u.quantity_used,u.unit,u.used_for||'—',u.notes||''];
+    });
+    printPurchaseTable('Purchase Used History',['Date','Item','Invoice','Quantity Used','Unit','Reason','Notes'],rows);
+  });
+  $('printPurchaseStockBtn').addEventListener('click',()=>{
+    const rows=(window.nafVisiblePurchaseStock||[]).map(x=>[x.item_name,x.invoice_number,x.purchased,x.used,x.remaining,x.unit]);
+    printPurchaseTable('Current Purchase Stock',['Item','Invoice','Purchased','Used','In Stock','Unit'],rows);
+  });
+  $('purchaseStockRows').addEventListener('click',async e=>{
+    const edit=e.target.closest('[data-edit-stock]'),del=e.target.closest('[data-delete-stock]');
+    if(edit){
+      const item=purchaseUsageSources.find(x=>x.id===edit.dataset.editStock);if(!item)return;
+      const qtyText=prompt(`New purchased quantity for ${item.item_name} (${item.unit}):`,String(item.purchased));
+      if(qtyText===null)return;
+      const newQty=Number(qtyText);
+      if(!Number.isFinite(newQty)||newQty<=0){showAppNotice('Enter a valid quantity greater than zero.');return;}
+      if(newQty<item.used){showAppNotice(`Quantity cannot be less than the ${item.used} ${item.unit} already used.`);return;}
+      const costText=prompt('Unit cost (SAR):',String(Number(item.unit_cost||0)));
+      if(costText===null)return;
+      const unitCost=Number(costText);
+      if(!Number.isFinite(unitCost)||unitCost<0){showAppNotice('Enter a valid unit cost.');return;}
+      const {error}=await client.from('purchase_items').update({quantity:newQty,unit_cost:unitCost,total_cost:newQty*unitCost}).eq('id',item.id).eq('purchase_id',item.purchase_id);
+      if(error){moduleError('Could not update stock item',error);return;}
+      const {data:remainingItems,error:readError}=await client.from('purchase_items').select('quantity,unit_cost,total_cost').eq('purchase_id',item.purchase_id);
+      if(readError){moduleError('Stock item updated, but purchase total could not be recalculated',readError);return;}
+      const newTotal=(remainingItems||[]).reduce((sum,r)=>sum+Number(r.total_cost??(Number(r.quantity||0)*Number(r.unit_cost||0))),0);
+      const {error:totalError}=await client.from('purchases').update({total_amount:newTotal}).eq('id',item.purchase_id).eq('restaurant_id',activeRestaurant.id);
+      if(totalError){moduleError('Stock item updated, but purchase total could not be recalculated',totalError);return;}
+      showAppNotice('Stock item updated and purchase total recalculated.');await loadPurchases();return;
+    }
+    if(del){
+      const item=purchaseUsageSources.find(x=>x.id===del.dataset.deleteStock);if(!item)return;
+      if(item.used>0){showAppNotice('This stock item has usage history. Delete or correct its usage records first.');return;}
+      if(!confirm(`Delete ${item.item_name} from invoice ${item.invoice_number}? This removes this purchase item only.`))return;
+      const {error}=await client.from('purchase_items').delete().eq('id',item.id).eq('purchase_id',item.purchase_id);
+      if(error){moduleError('Could not delete stock item',error);return;}
+      const {data:remainingItems,error:readError}=await client.from('purchase_items').select('quantity,unit_cost,total_cost').eq('purchase_id',item.purchase_id);
+      if(readError){moduleError('Stock item deleted, but purchase total could not be recalculated',readError);return;}
+      const newTotal=(remainingItems||[]).reduce((sum,r)=>sum+Number(r.total_cost??(Number(r.quantity||0)*Number(r.unit_cost||0))),0);
+      const {error:totalError}=await client.from('purchases').update({total_amount:newTotal}).eq('id',item.purchase_id).eq('restaurant_id',activeRestaurant.id);
+      if(totalError){moduleError('Stock item deleted, but purchase total could not be recalculated',totalError);return;}
+      showAppNotice('Stock item deleted and purchase total recalculated.');await loadPurchases();return;
+    }
+  });
   $('cancelPurchaseUsedEdit').addEventListener('click',resetPurchaseUsageForm);
   function addPurchaseLine(name="", qty="1", cost="0", unit="piece") {
     const id = ++purchaseLineCount;
