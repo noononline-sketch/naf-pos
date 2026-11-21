@@ -235,7 +235,43 @@
 #adminSubscriptionsCard .subscription-table-scroll tbody tr[hidden]{display:none}
 @media(max-width:700px){#adminSubscriptionsCard .subscription-searchbar input{min-width:100%;width:100%}#adminSubscriptionsCard .subscription-table-scroll{max-height:380px}}
 
-</style>
+
+    /* Bounded independent scrolling for the three purchase tables.
+       Keep each toolbar/search row visible above its own scroll area. */
+    #purchaseHistoryCard .module-table-wrap,
+    #purchaseUsedHistoryCard .module-table-wrap,
+    #currentPurchaseStockCard .module-table-wrap{
+      max-height:360px;
+      overflow:auto;
+      overscroll-behavior:contain;
+      border:1px solid var(--line);
+      border-radius:9px;
+      scrollbar-gutter:stable;
+    }
+    #purchaseHistoryCard .module-table thead th,
+    #purchaseUsedHistoryCard .module-table thead th,
+    #currentPurchaseStockCard .module-table thead th{
+      position:sticky;
+      top:0;
+      z-index:2;
+      background:#f1f5f9;
+      box-shadow:0 1px 0 var(--line);
+    }
+    #purchaseHistoryCard .module-toolbar,
+    #purchaseUsedHistoryCard .module-toolbar,
+    #currentPurchaseStockCard .module-toolbar{
+      align-items:center;
+    }
+    @media(max-width:700px){
+      #purchaseHistoryCard .module-table-wrap,
+      #purchaseUsedHistoryCard .module-table-wrap,
+      #currentPurchaseStockCard .module-table-wrap{
+        max-height:300px;
+        -webkit-overflow-scrolling:touch;
+      }
+    }
+
+  </style>
 </head>
 <body>
   <main class="shell">
@@ -448,7 +484,7 @@
           <div class="module-card" style="padding:12px;margin:14px 0 0;background:#fafbfc"><div class="module-toolbar"><b>Purchase items</b><button class="menu-btn secondary" type="button" id="addPurchaseLine">+ Add item</button></div><div id="purchaseLines"></div></div>
           <div class="module-actions"><button class="menu-btn" type="submit" id="savePurchaseBtn">SAVE PURCHASE</button></div>
         </form></div>
-        <div class="module-card"><div class="module-toolbar"><h3 style="margin:0">Purchase History</h3><input id="purchaseSearch" placeholder="Search invoice or supplier"></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>DATE</th><th>INVOICE</th><th>SUPPLIER</th><th>TOTAL</th><th>STATUS</th><th>ACTIONS</th></tr></thead><tbody id="purchaseRows"></tbody></table></div></div>
+        <div class="module-card purchase-scroll-card" id="purchaseHistoryCard"><div class="module-toolbar"><h3 style="margin:0">Purchase History</h3><input id="purchaseSearch" placeholder="Search invoice or supplier"></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>DATE</th><th>INVOICE</th><th>SUPPLIER</th><th>TOTAL</th><th>STATUS</th><th>ACTIONS</th></tr></thead><tbody id="purchaseRows"></tbody></table></div></div>
 
         <div class="module-card" id="purchaseUsedCard">
           <h3>Purchase Used / Stock Usage</h3>
@@ -465,11 +501,11 @@
             <div class="module-actions"><button class="menu-btn" id="savePurchaseUsedBtn" type="submit">RECORD USAGE</button><button class="menu-btn secondary" id="cancelPurchaseUsedEdit" type="button" hidden>Cancel edit</button></div>
           </form>
         </div>
-        <div class="module-card">
+        <div class="module-card purchase-scroll-card" id="purchaseUsedHistoryCard">
           <div class="module-toolbar"><h3 style="margin:0">Purchase Used History</h3><input id="purchaseUsedSearch" placeholder="Search item or reason"><button class="menu-btn secondary" id="printPurchaseUsedBtn" type="button">PRINT HISTORY</button></div>
           <div class="module-table-wrap"><table class="module-table"><thead><tr><th>DATE</th><th>ITEM</th><th>INVOICE</th><th>QUANTITY USED</th><th>UNIT</th><th>REASON</th><th>ACTIONS</th></tr></thead><tbody id="purchaseUsedRows"></tbody></table></div>
         </div>
-        <div class="module-card">
+        <div class="module-card purchase-scroll-card" id="currentPurchaseStockCard">
           <div class="module-toolbar"><h3 style="margin:0">Current Purchase Stock</h3><input id="purchaseStockSearch" type="search" placeholder="Search item, invoice or unit"><button class="menu-btn secondary" id="printPurchaseStockBtn" type="button">PRINT STOCK</button></div>
           <div class="module-table-wrap"><table class="module-table"><thead><tr><th>ITEM</th><th>INVOICE</th><th>PURCHASED</th><th>USED</th><th>IN STOCK</th><th>UNIT</th><th>ACTIONS</th></tr></thead><tbody id="purchaseStockRows"></tbody></table></div>
         </div>
