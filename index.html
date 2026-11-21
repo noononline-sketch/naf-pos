@@ -1206,7 +1206,7 @@
         return;
       }
       if (page === "subscription") refreshCustomerSubscriptionCard();
-      if (["dashboard", "pos", "menu", "purchases", "expenses", "customers", "suppliers", "sales-history", "reports", "cashier-management", "manager-management", "employees", "budget", "settings", "subscription", "super-admin"].includes(page)) {
+      if (["dashboard", "pos", "menu", "purchases", "expenses", "customers", "suppliers", "sales-history", "reports", "cashier-management", "manager-management", "employees", "budget", "settings", "subscription", "support", "super-admin"].includes(page)) {
         $("appNotice").classList.remove("show");
         showPage(page);
       } else showAppNotice("Super Admin module is a separate protected administration step.");
