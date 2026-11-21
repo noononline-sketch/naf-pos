@@ -1733,6 +1733,10 @@
   }
 
   $("completeSale").addEventListener("click", async () => {
+    if (currentManager) {
+      showAppNotice("You do not have permission to complete sales. Please contact the Owner.");
+      return;
+    }
     if (!cart.length) { showAppNotice("Add at least one menu item before completing a sale."); return; }
     if (!activeRestaurant) { showAppNotice("Restaurant session is not ready. Please sign in again."); return; }
     const popup = window.open("", "_blank", "width=800,height=900");
