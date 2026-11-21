@@ -668,7 +668,13 @@
                 <div class="module-field full"><label>TYPE THE EXACT RESTAURANT NAME</label><input id="restaurantDataConfirmName" autocomplete="off" required></div>
                 <div class="module-field full"><label>OWNER ACCOUNT PASSWORD</label><input id="restaurantDataConfirmPassword" type="password" autocomplete="current-password" required></div>
               </div>
-              <label style="display:flex;gap:9px;align-items:flex-start;margin-top:12px;font-size:12px;color:#7f2630"><input id="restaurantDataBackupAck" type="checkbox" required style="margin-top:2px"> I have exported or saved a backup of this restaurant's data and understand this action cannot be undone.</label>
+              <div style="margin-top:14px;padding:13px;border:1px solid #e7c76f;border-radius:10px;background:#fffaf0">
+                <strong style="display:block;margin-bottom:6px">Required backup before deletion</strong>
+                <p class="module-note" style="margin:0 0 10px">Download a complete JSON backup of this restaurant's operational records. The confirmation checkbox stays locked until the backup file is successfully prepared.</p>
+                <button type="button" class="menu-btn" id="downloadRestaurantBackupBtn">1. DOWNLOAD RESTAURANT BACKUP</button>
+                <p id="restaurantBackupStatus" class="module-note" style="margin:8px 0 0">Backup not created yet.</p>
+              </div>
+              <label style="display:flex;gap:9px;align-items:flex-start;margin-top:12px;font-size:12px;color:#7f2630"><input id="restaurantDataBackupAck" type="checkbox" required disabled style="margin-top:2px"> I downloaded and saved the backup file and understand this action cannot be undone.</label>
               <div class="module-actions">
                 <button type="submit" class="menu-btn danger" id="restaurantDataConfirmSubmit">CONFIRM & CONTINUE</button>
                 <button type="button" class="menu-btn secondary" id="restaurantDataConfirmCancel">CANCEL</button>
@@ -2434,6 +2440,51 @@
     $("taxRate").value=$("settingsTax").value;
   }
   let pendingRestaurantDataAction = null;
+  let restaurantBackupReady = false;
+  async function fetchAllRestaurantRows(table, restaurantId){
+    const all=[]; let from=0; const pageSize=1000;
+    while(true){
+      const {data,error}=await client.from(table).select("*").eq("restaurant_id",restaurantId).range(from,from+pageSize-1);
+      if(error)throw new Error(`Backup could not read ${table}: ${error.message}`);
+      const rows=data||[]; all.push(...rows);
+      if(rows.length<pageSize)break;
+      from+=pageSize;
+    }
+    return all;
+  }
+  async function fetchChildRows(table, foreignKey, parentRows){
+    const ids=(parentRows||[]).map(x=>x.id).filter(Boolean); const all=[];
+    for(let i=0;i<ids.length;i+=200){
+      const batch=ids.slice(i,i+200);
+      const {data,error}=await client.from(table).select("*").in(foreignKey,batch);
+      if(error)throw new Error(`Backup could not read ${table}: ${error.message}`);
+      all.push(...(data||[]));
+    }
+    return all;
+  }
+  async function downloadRestaurantDataBackup(){
+    if(!activeRestaurant || currentCashier)throw new Error("Only the restaurant owner can create this backup.");
+    const btn=$("downloadRestaurantBackupBtn"); const status=$("restaurantBackupStatus");
+    btn.disabled=true; btn.textContent="PREPARING BACKUP…"; status.textContent="Reading restaurant records from Supabase…";
+    try{
+      const tables=["sales","purchases","expenses","budgets","menu_items","menu_categories","customers","suppliers","employees","cashier_invites","naf_cashiers"];
+      const backup={format:"NAF_POS_RESTAURANT_BACKUP",version:1,created_at:new Date().toISOString(),restaurant:{id:activeRestaurant.id,name:activeRestaurant.name,currency:activeRestaurant.currency||null},data:{}};
+      for(const table of tables)backup.data[table]=await fetchAllRestaurantRows(table,activeRestaurant.id);
+      backup.data.sale_items=await fetchChildRows("sale_items","sale_id",backup.data.sales);
+      backup.data.purchase_items=await fetchChildRows("purchase_items","purchase_id",backup.data.purchases);
+      backup.summary=Object.fromEntries(Object.entries(backup.data).map(([k,v])=>[k,v.length]));
+      const blob=new Blob([JSON.stringify(backup,null,2)],{type:"application/json"});
+      const url=URL.createObjectURL(blob); const a=document.createElement("a");
+      const safeName=String(activeRestaurant.name||"restaurant").replace(/[^a-z0-9_-]+/gi,"_");
+      a.href=url; a.download=`NAF_POS_${safeName}_BACKUP_${new Date().toISOString().replace(/[:.]/g,"-")}.json`;
+      document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
+      restaurantBackupReady=true; $("restaurantDataBackupAck").disabled=false;
+      status.textContent=`Backup prepared and download started. Records: ${Object.values(backup.summary).reduce((a,b)=>a+b,0)} across ${Object.keys(backup.summary).length} tables. Save the downloaded JSON file before continuing.`;
+      btn.textContent="BACKUP DOWNLOADED — DOWNLOAD AGAIN";
+    }catch(err){restaurantBackupReady=false;$("restaurantDataBackupAck").checked=false;$("restaurantDataBackupAck").disabled=true;status.textContent=err.message||"Backup failed.";throw err;}
+    finally{btn.disabled=false;}
+  }
+  $("downloadRestaurantBackupBtn").addEventListener("click",async()=>{try{await downloadRestaurantDataBackup();}catch(err){moduleError("Required restaurant backup failed. Deletion is blocked.",err);}});
   function closeRestaurantDataConfirm(){
     pendingRestaurantDataAction=null;
     $("restaurantDataConfirmPanel").hidden=true;
@@ -2452,7 +2503,12 @@
     $("restaurantDataConfirmPanel").hidden=false;
     $("restaurantDataConfirmName").value="";
     $("restaurantDataConfirmPassword").value="";
+    restaurantBackupReady=false;
     $("restaurantDataBackupAck").checked=false;
+    $("restaurantDataBackupAck").disabled=true;
+    $("restaurantBackupStatus").textContent="Backup not created yet.";
+    $("downloadRestaurantBackupBtn").disabled=false;
+    $("downloadRestaurantBackupBtn").textContent="1. DOWNLOAD RESTAURANT BACKUP";
     $("restaurantDataConfirmPanel").scrollIntoView({behavior:"smooth",block:"center"});
   }
   $("resetRestaurantDataBtn").addEventListener("click",()=>openRestaurantDataConfirm("reset"));
@@ -2466,7 +2522,7 @@
     const password=$("restaurantDataConfirmPassword").value;
     if(typedName!==String(activeRestaurant.name||"")){showAppNotice("Restaurant name does not match. No data was changed.");return;}
     if(!password){showAppNotice("Enter your owner account password.");return;}
-    if(!$('restaurantDataBackupAck').checked){showAppNotice("Please confirm that you have saved a backup before continuing.");return;}
+    if(!restaurantBackupReady || !$('restaurantDataBackupAck').checked){showAppNotice("A fresh restaurant backup is required. Download and save the backup file before continuing.");return;}
     const submit=$("restaurantDataConfirmSubmit");
     submit.disabled=true;submit.textContent="VERIFYING & PROCESSING…";
     try{
