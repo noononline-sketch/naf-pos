@@ -626,9 +626,9 @@
             <div class="module-field"><label>PHONE</label><input id="myCashierPhone" readonly></div>
             <div class="module-field"><label>EMAIL — OWNER CAN CHANGE THIS</label><input id="myCashierEmail" type="email" readonly></div>
           </div>
-          <p class="module-note">Your name, phone and email are managed by the restaurant owner in Cashier Management. You can change your own password below.</p>
+          <p class="module-note">Your name, phone and email are managed by the restaurant owner. Your password can only be reset by the restaurant Owner/Admin.</p>
         </div>
-        <div class="module-card"><h3>Change Password</h3><form id="passwordForm"><div class="module-form"><div class="module-field"><label>NEW PASSWORD</label><input id="newPassword" type="password" minlength="8" required></div><div class="module-field"><label>CONFIRM PASSWORD</label><input id="confirmPassword" type="password" minlength="8" required></div></div><div class="module-actions"><button class="menu-btn" type="submit">UPDATE PASSWORD</button></div></form></div>
+        <div class="module-card" id="ownerPasswordSettings"><h3>Change Owner Password</h3><form id="passwordForm"><div class="module-form"><div class="module-field"><label>NEW PASSWORD</label><input id="newPassword" type="password" minlength="8" required></div><div class="module-field"><label>CONFIRM PASSWORD</label><input id="confirmPassword" type="password" minlength="8" required></div></div><div class="module-actions"><button class="menu-btn" type="submit">UPDATE PASSWORD</button></div></form></div>
       </section>
     </main>
   </section>
@@ -837,8 +837,10 @@
       hideSubscriptionGate();
       const ownerSettings = $("ownerProfileSettings");
       const cashierSettings = $("cashierProfileSettings");
+      const ownerPasswordSettings = $("ownerPasswordSettings");
       if (ownerSettings) ownerSettings.hidden = true;
       if (cashierSettings) cashierSettings.hidden = false;
+      if (ownerPasswordSettings) ownerPasswordSettings.hidden = true;
       $("myCashierName").value = cashierRecord.name || "";
       $("myCashierPhone").value = cashierRecord.phone || "";
       $("myCashierEmail").value = cashierRecord.email || user.email || "";
@@ -867,8 +869,10 @@
     }
     const ownerSettings = $("ownerProfileSettings");
     const cashierSettings = $("cashierProfileSettings");
+    const ownerPasswordSettings = $("ownerPasswordSettings");
     if (ownerSettings) ownerSettings.hidden = false;
     if (cashierSettings) cashierSettings.hidden = true;
+    if (ownerPasswordSettings) ownerPasswordSettings.hidden = false;
     document.querySelectorAll(".navitem[data-page]").forEach(el => { el.hidden = el.dataset.page === "super-admin" ? !isNafSuperAdmin : false; });
     const { data: restaurants, error } = await client
       .from("restaurants").select("id,name,logo_url,currency,tax_rate,phone,email,address")
@@ -1972,12 +1976,22 @@
     const {data,error}=await client.from('naf_cashiers').select('id,name,email,phone,status,created_at,auth_user_id').eq('restaurant_id',activeRestaurant.id).order('created_at',{ascending:false});
     if(error){moduleError('Could not load cashiers',error);return;}
     window.nafCashiers=data||[];const q=($('cashierSearch').value||'').toLowerCase();
-    $('cashierRows').innerHTML=window.nafCashiers.filter(x=>[x.name,x.email,x.phone].join(' ').toLowerCase().includes(q)).map(x=>`<tr><td>${safeText(x.name)}</td><td>${safeText(x.phone||'')}</td><td>${safeText(x.email)}</td><td>Cashier</td><td>${safeText(x.status==='active'?'Active':'Deactive')}</td><td><button class="edit" data-cashier-edit="${safeText(x.id)}">Edit</button> <button class="edit" data-cashier-toggle="${safeText(x.id)}">${x.status==='active'?'Deactive':'Activate'}</button> <button class="del" data-cashier-del="${safeText(x.id)}">Delete</button></td></tr>`).join('')||'<tr><td colspan="6">No cashier records.</td></tr>';
+    $('cashierRows').innerHTML=window.nafCashiers.filter(x=>[x.name,x.email,x.phone].join(' ').toLowerCase().includes(q)).map(x=>`<tr><td>${safeText(x.name)}</td><td>${safeText(x.phone||'')}</td><td>${safeText(x.email)}</td><td>Cashier</td><td>${safeText(x.status==='active'?'Active':'Deactive')}</td><td><button class="edit" data-cashier-edit="${safeText(x.id)}">Edit</button> <button class="edit" data-cashier-toggle="${safeText(x.id)}">${x.status==='active'?'Deactive':'Activate'}</button> <button class="edit" data-cashier-reset="${safeText(x.id)}">Reset Password</button> <button class="del" data-cashier-del="${safeText(x.id)}">Delete</button></td></tr>`).join('')||'<tr><td colspan="6">No cashier records.</td></tr>';
   }
   $('cashierSearch').addEventListener('input',loadCashiers);
   $('cashierRows').addEventListener('click',async e=>{
-    const ed=e.target.closest('[data-cashier-edit]'),dl=e.target.closest('[data-cashier-del]'),tg=e.target.closest('[data-cashier-toggle]');
+    const ed=e.target.closest('[data-cashier-edit]'),dl=e.target.closest('[data-cashier-del]'),tg=e.target.closest('[data-cashier-toggle]'),rp=e.target.closest('[data-cashier-reset]');
     try{
+      if(rp){
+        const x=window.nafCashiers.find(v=>v.id===rp.dataset.cashierReset);if(!x)return;
+        const newPassword=prompt(`Enter a new password for ${x.name} (minimum 8 characters). The cashier cannot change it.`);
+        if(newPassword===null)return;
+        if(newPassword.length<8){showAppNotice('Password must be at least 8 characters.');return;}
+        if(!confirm(`Reset the password for ${x.name}?`))return;
+        await callCashierFunction({action:'reset_password',cashier_id:x.id,password:newPassword});
+        showAppNotice(`Password reset for ${x.name}. Share the new password securely.`);
+        return;
+      }
       if(ed){const x=window.nafCashiers.find(v=>v.id===ed.dataset.cashierEdit);if(!x)return;editingCashierId=x.id;$('cashierName').value=x.name;$('cashierEmail').value=x.email;$('cashierPhone').value=x.phone||'';$('cashierStatus').value=x.status;$('cashierPassword').required=false;$('cashierPassword').value='';if ($('cashierSave')) $('cashierSave').textContent ='UPDATE CASHIER';$('cashierCancel').hidden=false;return;}
       if(tg){const x=window.nafCashiers.find(v=>v.id===tg.dataset.cashierToggle);if(!x)return;await callCashierFunction({action:'set_status',cashier_id:x.id,status:x.status==='active'?'inactive':'active'});showAppNotice('Cashier status updated.');await loadCashiers();return;}
       if(dl&&confirm('Delete cashier and disable their login account?')){await callCashierFunction({action:'delete',cashier_id:dl.dataset.cashierDel});showAppNotice('Cashier deleted and login disabled.');await loadCashiers();}
