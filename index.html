@@ -411,7 +411,7 @@
             <div class="cart-title"><h3 style="margin:0;color:var(--navy)">Current Order</h3><button class="link" id="clearCart" type="button">Clear</button></div>
             <div id="posCart" class="cart-list"><div class="muted-empty">Choose menu items to start an order.</div></div>
             <div class="cart-total"><span>Subtotal</span><b id="cartSubtotal">SAR 0.00</b></div>
-            <div class="cart-total"><label for="cartDiscount">Discount (SAR)</label><input id="cartDiscount" type="number" min="0" step="0.01" value="0" style="width:100px;border:1px solid var(--line);border-radius:7px;padding:6px"></div>
+            <div class="cart-total"><label for="cartDiscount">Discount (<span data-restaurant-currency>SAR</span>)</label><input id="cartDiscount" type="number" min="0" step="0.01" value="0" style="width:100px;border:1px solid var(--line);border-radius:7px;padding:6px"></div>
             <div class="cart-total"><label for="taxRate">Tax rate (%)</label><input id="taxRate" type="number" min="0" max="100" step="0.01" value="15" style="width:100px;border:1px solid var(--line);border-radius:7px;padding:6px"></div>
             <div class="cart-total"><span>Tax</span><b id="cartTax">SAR 0.00</b></div>
             <div class="cart-total grand"><span>Total</span><b id="cartTotal">SAR 0.00</b></div>
@@ -454,8 +454,8 @@
             <div class="menu-form-grid">
               <div class="menu-field"><label for="menuItemName">ITEM NAME</label><input id="menuItemName" maxlength="120" placeholder="e.g. Chicken Burger" required></div>
               <div class="menu-field"><label for="menuItemCategory">CATEGORY</label><select id="menuItemCategory"><option value="">Select category</option></select></div>
-              <div class="menu-field"><label for="menuItemPrice">SELLING PRICE (SAR)</label><input id="menuItemPrice" type="number" min="0" step="0.01" placeholder="0.00" required></div>
-              <div class="menu-field"><label for="menuItemCost">COST PRICE (SAR)</label><input id="menuItemCost" type="number" min="0" step="0.01" placeholder="0.00"></div>
+              <div class="menu-field"><label for="menuItemPrice">SELLING PRICE (<span data-restaurant-currency>SAR</span>)</label><input id="menuItemPrice" type="number" min="0" step="0.01" placeholder="0.00" required></div>
+              <div class="menu-field"><label for="menuItemCost">COST PRICE (<span data-restaurant-currency>SAR</span>)</label><input id="menuItemCost" type="number" min="0" step="0.01" placeholder="0.00"></div>
               <div class="menu-field full"><label for="menuItemDescription">DESCRIPTION</label><textarea id="menuItemDescription" maxlength="500" placeholder="Describe this menu item (optional)"></textarea></div>
               <div class="menu-field full"><label for="menuItemImageFile">UPLOAD MENU IMAGE</label><input id="menuItemImageFile" type="file" accept="image/png,image/jpeg,image/webp"><div class="smallnote">PNG, JPG or WEBP. Maximum 5 MB. Uploads to Supabase Storage bucket: menu-images.</div><img id="menuImagePreview" alt="Menu item preview" style="display:none;max-width:130px;max-height:100px;object-fit:cover;border-radius:10px;margin-top:8px"></div>
               <div class="menu-field full"><label for="menuItemImage">IMAGE URL (OPTIONAL)</label><input id="menuItemImage" type="url" placeholder="Image URL appears here after upload"></div>
@@ -508,11 +508,11 @@
           </form>
         </div>
         <div class="module-card purchase-scroll-card" id="purchaseUsedHistoryCard">
-          <div class="module-toolbar"><h3 style="margin:0">Purchase Used History</h3><input id="purchaseUsedSearch" placeholder="Search item or reason"><button class="menu-btn secondary" id="printPurchaseUsedBtn" type="button">PRINT HISTORY</button></div>
+          <div class="module-toolbar"><h3 style="margin:0">Purchase Used History</h3><input id="purchaseUsedSearch" placeholder="Search item or reason"><label>From <input id="purchaseUsedPrintFrom" type="date" aria-label="Purchase usage print from date"></label><label>To <input id="purchaseUsedPrintTo" type="date" aria-label="Purchase usage print to date"></label><button class="menu-btn secondary" id="printPurchaseUsedBtn" type="button">PRINT HISTORY</button></div>
           <div class="module-table-wrap"><table class="module-table"><thead><tr><th>DATE</th><th>ITEM</th><th>INVOICE</th><th>QUANTITY USED</th><th>UNIT</th><th>REASON</th><th>ACTIONS</th></tr></thead><tbody id="purchaseUsedRows"></tbody></table></div>
         </div>
         <div class="module-card purchase-scroll-card" id="currentPurchaseStockCard">
-          <div class="module-toolbar"><h3 style="margin:0">Current Purchase Stock</h3><input id="purchaseStockSearch" type="search" placeholder="Search item, invoice or unit"><button class="menu-btn secondary" id="printPurchaseStockBtn" type="button">PRINT STOCK</button></div>
+          <div class="module-toolbar"><h3 style="margin:0">Current Purchase Stock</h3><input id="purchaseStockSearch" type="search" placeholder="Search item, invoice or unit"><label>From <input id="purchaseStockPrintFrom" type="date" aria-label="Purchase stock print from date"></label><label>To <input id="purchaseStockPrintTo" type="date" aria-label="Purchase stock print to date"></label><button class="menu-btn secondary" id="printPurchaseStockBtn" type="button">PRINT STOCK</button></div>
           <div class="module-table-wrap"><table class="module-table"><thead><tr><th>ITEM</th><th>INVOICE</th><th>PURCHASED</th><th>USED</th><th>IN STOCK</th><th>UNIT</th><th>ACTIONS</th></tr></thead><tbody id="purchaseStockRows"></tbody></table></div>
         </div>
         <div class="module-card"><h3>Suppliers</h3><form id="supplierForm"><div class="module-form"><div class="module-field"><label>SUPPLIER NAME</label><input id="supplierName" required maxlength="120" placeholder="Supplier name"></div></div><div class="module-actions"><button class="menu-btn" id="saveSupplierBtn" type="submit">ADD SUPPLIER</button><button class="menu-btn secondary" id="cancelSupplierEdit" type="button" hidden>Cancel</button></div></form><div class="module-table-wrap"><table class="module-table"><thead><tr><th>SUPPLIER</th><th>ACTIONS</th></tr></thead><tbody id="supplierRows"></tbody></table></div></div>
@@ -522,7 +522,7 @@
         <div class="module-card"><h3 id="expenseFormTitle">Add Expense</h3><form id="expenseForm"><div class="module-form">
           <div class="module-field"><label>EXPENSE TITLE</label><input id="expenseTitle" required maxlength="120" placeholder="e.g. Electricity bill"></div>
           <div class="module-field"><label>CATEGORY</label><select id="expenseCategory"><option>Rent</option><option>Utilities</option><option>Salary</option><option>Transport</option><option>Maintenance</option><option>Supplies</option><option>Other</option></select></div>
-          <div class="module-field"><label>AMOUNT (SAR)</label><input id="expenseAmount" type="number" min="0.01" step="0.01" required></div>
+          <div class="module-field"><label>AMOUNT (<span data-restaurant-currency>SAR</span>)</label><input id="expenseAmount" type="number" min="0.01" step="0.01" required></div>
           <div class="module-field"><label>DATE</label><input id="expenseDate" type="date" required></div>
           <div class="module-field full"><label>DESCRIPTION</label><textarea id="expenseDescription" rows="2"></textarea></div>
         </div><div class="module-actions"><button class="menu-btn" type="submit" id="saveExpenseBtn">SAVE EXPENSE</button><button class="menu-btn secondary" id="cancelExpenseEdit" type="button" hidden>Cancel</button></div></form></div>
@@ -596,14 +596,14 @@
       <section id="employeesPage" class="pagepanel">
         <div class="module-card"><h3 id="employeeFormTitle">Add Employee</h3><form id="employeeForm"><div class="module-form">
           <div class="module-field"><label>FULL NAME</label><input id="employeeName" required maxlength="120"></div><div class="module-field"><label>ROLE</label><select id="employeeRole"><option>Manager</option><option>Cashier</option><option>Chef</option><option>Waiter</option><option>Cleaner</option><option>Other</option></select></div>
-          <div class="module-field"><label>PHONE</label><input id="employeePhone" type="tel"></div><div class="module-field"><label>EMAIL</label><input id="employeeEmail" type="email"></div><div class="module-field"><label>SALARY (SAR)</label><input id="employeeSalary" type="number" min="0" step="0.01" value="0"></div>
+          <div class="module-field"><label>PHONE</label><input id="employeePhone" type="tel"></div><div class="module-field"><label>EMAIL</label><input id="employeeEmail" type="email"></div><div class="module-field"><label>SALARY (<span data-restaurant-currency>SAR</span>)</label><input id="employeeSalary" type="number" min="0" step="0.01" value="0"></div>
         </div><div class="module-actions"><button class="menu-btn" type="submit" id="saveEmployeeBtn">SAVE EMPLOYEE</button><button class="menu-btn secondary" id="cancelEmployeeEdit" type="button" hidden>Cancel</button></div></form><p class="module-note">Employee records are stored in the restaurant's employees table. This does not automatically create a login account.</p></div>
         <div class="module-card"><div class="module-toolbar"><h3 style="margin:0">Employee List</h3><input id="employeeSearch" placeholder="Search employees"></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>NAME</th><th>ROLE</th><th>PHONE</th><th>EMAIL</th><th>SALARY</th><th>ACTIONS</th></tr></thead><tbody id="employeeRows"></tbody></table></div></div>
       </section>
 
       <section id="budgetPage" class="pagepanel">
         <div class="module-summary"><article class="stat"><div class="stathead">Total Budget</div><div class="statvalue" id="budgetModuleTotal">SAR 0.00</div></article><article class="stat"><div class="stathead">Spent</div><div class="statvalue" id="budgetModuleSpent">SAR 0.00</div></article><article class="stat"><div class="stathead">Remaining</div><div class="statvalue" id="budgetModuleRemaining">SAR 0.00</div></article></div>
-        <div class="module-card"><h3 id="budgetFormTitle">Set Budget</h3><form id="budgetForm"><div class="module-form"><div class="module-field"><label>BUDGET TITLE</label><input id="budgetTitle" required maxlength="120"></div><div class="module-field"><label>AMOUNT (SAR)</label><input id="budgetAmount" type="number" min="0.01" step="0.01" required></div><div class="module-field"><label>START DATE</label><input id="budgetStart" type="date" required></div><div class="module-field"><label>END DATE</label><input id="budgetEnd" type="date" required></div></div><div class="module-actions"><button class="menu-btn" type="submit" id="saveBudgetBtn">SAVE BUDGET</button><button class="menu-btn secondary" id="cancelBudgetEdit" type="button" hidden>Cancel</button></div></form></div>
+        <div class="module-card"><h3 id="budgetFormTitle">Set Budget</h3><form id="budgetForm"><div class="module-form"><div class="module-field"><label>BUDGET TITLE</label><input id="budgetTitle" required maxlength="120"></div><div class="module-field"><label>AMOUNT (<span data-restaurant-currency>SAR</span>)</label><input id="budgetAmount" type="number" min="0.01" step="0.01" required></div><div class="module-field"><label>START DATE</label><input id="budgetStart" type="date" required></div><div class="module-field"><label>END DATE</label><input id="budgetEnd" type="date" required></div></div><div class="module-actions"><button class="menu-btn" type="submit" id="saveBudgetBtn">SAVE BUDGET</button><button class="menu-btn secondary" id="cancelBudgetEdit" type="button" hidden>Cancel</button></div></form></div>
         <div class="module-card"><div class="module-toolbar"><h3 style="margin:0">Budget Reports</h3></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>TITLE</th><th>PERIOD</th><th>BUDGET</th><th>SPENT</th><th>REMAINING</th><th>ACTIONS</th></tr></thead><tbody id="budgetRows"></tbody></table></div></div>
       </section>
 
@@ -719,8 +719,14 @@
     el.classList.add("show");
   }
 
+  function restaurantCurrency(){ return String(activeRestaurant?.currency || "SAR").trim().toUpperCase(); }
   function money(value) {
-    return "SAR " + Number(value || 0).toLocaleString("en-SA", {minimumFractionDigits:2, maximumFractionDigits:2});
+    return restaurantCurrency() + " " + Number(value || 0).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+  }
+  function updateRestaurantCurrencyLabels(){
+    const currency=restaurantCurrency();
+    document.querySelectorAll("[data-restaurant-currency]").forEach(el=>{el.textContent=currency;});
+    if($("restaurantInfo") && activeRestaurant) $("restaurantInfo").textContent=activeRestaurant.name+" · "+currency;
   }
 
   function showSubscriptionGate(message, statusText) {
@@ -938,7 +944,7 @@
       const {data: managerRestaurant,error: managerRestaurantError}=await client.from("restaurants")
         .select("id,name,logo_url,currency,tax_rate,phone,email,address").eq("id",managerRecord.restaurant_id).single();
       if(managerRestaurantError) throw managerRestaurantError;
-      currentManager=managerRecord; activeRestaurant=managerRestaurant; currentCashier=null;
+      currentManager=managerRecord; activeRestaurant=managerRestaurant; updateRestaurantCurrencyLabels(); currentCashier=null;
       if(!(await checkSubscriptionAccess(managerRestaurant.id))) return;
       hideSubscriptionGate();
       if($("ownerProfileSettings")) $("ownerProfileSettings").hidden=true;
@@ -995,7 +1001,7 @@
     if ($("dashRestaurantName")) $("dashRestaurantName").textContent = restaurant.name;
     if ($("welcomeTitle")) $("welcomeTitle").textContent = "Welcome, " + (metadata.full_name || "Admin");
     if ($("userAvatar")) $("userAvatar").textContent = (metadata.full_name || user.email || "N").trim().charAt(0).toUpperCase();
-    if ($("restaurantInfo")) $("restaurantInfo").textContent = restaurant.name + " · " + (restaurant.currency || "SAR");
+    updateRestaurantCurrencyLabels();
     document.body.classList.add("app-mode");
     document.querySelector(".shell").classList.add("hidden");
     $("appShell").classList.add("visible");
@@ -1924,16 +1930,27 @@
     w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${safeText(title)}</title><style>body{font-family:Arial,sans-serif;color:#172033;padding:25px}h2{margin:0 0 8px}p{color:#64748b;font-size:12px}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{padding:9px;border:1px solid #dbe1ea;text-align:left;font-size:12px}th{background:#eef2f7}button{padding:9px 15px;border:0;border-radius:7px;background:#d8aa38;font-weight:bold;cursor:pointer}@media print{button{display:none}body{padding:5mm}}</style></head><body><button onclick="window.print()">PRINT</button><h2>${safeText(title)}</h2><p>${safeText(activeRestaurant?.name||'NAF POS')} · Printed ${safeText(new Date().toLocaleString())}</p><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></body></html>`);
     w.document.close();
   }
+  function filterPrintRowsByDate(rows,dateGetter,fromId,toId){
+    const from=$(fromId)?.value||"", to=$(toId)?.value||"";
+    if(from&&to&&from>to){showAppNotice("Invalid date range: From date must be on or before To date.");return null;}
+    return rows.filter(row=>{const date=String(dateGetter(row)||"").slice(0,10);return (!from||date>=from)&&(!to||date<=to);});
+  }
   $('printPurchaseUsedBtn').addEventListener('click',()=>{
-    const rows=(window.nafVisiblePurchaseUsages||[]).map(u=>{
+    const filtered=filterPrintRowsByDate(window.nafVisiblePurchaseUsages||[],u=>u.usage_date,'purchaseUsedPrintFrom','purchaseUsedPrintTo');
+    if(filtered===null)return;
+    const rows=filtered.map(u=>{
       const p=(window.nafPurchases||[]).find(x=>x.id===u.purchase_id);
       return [u.usage_date,u.item_name,p?.invoice_number||'—',u.quantity_used,u.unit,u.used_for||'—',u.notes||''];
     });
-    printPurchaseTable('Purchase Used History',['Date','Item','Invoice','Quantity Used','Unit','Reason','Notes'],rows);
+    const range=[$('purchaseUsedPrintFrom').value,$('purchaseUsedPrintTo').value].filter(Boolean).join(' to ');
+    printPurchaseTable('Purchase Used History'+(range?' · '+range:''),['Date','Item','Invoice','Quantity Used','Unit','Reason','Notes'],rows);
   });
   $('printPurchaseStockBtn').addEventListener('click',()=>{
-    const rows=(window.nafVisiblePurchaseStock||[]).map(x=>[x.item_name,x.invoice_number,x.purchased,x.used,x.remaining,x.unit]);
-    printPurchaseTable('Current Purchase Stock',['Item','Invoice','Purchased','Used','In Stock','Unit'],rows);
+    const filtered=filterPrintRowsByDate(window.nafVisiblePurchaseStock||[],x=>x.purchase_date,'purchaseStockPrintFrom','purchaseStockPrintTo');
+    if(filtered===null)return;
+    const rows=filtered.map(x=>[x.item_name,x.invoice_number,x.purchased,x.used,x.remaining,x.unit]);
+    const range=[$('purchaseStockPrintFrom').value,$('purchaseStockPrintTo').value].filter(Boolean).join(' to ');
+    printPurchaseTable('Current Purchase Stock'+(range?' · '+range:''),['Item','Invoice','Purchased','Used','In Stock','Unit'],rows);
   });
   $('purchaseStockRows').addEventListener('click',async e=>{
     const edit=e.target.closest('[data-edit-stock]'),del=e.target.closest('[data-delete-stock]');
@@ -1944,7 +1961,7 @@
       const newQty=Number(qtyText);
       if(!Number.isFinite(newQty)||newQty<=0){showAppNotice('Enter a valid quantity greater than zero.');return;}
       if(newQty<item.used){showAppNotice(`Quantity cannot be less than the ${item.used} ${item.unit} already used.`);return;}
-      const costText=prompt('Unit cost (SAR):',String(Number(item.unit_cost||0)));
+      const costText=prompt(`Unit cost (${restaurantCurrency()}):`,String(Number(item.unit_cost||0)));
       if(costText===null)return;
       const unitCost=Number(costText);
       if(!Number.isFinite(unitCost)||unitCost<0){showAppNotice('Enter a valid unit cost.');return;}
@@ -1975,7 +1992,7 @@
   function addPurchaseLine(name="", qty="1", cost="0", unit="piece") {
     const id = ++purchaseLineCount;
     const row = document.createElement("div"); row.className="module-form"; row.style.marginTop="8px"; row.dataset.lineId=id;
-    row.innerHTML = `<div class="module-field"><label>ITEM NAME</label><input class="purchase-item-name" required maxlength="120" value="${safeText(name)}"></div><div class="module-field"><label>QUANTITY</label><input class="purchase-item-qty" type="number" min="0.001" step="0.001" required value="${safeText(qty)}"></div><div class="module-field"><label>UNIT</label><select class="purchase-item-unit"><option value="kg">kg</option><option value="gram">gram</option><option value="liter">liter</option><option value="piece">piece</option><option value="box">box</option><option value="carton">carton</option></select></div><div class="module-field"><label>UNIT COST (SAR)</label><input class="purchase-item-cost" type="number" min="0" step="0.01" required value="${safeText(cost)}"></div><div class="module-field" style="display:flex;align-items:end"><button class="menu-btn danger remove-purchase-line" type="button">Remove item</button></div>`;
+    row.innerHTML = `<div class="module-field"><label>ITEM NAME</label><input class="purchase-item-name" required maxlength="120" value="${safeText(name)}"></div><div class="module-field"><label>QUANTITY</label><input class="purchase-item-qty" type="number" min="0.001" step="0.001" required value="${safeText(qty)}"></div><div class="module-field"><label>UNIT</label><select class="purchase-item-unit"><option value="kg">kg</option><option value="gram">gram</option><option value="liter">liter</option><option value="piece">piece</option><option value="box">box</option><option value="carton">carton</option></select></div><div class="module-field"><label>UNIT COST (<span data-restaurant-currency>SAR</span>)</label><input class="purchase-item-cost" type="number" min="0" step="0.01" required value="${safeText(cost)}"></div><div class="module-field" style="display:flex;align-items:end"><button class="menu-btn danger remove-purchase-line" type="button">Remove item</button></div>`;
     row.querySelector('.purchase-item-unit').value=unit||'piece';
     row.querySelector(".remove-purchase-line").addEventListener("click",()=>{if($$("#purchaseLines .module-form").length>1)row.remove();});
     $("purchaseLines").appendChild(row);
@@ -2471,6 +2488,7 @@
         if(emailUpdate.error)throw emailUpdate.error;
       }
       activeRestaurant={...activeRestaurant,...payload};
+      updateRestaurantCurrencyLabels();
       const file=$("settingsLogo").files[0];
       if(file){
         if(!["image/png","image/jpeg","image/webp"].includes(file.type)||file.size>2*1024*1024)throw new Error("Logo must be PNG, JPG or WEBP and under 2 MB.");
@@ -2493,6 +2511,7 @@
   $("passwordForm").addEventListener("submit",async e=>{e.preventDefault();const a=$("newPassword").value,b=$("confirmPassword").value;if(a.length<8||a!==b){showAppNotice("Passwords must match and contain at least 8 characters.");return;}const {error}=await client.auth.updateUser({password:a});if(error)moduleError("Could not update password",error);else{showAppNotice("Password updated successfully.");$("passwordForm").reset();}});
   async function refreshDashboardTotals(){if(activeRestaurant){await refreshDashboardData();return;}const {data,error}=await client.auth.getUser();if(error||!data.user)return;await openDashboard(data.user);}
   // Default purchase line, date fields and current tax preference.
+  updateRestaurantCurrencyLabels();
   $("purchaseDate").value=todayISO();$("purchaseUsedDate").value=todayISO();$("expenseDate").value=todayISO();$("budgetStart").value=todayISO();$("budgetEnd").value=todayISO();addPurchaseLine();
 
   $("logoutBtn").addEventListener("click", async () => {
