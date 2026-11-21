@@ -275,6 +275,7 @@
     }
 
   
+    .pin-modal{position:fixed;inset:0;z-index:20000;background:rgba(12,22,38,.72);display:flex;align-items:center;justify-content:center;padding:18px}.pin-modal[hidden]{display:none!important}.pin-card{width:min(420px,100%);background:#fff;border-radius:16px;padding:24px;box-shadow:0 24px 70px #0005}.pin-card h2{font-size:22px;margin:0 0 8px}.pin-card p{color:var(--muted);font-size:13px;line-height:1.5}.pin-card input,.pin-card select{width:100%;height:44px;border:1px solid #dce2eb;border-radius:9px;padding:8px 12px;font:inherit;margin:6px 0 12px}.pin-actions{display:flex;gap:8px;flex-wrap:wrap}.pin-actions button{flex:1;min-width:110px;border:0;border-radius:9px;padding:11px;background:var(--gold);font-weight:800;cursor:pointer}.pin-actions .secondary{background:#edf0f5;color:var(--navy)}.pin-error{color:#a52e3b!important;min-height:18px}
     .support-modal{position:fixed;inset:0;z-index:10000;background:rgba(12,22,38,.58);display:flex;align-items:center;justify-content:center;padding:18px}.support-modal[hidden]{display:none!important}.support-modal-panel{width:min(520px,100%);background:#fff;border-radius:16px;padding:22px;box-shadow:0 24px 70px #0004}.support-modal-panel h3{margin:0 0 8px;color:var(--navy)}.support-modal-panel textarea{width:100%;min-height:125px;border:1px solid #dce2eb;border-radius:9px;padding:11px;font:inherit;font-size:14px;resize:vertical}.support-modal-panel textarea:focus{outline:2px solid #e5b94f66;border-color:var(--gold)}
 </style>
 </head>
@@ -374,7 +375,7 @@
     <main class="mainarea">
       <header class="topbar">
         <div><div class="eyebrow">Restaurant workspace</div><h1 class="pageheading" id="pageheading">Dashboard</h1></div>
-        <div class="userbox"><div class="dashboard-datebar top-datebar"><label>From <input type="date" id="dashboardFromDate"></label><label>To <input type="date" id="dashboardToDate"></label><button type="button" class="menu-btn" id="applyDashboardDates">Apply</button></div><button class="logout" id="refreshAppBtn" type="button" title="Refresh the whole app">↻ Refresh</button><button class="logout" id="logoutBtn" type="button">Log out</button><div class="avatar" id="userAvatar">N</div><div class="usertext"><b id="dashUserName">Admin</b><small id="dashRestaurantName">Restaurant</small></div></div>
+        <div class="userbox"><div class="dashboard-datebar top-datebar"><label>From <input type="date" id="dashboardFromDate"></label><label>To <input type="date" id="dashboardToDate"></label><button type="button" class="menu-btn" id="applyDashboardDates">Apply</button></div><button class="logout" id="refreshAppBtn" type="button" title="Refresh the whole app">↻ Refresh</button><button class="logout" id="pinSettingsBtn" type="button">🔒 PIN Lock</button><button class="logout" id="logoutBtn" type="button">Log out</button><div class="avatar" id="userAvatar">N</div><div class="usertext"><b id="dashUserName">Admin</b><small id="dashRestaurantName">Restaurant</small></div></div>
       </header>
       <div id="appNotice" class="appnotice"></div>
       <div id="dashboardPage" class="pagepanel active">
@@ -733,6 +734,9 @@
   const $ = (id) => document.getElementById(id);
   const notice = $("notice");
 
+  let activeAuthUserId = null;
+  let pinIdleTimer = null;
+  let pinFailedAttempts = 0;
   let selectedLogo = null;
   let activeRestaurant = null;
   let currentCashier = null;
@@ -911,6 +915,7 @@
   $("subscriptionLogout")?.addEventListener("click",async()=>{await client.auth.signOut();hideSubscriptionGate();$("appShell").classList.remove("visible");document.body.classList.remove("app-mode");document.querySelector(".shell").classList.remove("hidden");switchTab("login");});
 
   async function openDashboard(user) {
+    activeAuthUserId = user.id;
     const metadata = user.user_metadata || {};
     const adminCheck = await client.rpc("naf_is_super_admin");
     if(adminCheck.error) throw adminCheck.error;
@@ -959,6 +964,7 @@
         el.hidden = !allowed;
       });
       showPage("pos");
+      resetPinIdleTimer();
       return;
     }
     currentCashier = null;
@@ -996,6 +1002,7 @@
       $("managerDashboardNotice").hidden=false;
       document.querySelectorAll("#dashboardPage .stats,#dashboardPage .lowergrid").forEach(el=>el.hidden=true);
       showPage("dashboard");
+      resetPinIdleTimer();
       return;
     }
     currentManager=null;
@@ -1052,6 +1059,7 @@
 
     showPage("dashboard");
     await refreshDashboardData();
+    resetPinIdleTimer();
   }
 
   function setDefaultDashboardDates(){
@@ -2684,6 +2692,26 @@
   // Default purchase line, date fields and current tax preference.
   updateRestaurantCurrencyLabels();
   $("purchaseDate").value=todayISO();$("purchaseUsedDate").value=todayISO();$("expenseDate").value=todayISO();$("budgetStart").value=todayISO();$("budgetEnd").value=todayISO();addPurchaseLine();
+
+  // Personal PIN lock: per authenticated user and browser/device. This is a convenience screen lock,
+  // not a replacement for Supabase authentication or server-side authorization.
+  const pinStorageKey = () => activeAuthUserId ? `naf_pin_lock_v1_${activeAuthUserId}` : null;
+  const readPinSettings = () => { try { return JSON.parse(localStorage.getItem(pinStorageKey()) || "null") || {enabled:false,hash:null,autoMinutes:5}; } catch { return {enabled:false,hash:null,autoMinutes:5}; } };
+  async function hashPin(pin){ const bytes=new TextEncoder().encode(pin); const digest=await crypto.subtle.digest("SHA-256",bytes); return Array.from(new Uint8Array(digest)).map(x=>x.toString(16).padStart(2,"0")).join(""); }
+  function resetPinIdleTimer(){ clearTimeout(pinIdleTimer); const cfg=readPinSettings(); if(!cfg.enabled || !cfg.hash || Number(cfg.autoMinutes)<=0 || !$("pinUnlockModal").hidden || !$("pinSettingsModal").hidden) return; pinIdleTimer=setTimeout(lockNafScreen,Number(cfg.autoMinutes)*60000); }
+  function lockNafScreen(){ const cfg=readPinSettings(); if(!cfg.enabled || !cfg.hash || !$("appShell").classList.contains("visible")) return; clearTimeout(pinIdleTimer); $("pinUnlockInput").value=""; $("pinUnlockError").textContent=""; $("pinUnlockModal").hidden=false; setTimeout(()=>$("pinUnlockInput").focus(),50); }
+  function refreshPinSettingsUI(){ const cfg=readPinSettings(); $("pinEnabled").checked=!!cfg.enabled; $("pinSetupFields").hidden=!cfg.enabled; $("pinAutoMinutes").value=String(cfg.autoMinutes??5); $("pinNew").value=""; $("pinConfirm").value=""; $("pinSettingsError").textContent=""; }
+  $("pinSettingsBtn").addEventListener("click",()=>{refreshPinSettingsUI();$("pinSettingsModal").hidden=false;});
+  $("pinCloseBtn").addEventListener("click",()=>{$("pinSettingsModal").hidden=true;resetPinIdleTimer();});
+  $("pinEnabled").addEventListener("change",e=>{$("pinSetupFields").hidden=!e.target.checked;});
+  $("pinSaveBtn").addEventListener("click",async()=>{ try{ const enabled=$("pinEnabled").checked; const old=readPinSettings(); if(!pinStorageKey()) throw new Error("Please sign in again."); if(!enabled){localStorage.setItem(pinStorageKey(),JSON.stringify({enabled:false,hash:null,autoMinutes:0}));$("pinSettingsModal").hidden=true;clearTimeout(pinIdleTimer);showAppNotice("Your personal PIN lock is OFF. NAF POS will work as usual.");return;} const a=$("pinNew").value.trim(),b=$("pinConfirm").value.trim(); let hash=old.hash; if(a||b){if(!/^\d{4}$/.test(a)||a!==b)throw new Error("Enter and confirm the same 4-digit PIN.");hash=await hashPin(a);} if(!hash)throw new Error("Create and confirm a 4-digit PIN to enable the lock."); const minutes=Number($("pinAutoMinutes").value);localStorage.setItem(pinStorageKey(),JSON.stringify({enabled:true,hash,autoMinutes:minutes}));$("pinSettingsModal").hidden=true;showAppNotice("Your personal PIN lock settings have been saved.");resetPinIdleTimer(); }catch(err){$("pinSettingsError").textContent=err.message;} });
+  $("pinLockNowBtn").addEventListener("click",()=>{ $("pinSettingsModal").hidden=true; lockNafScreen(); });
+  async function attemptPinUnlock(){const cfg=readPinSettings(),pin=$("pinUnlockInput").value.trim();if(!/^\d{4}$/.test(pin)){ $("pinUnlockError").textContent="Enter your 4-digit PIN.";return;}if(await hashPin(pin)!==cfg.hash){pinFailedAttempts++;$("pinUnlockError").textContent=pinFailedAttempts>=5?"Too many incorrect attempts. Wait 30 seconds and try again.":"Incorrect PIN. Try again.";if(pinFailedAttempts>=5){$("pinUnlockBtn").disabled=true;setTimeout(()=>{$("pinUnlockBtn").disabled=false;pinFailedAttempts=0;},30000);}return;}pinFailedAttempts=0;$("pinUnlockModal").hidden=true;resetPinIdleTimer();}
+  $("pinUnlockBtn").addEventListener("click",attemptPinUnlock);$("pinUnlockInput").addEventListener("keydown",e=>{if(e.key==="Enter")attemptPinUnlock();});
+  $("pinLogoutBtn").addEventListener("click",async()=>{await client.auth.signOut();$("pinUnlockModal").hidden=true;$("appShell").classList.remove("visible");document.body.classList.remove("app-mode");document.querySelector(".shell").classList.remove("hidden");switchTab("login");});
+  ["pointerdown","keydown","touchstart","mousemove"].forEach(evt=>document.addEventListener(evt,()=>{if($("pinUnlockModal").hidden && $("pinSettingsModal").hidden)resetPinIdleTimer();},{passive:true}));
+  document.addEventListener("visibilitychange",()=>{if(document.hidden){const cfg=readPinSettings();if(cfg.enabled)lockNafScreen();}else resetPinIdleTimer();});
+  window.addEventListener("pagehide",()=>{const cfg=readPinSettings();if(cfg.enabled)lockNafScreen();});
 
   $("logoutBtn").addEventListener("click", async () => {
     const { error } = await client.auth.signOut();
