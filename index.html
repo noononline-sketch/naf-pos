@@ -363,6 +363,7 @@
         <button type="button" class="navitem" data-page="budget"><span class="navicon">▣</span>Budget</button>
         <button type="button" class="navitem" data-page="subscription"><span class="navicon">◇</span>Subscription</button>
         <button type="button" class="navitem" data-page="settings"><span class="navicon">⚙</span>Settings</button>
+        <button type="button" class="navitem" data-page="support"><span class="navicon">✉</span>Support Message</button>
         <button type="button" class="navitem" data-page="super-admin" hidden><span class="navicon">♛</span>Super Admin</button>
       </nav>
       <div class="sidebottom">NAF POS · Secure cloud workspace</div>
@@ -685,6 +686,20 @@
         </div>
         <div class="module-card" id="ownerPasswordSettings"><h3>Change Owner Password</h3><form id="passwordForm"><div class="module-form"><div class="module-field"><label>NEW PASSWORD</label><input id="newPassword" type="password" minlength="8" required></div><div class="module-field"><label>CONFIRM PASSWORD</label><input id="confirmPassword" type="password" minlength="8" required></div></div><div class="module-actions"><button class="menu-btn" type="submit">UPDATE PASSWORD</button></div></form></div>
       </section>
+      <section id="supportPage" class="pagepanel">
+        <div class="module-card">
+          <h3>Support Message</h3>
+          <p class="module-note" id="supportIntro">Send a message to the right support contact.</p>
+          <form id="supportForm">
+            <div class="module-field"><label for="supportSubject">SUBJECT</label><input id="supportSubject" maxlength="120" required placeholder="Brief subject"></div>
+            <div class="module-field" style="margin-top:10px"><label for="supportBody">MESSAGE</label><textarea id="supportBody" rows="4" maxlength="5000" required placeholder="Write your message..."></textarea></div>
+            <div class="module-actions"><button class="menu-btn" type="submit" id="supportSendBtn">SEND MESSAGE</button></div>
+          </form>
+        </div>
+        <div class="module-card"><div class="module-toolbar"><h3 style="margin:0">Messages</h3><button class="menu-btn secondary" type="button" id="supportRefresh">↻ Refresh</button></div>
+          <div class="module-table-wrap"><table class="module-table"><thead><tr><th>Date</th><th>Subject</th><th>From</th><th>Message</th><th>Status</th><th>Action</th></tr></thead><tbody id="supportRows"><tr><td colspan="6">Loading messages…</td></tr></tbody></table></div>
+        </div>
+      </section>
     </main>
   </section>
 
@@ -920,7 +935,7 @@
       if ($("userAvatar")) $("userAvatar").textContent = (cashierRecord.name || "C").trim().charAt(0).toUpperCase();
       if ($("restaurantInfo")) $("restaurantInfo").textContent = cashierRestaurant.name + " · Cashier";
       document.querySelectorAll(".navitem[data-page]").forEach(el => {
-        const allowed = ["pos", "sales-history", "reports", "settings"].includes(el.dataset.page);
+        const allowed = ["pos", "sales-history", "reports", "settings", "support"].includes(el.dataset.page);
         el.hidden = !allowed;
       });
       showPage("pos");
@@ -957,7 +972,7 @@
       if($("dashRestaurantName")) $("dashRestaurantName").textContent=managerRestaurant.name;
       if($("userAvatar")) $("userAvatar").textContent=(managerRecord.name||"M").trim().charAt(0).toUpperCase();
       if($("restaurantInfo")) $("restaurantInfo").textContent=managerRestaurant.name+" · Manager";
-      document.querySelectorAll(".navitem[data-page]").forEach(el=>{el.hidden=!["dashboard","pos","menu","purchases","customers","suppliers","sales-history"].includes(el.dataset.page);});
+      document.querySelectorAll(".navitem[data-page]").forEach(el=>{el.hidden=! ["dashboard","pos","menu","purchases","customers","suppliers","sales-history","support"].includes(el.dataset.page);});
       $("managerDashboardNotice").hidden=false;
       document.querySelectorAll("#dashboardPage .stats,#dashboardPage .lowergrid").forEach(el=>el.hidden=true);
       showPage("dashboard");
@@ -1120,18 +1135,18 @@
       showAppNotice("Access denied: this account is not a Super Admin.");
       return;
     }
-    if (currentManager && !["dashboard","pos","menu","purchases","customers","suppliers","sales-history"].includes(page)) {
+    if (currentManager && !["dashboard","pos","menu","purchases","customers","suppliers","sales-history","support"].includes(page)) {
       showAppNotice("This page is not available for Manager accounts.");
       page = "dashboard";
     }
-    if (currentCashier && !["pos", "sales-history", "reports", "settings"].includes(page)) {
+    if (currentCashier && !["pos", "sales-history", "reports", "settings", "support"].includes(page)) {
       showAppNotice("This page is not available for cashier accounts.");
       page = "pos";
     }
     document.querySelectorAll(".pagepanel").forEach(el => el.classList.remove("active"));
     document.querySelectorAll(".navitem[data-page]").forEach(el => el.classList.toggle("active", el.dataset.page === page));
-    const titles = {dashboard:"Dashboard", pos:"POS / New Sale", menu:"Menu", purchases:"Purchases", expenses:"Expenses", customers:"Customers", suppliers:"Suppliers", "sales-history":"Sales History", reports:"Reports", "cashier-management":"Cashier Management", "manager-management":"Manager Management", employees:"Employees", budget:"Budget", settings:"Settings", subscription:"Subscription", "super-admin":"Super Admin"};
-    const pageIds = {dashboard:"dashboardPage",pos:"posPage",menu:"menuPage",purchases:"purchasesPage",expenses:"expensesPage",customers:"customersPage",suppliers:"suppliersPage","sales-history":"salesHistoryPage",reports:"reportsPage","cashier-management":"cashier-managementPage","manager-management":"manager-managementPage",employees:"employeesPage",budget:"budgetPage",settings:"settingsPage",subscription:"subscriptionPage","super-admin":"super-adminPage"};
+    const titles = {dashboard:"Dashboard", pos:"POS / New Sale", menu:"Menu", purchases:"Purchases", expenses:"Expenses", customers:"Customers", suppliers:"Suppliers", "sales-history":"Sales History", reports:"Reports", "cashier-management":"Cashier Management", "manager-management":"Manager Management", employees:"Employees", budget:"Budget", settings:"Settings", subscription:"Subscription", support:"Support Message", "super-admin":"Super Admin"};
+    const pageIds = {dashboard:"dashboardPage",pos:"posPage",menu:"menuPage",purchases:"purchasesPage",expenses:"expensesPage",customers:"customersPage",suppliers:"suppliersPage","sales-history":"salesHistoryPage",reports:"reportsPage","cashier-management":"cashier-managementPage","manager-management":"manager-managementPage",employees:"employeesPage",budget:"budgetPage",settings:"settingsPage",subscription:"subscriptionPage","super-admin":"super-adminPage", support:"supportPage"};
     const target = $(pageIds[page] || "dashboardPage");
     target.classList.add("active");
     if ($("pageheading")) $("pageheading").textContent = titles[page] || "Dashboard";
@@ -1149,6 +1164,7 @@
     if (page === "employees") loadEmployees();
     if (page === "budget") loadBudget();
     if (page === "settings") loadSettings();
+    if (page === "support") loadSupportMessages();
   }
 
   async function refreshCustomerSubscriptionCard(){
@@ -1179,12 +1195,12 @@
   document.querySelectorAll(".navitem[data-page]").forEach(button => {
     button.addEventListener("click", () => {
       const page = button.dataset.page;
-      if (currentManager && !["dashboard","pos","menu","purchases","customers","suppliers","sales-history"].includes(page)) {
+      if (currentManager && !["dashboard","pos","menu","purchases","customers","suppliers","sales-history","support"].includes(page)) {
         showAppNotice("This page is not available for Manager accounts.");
         showPage("dashboard");
         return;
       }
-      if (currentCashier && !["pos", "sales-history", "reports", "settings"].includes(page)) {
+      if (currentCashier && !["pos", "sales-history", "reports", "settings", "support"].includes(page)) {
         showAppNotice("This page is not available for cashier accounts.");
         showPage("pos");
         return;
@@ -2646,6 +2662,53 @@
     } catch (error) {
       showNotice(error.message || "Could not create account. Please try again.", "error");
     } finally { setBusy(form, false); }
+  });
+
+  // Support inbox: all access is additionally enforced by Supabase RLS.
+  let nafSupportCache = [];
+  const supportEsc = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  async function loadSupportMessages(){
+    const body=$("supportRows"); if(!body) return;
+    body.innerHTML='<tr><td colspan="6">Loading messages…</td></tr>';
+    try{
+      const {data,error}=await client.from("naf_support_messages").select("id,thread_id,restaurant_id,sender_user_id,recipient_user_id,sender_role,subject,message,status,created_at").order("created_at",{ascending:false}).limit(500);
+      if(error) throw error;
+      nafSupportCache=data||[];
+      body.innerHTML=nafSupportCache.map(m=>`<tr><td>${supportEsc(new Date(m.created_at).toLocaleString())}</td><td>${supportEsc(m.subject||"Support")}</td><td>${supportEsc(m.sender_role||"User")}</td><td style="white-space:normal;min-width:220px">${supportEsc(m.message)}</td><td>${supportEsc(m.status||"Open")}</td><td><button class="edit" data-support-reply="${supportEsc(m.thread_id)}">Reply</button> <button class="edit" data-support-resolve="${supportEsc(m.thread_id)}">Resolve</button></td></tr>`).join("")||'<tr><td colspan="6">No support messages yet.</td></tr>';
+      if($("supportIntro")) $("supportIntro").textContent=isNafSuperAdmin?"View and reply to messages from all restaurant Owners.":currentCashier||currentManager?"Your message will be sent only to your restaurant Owner.":"Your message will be sent to NAF POS Super Admin.";
+    }catch(e){body.innerHTML=`<tr><td colspan="6">${supportEsc(e.message||"Could not load messages")}</td></tr>`;}
+  }
+  async function sendSupportMessage(subject,message,threadId=null){
+    const {data:{user},error:userErr}=await client.auth.getUser(); if(userErr) throw userErr; if(!user) throw new Error("Please sign in again.");
+    let recipient=null, restaurantId=activeRestaurant?.id||null;
+    let senderRole=currentCashier?"cashier":currentManager?"manager":(isNafSuperAdmin&&!activeRestaurant?"super_admin":"owner");
+    if(isNafSuperAdmin && !currentCashier && !currentManager && !activeRestaurant){throw new Error("Open a restaurant Owner message and use Reply there.");}
+    if(currentCashier||currentManager){
+      if(!restaurantId) throw new Error("Restaurant was not found.");
+      const {data:r,error}=await client.from("restaurants").select("owner_id").eq("id",restaurantId).single(); if(error) throw error; recipient=r.owner_id;
+    }
+    const payload={thread_id:threadId||crypto.randomUUID(),restaurant_id:restaurantId,sender_user_id:user.id,recipient_user_id:recipient,sender_role:senderRole,subject,message,status:"Open"};
+    const {error}=await client.from("naf_support_messages").insert(payload); if(error) throw error;
+  }
+  $("supportForm")?.addEventListener("submit",async e=>{e.preventDefault();const btn=$("supportSendBtn");btn.disabled=true;try{await sendSupportMessage($("supportSubject").value.trim(),$("supportBody").value.trim());$("supportForm").reset();showAppNotice("Support message sent successfully.");await loadSupportMessages();}catch(err){showAppNotice("Could not send support message: "+err.message);}finally{btn.disabled=false;}});
+  $("supportRefresh")?.addEventListener("click",loadSupportMessages);
+  $("supportRows")?.addEventListener("click",async e=>{
+    const reply=e.target.closest("[data-support-reply]"),resolve=e.target.closest("[data-support-resolve]"); if(!reply&&!resolve)return;
+    const thread=(reply||resolve).dataset[reply?"supportReply":"supportResolve"];
+    try{
+      const rows=nafSupportCache.filter(x=>x.thread_id===thread); if(!rows.length)return;
+      if(resolve){const {error}=await client.from("naf_support_messages").update({status:"Resolved"}).eq("thread_id",thread);if(error)throw error;showAppNotice("Support thread resolved.");}
+      else{
+        const answer=prompt("Write your reply:"); if(!answer||!answer.trim())return;
+        const last=rows[0]; const {data:{user},error:userErr}=await client.auth.getUser();if(userErr)throw userErr;
+        let recipient=last.sender_role==="super_admin"?null:last.sender_user_id;
+        if(isNafSuperAdmin&&!activeRestaurant){const {data:r,error}=await client.from("restaurants").select("owner_id").eq("id",last.restaurant_id).single();if(error)throw error;recipient=r.owner_id;}
+        const {error}=await client.from("naf_support_messages").insert({thread_id:thread,restaurant_id:last.restaurant_id,sender_user_id:user.id,recipient_user_id:recipient,sender_role:currentCashier?"cashier":currentManager?"manager":(isNafSuperAdmin&&!activeRestaurant?"super_admin":"owner"),subject:last.subject,message:answer.trim(),status:"Replied"});if(error)throw error;
+        const {error:updateError}=await client.from("naf_support_messages").update({status:"Replied"}).eq("thread_id",thread);if(updateError)throw updateError;
+        showAppNotice("Reply sent.");
+      }
+      await loadSupportMessages();
+    }catch(err){showAppNotice("Support action failed: "+err.message);}
   });
 
   $("loginForm").addEventListener("submit", async (event) => {
