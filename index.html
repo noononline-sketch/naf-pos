@@ -356,6 +356,7 @@
         <button type="button" class="navitem" data-page="sales-history"><span class="navicon">▤</span>Sales History</button>
         <button type="button" class="navitem" data-page="reports"><span class="navicon">▥</span>Reports</button>
         <button type="button" class="navitem" data-page="cashier-management"><span class="navicon">♟</span>Cashier Management</button>
+        <button type="button" class="navitem" data-page="manager-management"><span class="navicon">♙</span>Manager Management</button>
         <button type="button" class="navitem" data-page="employees"><span class="navicon">♙</span>Employees</button>
         <button type="button" class="navitem" data-page="budget"><span class="navicon">▣</span>Budget</button>
         <button type="button" class="navitem" data-page="subscription"><span class="navicon">◇</span>Subscription</button>
@@ -371,6 +372,9 @@
       </header>
       <div id="appNotice" class="appnotice"></div>
       <div id="dashboardPage" class="pagepanel active">
+      <section id="managerDashboardNotice" class="module-card" hidden>
+        <h3>Manager Dashboard</h3><p class="module-note">Welcome. You can manage daily restaurant operations, purchases, menu, customers, suppliers and sales history. Financial reports and owner-only settings are not available to Manager accounts.</p>
+      </section>
       <section class="stats">
         <article class="stat"><div class="stathead">Budget <span class="staticon">◈</span></div><div class="statvalue" id="totalBudget">SAR 0.00</div><div class="statnote">Total allocated budget</div></article>
         <article class="stat"><div class="stathead">Purchase Cost <span class="staticon">▣</span></div><div class="statvalue" id="purchaseCost">SAR 0.00</div><div class="statnote">Recorded purchases</div></article>
@@ -535,6 +539,19 @@
       <section id="suppliersPage" class="pagepanel"><div class="module-card"><h3 id="supplierPageTitle">Suppliers</h3><p class="module-note">Supplier records are shared with the Purchases module.</p><form id="supplierPageForm"><div class="module-form"><div class="module-field"><label>SUPPLIER NAME</label><input id="supplierPageName" required maxlength="120"></div></div><div class="module-actions"><button class="menu-btn" id="supplierPageSave">ADD SUPPLIER</button><button class="menu-btn secondary" id="supplierPageCancel" type="button" hidden>Cancel</button></div></form></div><div class="module-card"><div class="module-toolbar"><h3>Supplier List</h3><input id="supplierPageSearch" placeholder="Search suppliers"></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>SUPPLIER</th><th>ACTIONS</th></tr></thead><tbody id="supplierPageRows"></tbody></table></div></div></section>
       <section id="reportsPage" class="pagepanel"><div class="module-card"><div class="module-toolbar"><h3>Business Reports</h3><label>From <input id="reportFrom" type="date"></label><label>To <input id="reportTo" type="date"></label><button class="menu-btn" id="runReport">RUN REPORT</button><button class="menu-btn secondary" id="printReportBtn" type="button">PRINT REPORT</button></div><div class="extra-grid"><div class="extra-stat"><small>Sales</small><b id="reportSales">SAR 0.00</b></div><div class="extra-stat"><small>Purchases</small><b id="reportPurchases">SAR 0.00</b></div><div class="extra-stat"><small>Expenses</small><b id="reportExpenses">SAR 0.00</b></div><div class="extra-stat"><small>Gross Difference (Sales − Purchases − Expenses)</small><b id="reportNet">SAR 0.00</b></div></div><p class="module-note">This is a cash-flow summary, not an accounting-certified net profit calculation.</p></div></section>
       <section id="cashier-managementPage" class="pagepanel"><div class="module-card"><h3 id="cashierFormTitle">Cashier Management</h3><p class="module-note">Create a cashier login using a temporary password. Cashiers can access POS, their own Sales History, Reports and limited Settings only.</p><form id="cashierForm"><div class="module-form"><div class="module-field"><label>CASHIER NAME</label><input id="cashierName" required></div><div class="module-field"><label>EMAIL</label><input id="cashierEmail" type="email" required></div><div class="module-field"><label>PHONE</label><input id="cashierPhone"></div><div class="module-field"><label>PASSWORD (minimum 8 characters)</label><input id="cashierPassword" type="password" minlength="8" autocomplete="new-password" required></div><div class="module-field"><label>STATUS</label><select id="cashierStatus"><option value="active">Active</option><option value="inactive">Deactive</option></select></div></div><div class="module-actions"><button class="menu-btn" id="cashierSave">ADD CASHIER</button><button class="menu-btn secondary" id="cashierCancel" type="button" hidden>Cancel</button></div></form></div><div class="module-card"><div class="module-toolbar"><h3>Cashier List</h3><input id="cashierSearch" placeholder="Search cashiers"></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>NAME</th><th>PHONE</th><th>EMAIL</th><th>ROLE</th><th>STATUS</th><th>ACTIONS</th></tr></thead><tbody id="cashierRows"></tbody></table></div></div></section>
+      <section id="manager-managementPage" class="pagepanel">
+        <div class="module-card"><h3>Manager Management</h3><p class="module-note">Only the restaurant Owner can create and manage Manager accounts. Managers can use POS, Menu, Purchases, Customers, Suppliers and Sales History. Financial reports and owner settings are restricted.</p>
+          <form id="managerForm"><div class="module-form">
+            <div class="module-field"><label>MANAGER NAME</label><input id="managerName" required maxlength="120"></div>
+            <div class="module-field"><label>EMAIL</label><input id="managerEmail" type="email" required></div>
+            <div class="module-field"><label>PHONE</label><input id="managerPhone" type="tel"></div>
+            <div class="module-field"><label>PASSWORD (minimum 8 characters)</label><input id="managerPassword" type="password" minlength="8" required autocomplete="new-password"></div>
+          </div><div class="module-actions"><button class="menu-btn" id="managerSave" type="submit">CREATE MANAGER</button><button class="menu-btn secondary" id="managerCancel" type="button" hidden>Cancel</button></div></form>
+        </div>
+        <div class="module-card"><div class="module-toolbar"><h3 style="margin:0">Manager List</h3><input id="managerSearch" type="search" placeholder="Search managers"></div>
+          <div class="module-table-wrap"><table class="module-table"><thead><tr><th>NAME</th><th>PHONE</th><th>EMAIL</th><th>ROLE</th><th>STATUS</th><th>ACTIONS</th></tr></thead><tbody id="managerRows"></tbody></table></div>
+        </div>
+      </section>
       <section id="super-adminPage" class="pagepanel">
         <div class="module-card"><h3>Super Admin · Subscription Control</h3><p class="module-note">Manage trial duration, contact/payment instructions, plans, restaurant subscriptions and payment approvals. Access is checked against naf_super_admins.</p></div>
         <div class="subscription-admin-grid">
@@ -682,6 +699,7 @@
   let selectedLogo = null;
   let activeRestaurant = null;
   let currentCashier = null;
+  let currentManager = null;
   let menuItemsCache = [];
   let menuCategoriesCache = [];
   let editingMenuItemId = null;
@@ -779,7 +797,7 @@
     if(pendingRes.error) throw pendingRes.error;
     const pending=pendingRes.data?.[0];
     showSubscriptionGate("",`Status: ${status}. Expiry: ${expiry}.`+(pending?.status?` Latest payment request: ${pending.status}.`:""));
-    if(currentCashier){
+    if(currentCashier || currentManager){
       $("subscriptionPaymentForm").hidden=true;
       if ($("subscriptionGateMessage")) $("subscriptionGateMessage").textContent ="This restaurant subscription is not active. Please contact the restaurant owner.";
     } else {
@@ -790,7 +808,7 @@
   }
   $("subscriptionPaymentForm")?.addEventListener("submit",async e=>{
     e.preventDefault();
-    if(currentCashier||!activeRestaurant){showAppNotice("Only the restaurant owner can submit a subscription payment.");return;}
+    if(currentCashier||currentManager||!activeRestaurant){showAppNotice("Only the restaurant owner can submit a subscription payment.");return;}
     try{
       const accessRow=await getRestaurantSubscriptionAccess(activeRestaurant.id);
       if(accessRow?.can_access===true){
@@ -817,7 +835,9 @@
     }catch(err){moduleError("Could not submit payment request",err);}
   });
   $("subscriptionBackHome")?.addEventListener("click",async()=>{
-    if(currentCashier || !activeRestaurant){
+    if(currentCashier || currentManager || !activeRestaurant){
+      await client.auth.signOut();
+      currentManager=null; currentCashier=null;
       hideSubscriptionGate();
       document.querySelector(".shell").classList.remove("hidden");
       document.body.classList.remove("app-mode");
@@ -868,6 +888,9 @@
         .eq("id", cashierRecord.restaurant_id).single();
       if (cashierRestaurantError) throw cashierRestaurantError;
       currentCashier = cashierRecord;
+      currentManager = null;
+      if($("managerDashboardNotice")) $("managerDashboardNotice").hidden=true;
+      document.querySelectorAll("#dashboardPage .stats,#dashboardPage .lowergrid").forEach(el=>el.hidden=false);
       activeRestaurant = cashierRestaurant;
       if(!(await checkSubscriptionAccess(cashierRestaurant.id))) return;
       hideSubscriptionGate();
@@ -896,6 +919,43 @@
       return;
     }
     currentCashier = null;
+    // Manager accounts are mapped through the server-managed naf_managers table
+    // and must also have an active restaurant_members role='manager' membership.
+    const {data: managerRecord, error: managerLookupError} = await client
+      .from("naf_managers").select("id,restaurant_id,name,email,phone,status,auth_user_id")
+      .eq("auth_user_id", user.id).maybeSingle();
+    if(managerLookupError) throw managerLookupError;
+    if(managerRecord){
+      const {data: membership, error: membershipError} = await client.from("restaurant_members")
+        .select("id").eq("restaurant_id",managerRecord.restaurant_id).eq("user_id",user.id).eq("role","manager").maybeSingle();
+      if(membershipError) throw membershipError;
+      if(managerRecord.status!=="active" || !membership){
+        await client.auth.signOut();
+        throw new Error("Your Manager account is deactivated. Please contact the restaurant Owner.");
+      }
+      const {data: managerRestaurant,error: managerRestaurantError}=await client.from("restaurants")
+        .select("id,name,logo_url,currency,tax_rate,phone,email,address").eq("id",managerRecord.restaurant_id).single();
+      if(managerRestaurantError) throw managerRestaurantError;
+      currentManager=managerRecord; activeRestaurant=managerRestaurant; currentCashier=null;
+      if(!(await checkSubscriptionAccess(managerRestaurant.id))) return;
+      hideSubscriptionGate();
+      if($("ownerProfileSettings")) $("ownerProfileSettings").hidden=true;
+      if($("cashierProfileSettings")) $("cashierProfileSettings").hidden=true;
+      if($("ownerPasswordSettings")) $("ownerPasswordSettings").hidden=true;
+      document.body.classList.add("app-mode");
+      document.querySelector(".shell").classList.add("hidden");
+      $("appShell").classList.add("visible");
+      if($("dashUserName")) $("dashUserName").textContent=managerRecord.name;
+      if($("dashRestaurantName")) $("dashRestaurantName").textContent=managerRestaurant.name;
+      if($("userAvatar")) $("userAvatar").textContent=(managerRecord.name||"M").trim().charAt(0).toUpperCase();
+      if($("restaurantInfo")) $("restaurantInfo").textContent=managerRestaurant.name+" · Manager";
+      document.querySelectorAll(".navitem[data-page]").forEach(el=>{el.hidden=!["dashboard","pos","menu","purchases","customers","suppliers","sales-history"].includes(el.dataset.page);});
+      $("managerDashboardNotice").hidden=false;
+      document.querySelectorAll("#dashboardPage .stats,#dashboardPage .lowergrid").forEach(el=>el.hidden=true);
+      showPage("dashboard");
+      return;
+    }
+    currentManager=null;
     // A user may be both a restaurant owner and a NAF Super Admin.
     // In that case continue loading the restaurant workspace below, while
     // keeping the protected Super Admin navigation item visible as well.
@@ -909,6 +969,8 @@
     if (ownerSettings) ownerSettings.hidden = false;
     if (cashierSettings) cashierSettings.hidden = true;
     if (ownerPasswordSettings) ownerPasswordSettings.hidden = false;
+    if($("managerDashboardNotice")) $("managerDashboardNotice").hidden=true;
+    document.querySelectorAll("#dashboardPage .stats,#dashboardPage .lowergrid").forEach(el=>el.hidden=false);
     document.querySelectorAll(".navitem[data-page]").forEach(el => { el.hidden = el.dataset.page === "super-admin" ? !isNafSuperAdmin : false; });
     const { data: restaurants, error } = await client
       .from("restaurants").select("id,name,logo_url,currency,tax_rate,phone,email,address")
@@ -1050,14 +1112,18 @@
       showAppNotice("Access denied: this account is not a Super Admin.");
       return;
     }
+    if (currentManager && !["dashboard","pos","menu","purchases","customers","suppliers","sales-history"].includes(page)) {
+      showAppNotice("This page is not available for Manager accounts.");
+      page = "dashboard";
+    }
     if (currentCashier && !["pos", "sales-history", "reports", "settings"].includes(page)) {
       showAppNotice("This page is not available for cashier accounts.");
       page = "pos";
     }
     document.querySelectorAll(".pagepanel").forEach(el => el.classList.remove("active"));
     document.querySelectorAll(".navitem[data-page]").forEach(el => el.classList.toggle("active", el.dataset.page === page));
-    const titles = {dashboard:"Dashboard", pos:"POS / New Sale", menu:"Menu", purchases:"Purchases", expenses:"Expenses", customers:"Customers", suppliers:"Suppliers", "sales-history":"Sales History", reports:"Reports", "cashier-management":"Cashier Management", employees:"Employees", budget:"Budget", settings:"Settings", subscription:"Subscription", "super-admin":"Super Admin"};
-    const pageIds = {dashboard:"dashboardPage",pos:"posPage",menu:"menuPage",purchases:"purchasesPage",expenses:"expensesPage",customers:"customersPage",suppliers:"suppliersPage","sales-history":"salesHistoryPage",reports:"reportsPage","cashier-management":"cashier-managementPage",employees:"employeesPage",budget:"budgetPage",settings:"settingsPage",subscription:"subscriptionPage","super-admin":"super-adminPage"};
+    const titles = {dashboard:"Dashboard", pos:"POS / New Sale", menu:"Menu", purchases:"Purchases", expenses:"Expenses", customers:"Customers", suppliers:"Suppliers", "sales-history":"Sales History", reports:"Reports", "cashier-management":"Cashier Management", "manager-management":"Manager Management", employees:"Employees", budget:"Budget", settings:"Settings", subscription:"Subscription", "super-admin":"Super Admin"};
+    const pageIds = {dashboard:"dashboardPage",pos:"posPage",menu:"menuPage",purchases:"purchasesPage",expenses:"expensesPage",customers:"customersPage",suppliers:"suppliersPage","sales-history":"salesHistoryPage",reports:"reportsPage","cashier-management":"cashier-managementPage","manager-management":"manager-managementPage",employees:"employeesPage",budget:"budgetPage",settings:"settingsPage",subscription:"subscriptionPage","super-admin":"super-adminPage"};
     const target = $(pageIds[page] || "dashboardPage");
     target.classList.add("active");
     if ($("pageheading")) $("pageheading").textContent = titles[page] || "Dashboard";
@@ -1070,6 +1136,7 @@
     if (page === "suppliers") loadSupplierPage();
     if (page === "reports") runReports();
     if (page === "cashier-management") loadCashiers();
+    if (page === "manager-management") loadManagers();
     if (page === "super-admin") loadAdminSubscriptionPanel();
     if (page === "employees") loadEmployees();
     if (page === "budget") loadBudget();
@@ -1085,7 +1152,7 @@
     }catch(err){ moduleError("Could not refresh subscription details",err); }
   }
     $("openSubscriptionRequest")?.addEventListener("click",async()=>{
-    if(currentCashier || !activeRestaurant){showAppNotice("Only the restaurant owner can manage subscription requests.");return;}
+    if(currentCashier || currentManager || !activeRestaurant){showAppNotice("Only the restaurant owner can manage subscription requests.");return;}
     try{
       const accessRow=await getRestaurantSubscriptionAccess(activeRestaurant.id);
       updateSubscriptionRequestAvailability(accessRow);
@@ -1104,13 +1171,18 @@
   document.querySelectorAll(".navitem[data-page]").forEach(button => {
     button.addEventListener("click", () => {
       const page = button.dataset.page;
+      if (currentManager && !["dashboard","pos","menu","purchases","customers","suppliers","sales-history"].includes(page)) {
+        showAppNotice("This page is not available for Manager accounts.");
+        showPage("dashboard");
+        return;
+      }
       if (currentCashier && !["pos", "sales-history", "reports", "settings"].includes(page)) {
         showAppNotice("This page is not available for cashier accounts.");
         showPage("pos");
         return;
       }
       if (page === "subscription") refreshCustomerSubscriptionCard();
-      if (["dashboard", "pos", "menu", "purchases", "expenses", "customers", "suppliers", "sales-history", "reports", "cashier-management", "employees", "budget", "settings", "subscription", "super-admin"].includes(page)) {
+      if (["dashboard", "pos", "menu", "purchases", "expenses", "customers", "suppliers", "sales-history", "reports", "cashier-management", "manager-management", "employees", "budget", "settings", "subscription", "super-admin"].includes(page)) {
         $("appNotice").classList.remove("show");
         showPage(page);
       } else showAppNotice("Super Admin module is a separate protected administration step.");
@@ -2126,6 +2198,45 @@
     catch(err){moduleError('Could not save cashier',err);}
   });
   $('cashierCancel').addEventListener('click',()=>{editingCashierId=null;$('cashierForm').reset();$('cashierPassword').required=true;if ($('cashierSave')) $('cashierSave').textContent ='ADD CASHIER';$('cashierCancel').hidden=true;});
+  // Manager accounts are created and controlled only by the authenticated Edge Function.
+  async function callManagerFunction(body){
+    const {data:{session},error:sessionError}=await client.auth.getSession();
+    if(sessionError) throw sessionError;
+    if(!session?.access_token) throw new Error("Please sign in again.");
+    const {data,error}=await client.functions.invoke("manage-manager",{body,headers:{Authorization:"Bearer "+session.access_token}});
+    if(error){
+      let detail=error.message||"Manager function failed";
+      try{const response=error.context;if(response&&typeof response.clone==="function"){const payload=await response.clone().json();detail=payload.details||payload.message||payload.error||detail;}}catch(_){}
+      throw new Error(detail);
+    }
+    if(data?.error) throw new Error(data.details||data.error);
+    return data;
+  }
+  let editingManagerId=null, managerCache=[];
+  async function loadManagers(){
+    const data=await callManagerFunction({action:"list",restaurant_id:activeRestaurant.id});
+    managerCache=data.managers||[];
+    const q=($("managerSearch").value||"").toLowerCase();
+    $("managerRows").innerHTML=managerCache.filter(x=>[x.name,x.email,x.phone].join(" ").toLowerCase().includes(q)).map(x=>`<tr><td>${safeText(x.name)}</td><td>${safeText(x.phone||"")}</td><td>${safeText(x.email)}</td><td>Manager</td><td>${x.status==="active"?"Active":"Deactive"}</td><td><button class="edit" data-manager-reset="${safeText(x.id)}">Reset Password</button> <button class="edit" data-manager-toggle="${safeText(x.id)}">${x.status==="active"?"Deactivate":"Activate"}</button> <button class="del" data-manager-del="${safeText(x.id)}">Delete</button></td></tr>`).join("")||'<tr><td colspan="6">No managers found.</td></tr>';
+  }
+  $("managerSearch")?.addEventListener("input",()=>loadManagers().catch(e=>moduleError("Could not load managers",e)));
+  $("managerForm")?.addEventListener("submit",async e=>{
+    e.preventDefault();
+    try{
+      const payload={action:"create",restaurant_id:activeRestaurant.id,name:$("managerName").value.trim(),email:$("managerEmail").value.trim().toLowerCase(),phone:$("managerPhone").value.trim()||null,password:$("managerPassword").value};
+      await callManagerFunction(payload);$("managerForm").reset();showAppNotice("Manager account created. Share the login details securely.");await loadManagers();
+    }catch(err){moduleError("Could not create Manager",err);}
+  });
+  $("managerRows")?.addEventListener("click",async e=>{
+    const reset=e.target.closest("[data-manager-reset]"),toggle=e.target.closest("[data-manager-toggle]"),del=e.target.closest("[data-manager-del]");
+    try{
+      if(reset){const x=managerCache.find(v=>v.id===reset.dataset.managerReset);if(!x)return;const password=prompt("Enter a new password (minimum 8 characters).");if(password===null)return;if(password.length<8){showAppNotice("Password must be at least 8 characters.");return;}if(!confirm("Reset password for "+x.name+"?"))return;await callManagerFunction({action:"reset_password",manager_id:x.id,password});showAppNotice("Manager password reset successfully.");}
+      if(toggle){const x=managerCache.find(v=>v.id===toggle.dataset.managerToggle);if(!x)return;const status=x.status==="active"?"inactive":"active";await callManagerFunction({action:"set_status",manager_id:x.id,status});showAppNotice("Manager status updated.");}
+      if(del&&confirm("Delete this Manager account and disable its login?")){await callManagerFunction({action:"delete",manager_id:del.dataset.managerDel});showAppNotice("Manager account deleted.");}
+      await loadManagers();
+    }catch(err){moduleError("Manager action failed",err);}
+  });
+
   async function requireNafSuperAdmin(){const {data:{user},error}=await client.auth.getUser();if(error)throw error;if(!user)throw new Error("Please sign in.");const {data:ok,error:checkError}=await client.rpc("naf_is_super_admin");if(checkError)throw checkError;if(ok!==true)throw new Error("Access denied: this account is not a Super Admin.");return user;}
   async function loadAdminSubscriptionSettings(){await requireNafSuperAdmin();const {data,error}=await client.from("naf_subscription_settings").select("*").eq("setting_key","main").single();if(error)throw error;subscriptionSettingsCache=data;$('adminTrialDays').value=data.trial_days??5;$('adminSubCurrency').value=data.currency||'SAR';$('adminSubEmail').value=data.contact_email||'';$('adminSubPhone').value=data.contact_phone||'';$('adminSubWhatsapp').value=data.whatsapp_number||'';$('adminSubBank').value=data.bank_name||'';$('adminSubHolder').value=data.account_holder||'';$('adminSubAccount').value=data.account_number||'';$('adminExpiryTitle').value=data.expiry_title||'';$('adminExpiryMessage').value=data.expiry_message||'';}
   $('adminSubscriptionSettingsForm').addEventListener('submit',async e=>{e.preventDefault();try{const user=await requireNafSuperAdmin();const payload={trial_days:Number($('adminTrialDays').value),currency:$('adminSubCurrency').value.trim()||'SAR',contact_email:$('adminSubEmail').value.trim()||null,contact_phone:$('adminSubPhone').value.trim()||null,whatsapp_number:$('adminSubWhatsapp').value.trim()||null,bank_name:$('adminSubBank').value.trim()||null,account_holder:$('adminSubHolder').value.trim()||null,account_number:$('adminSubAccount').value.trim()||null,expiry_title:$('adminExpiryTitle').value.trim()||'Subscription Expired',expiry_message:$('adminExpiryMessage').value.trim()||'Please subscribe to continue.',updated_at:new Date().toISOString(),updated_by:user.id};const {error}=await client.from('naf_subscription_settings').update(payload).eq('setting_key','main');if(error)throw error;showAppNotice('Subscription settings saved. New trial duration applies to newly created restaurants.');await loadAdminSubscriptionSettings();}catch(err){moduleError('Could not save subscription settings',err);}});
