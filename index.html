@@ -2347,6 +2347,26 @@
     const password = $("signupPassword").value;
     const restaurantName = $("restaurantName").value.trim();
     try {
+      // Check the Cashier registry BEFORE creating an Owner Auth account.
+      // This RPC only returns a boolean; it does not expose cashier details.
+      const { data: isCashierEmail, error: cashierCheckError } = await client.rpc(
+        "is_registered_cashier_email",
+        { p_email: email }
+      );
+
+      if (cashierCheckError) {
+        throw new Error(
+          "Could not verify this email before registration. Please try again. " +
+          cashierCheckError.message
+        );
+      }
+
+      if (isCashierEmail === true) {
+        throw new Error(
+          "This email is already registered as a Cashier. You cannot create an Owner account with this email. Please use a different email."
+        );
+      }
+
       const { data, error } = await client.auth.signUp({
         email, password,
         options: {
