@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#101a2c">
   <title>NAF POS | Restaurant Management System</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     :root{--navy:#101a2c;--navy2:#17243a;--gold:#e5b94f;--gold2:#f3d783;--bg:#f4f6fa;--ink:#182235;--muted:#758197;--line:#e5e9f0;--white:#fff;--danger:#c23b48;--green:#21865b}
     *{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#101a2c 0%,#1d2c45 55%,#283750 100%);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--ink);min-height:100vh;display:grid;place-items:center;padding:24px}
@@ -493,6 +494,7 @@
           <div class="module-card" style="padding:12px;margin:14px 0 0;background:#fafbfc"><div class="module-toolbar"><b>Purchase items</b><button class="menu-btn secondary" type="button" id="addPurchaseLine">+ Add item</button></div><div id="purchaseLines"></div></div>
           <div class="module-actions"><button class="menu-btn" type="submit" id="savePurchaseBtn">SAVE PURCHASE</button></div>
         </form></div>
+        <div class="module-card" id="purchaseExportCard"><div class="module-toolbar"><div><h3 style="margin:0">Purchase Reports Download</h3><div class="module-note">Download complete purchase, used-item and remaining-stock reports.</div></div><div class="module-actions" style="margin:0"><button class="menu-btn" id="downloadPurchaseExcelBtn" type="button">DOWNLOAD EXCEL</button><button class="menu-btn secondary" id="downloadPurchasePdfBtn" type="button">DOWNLOAD PDF</button></div></div></div>
         <div class="module-card purchase-scroll-card" id="purchaseHistoryCard"><div class="module-toolbar"><h3 style="margin:0">Purchase History</h3><input id="purchaseSearch" placeholder="Search invoice or supplier"></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>DATE</th><th>INVOICE</th><th>SUPPLIER</th><th>TOTAL</th><th>STATUS</th><th>ACTIONS</th></tr></thead><tbody id="purchaseRows"></tbody></table></div></div>
 
         <div class="module-card" id="purchaseUsedCard">
@@ -1918,6 +1920,7 @@
     $('purchaseStockRows').innerHTML=visibleStock.map(x=>`<tr><td>${safeText(x.item_name)}</td><td>${safeText(x.invoice_number)}</td><td>${x.purchased}</td><td>${x.used}</td><td><b>${x.remaining}</b></td><td>${safeText(x.unit)}</td><td><button class="edit" data-edit-stock="${safeText(x.id)}">Edit</button> <button class="del" data-delete-stock="${safeText(x.id)}">Delete</button></td></tr>`).join('')||'<tr><td colspan="7" class="muted-empty">No received purchase stock available.</td></tr>';
     window.nafVisiblePurchaseUsages=visibleUsages;
     window.nafVisiblePurchaseStock=visibleStock;
+    window.nafPurchaseStock=purchaseUsageSources;
   }
   $('purchaseUsedSource').addEventListener('change',()=>{
     const x=purchaseUsageSources[Number($('purchaseUsedSource').value)];
@@ -1968,6 +1971,86 @@
     w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${safeText(title)}</title><style>body{font-family:Arial,sans-serif;color:#172033;padding:25px}h2{margin:0 0 8px}p{color:#64748b;font-size:12px}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{padding:9px;border:1px solid #dbe1ea;text-align:left;font-size:12px}th{background:#eef2f7}button{padding:9px 15px;border:0;border-radius:7px;background:#d8aa38;font-weight:bold;cursor:pointer}@media print{button{display:none}body{padding:5mm}}</style></head><body><button onclick="window.print()">PRINT</button><h2>${safeText(title)}</h2><p>${safeText(activeRestaurant?.name||'NAF POS')} · Printed ${safeText(new Date().toLocaleString())}</p><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></body></html>`);
     w.document.close();
   }
+
+  function purchaseReportDateFilter(rows,dateGetter,from,to){
+    if(from&&to&&from>to) throw new Error('From date must be on or before To date.');
+    return rows.filter(row=>{const d=String(dateGetter(row)||'').slice(0,10);return (!from||d>=from)&&(!to||d<=to);});
+  }
+  async function buildPurchaseReportData(){
+    if(!activeRestaurant)throw new Error('Restaurant session is not ready.');
+    const purchases=window.nafPurchases||[];
+    const ids=purchases.map(p=>p.id);
+    let items=[];
+    if(ids.length){
+      const {data,error}=await client.from('purchase_items')
+        .select('id,purchase_id,item_name,quantity,unit,unit_cost,total_cost')
+        .in('purchase_id',ids);
+      if(error)throw error;
+      items=data||[];
+    }
+    const suppliers=Object.fromEntries((window.nafSuppliers||[]).map(x=>[x.id,x.name]));
+    const purchaseMap=Object.fromEntries(purchases.map(p=>[p.id,p]));
+    const usages=window.nafPurchaseUsages||[];
+    const stock=window.nafPurchaseStock||[];
+    return {purchases,items,suppliers,purchaseMap,usages,stock};
+  }
+  function purchaseReportSheets(data){
+    const currency=restaurantCurrency();
+    const purchaseRows=data.items.map(it=>{
+      const p=data.purchaseMap[it.purchase_id]||{};
+      const qty=Number(it.quantity||0), unitCost=Number(it.unit_cost||0);
+      return [p.purchase_date||'',p.invoice_number||'',data.suppliers[p.supplier_id]||'—',p.status||'',it.item_name||'',qty,it.unit||'',unitCost,Number(it.total_cost??qty*unitCost),currency];
+    });
+    const usedRows=data.usages.map(u=>{
+      const p=data.purchaseMap[u.purchase_id]||{};
+      return [u.usage_date||'',u.item_name||'',p.invoice_number||'—',Number(u.quantity_used||0),u.unit||'',u.used_for||'',u.notes||''];
+    });
+    const stockRows=data.stock.map(x=>[x.purchase_date||'',x.item_name||'',x.invoice_number||'',x.purchased,x.used,x.remaining,x.unit||'']);
+    return {
+      'Purchase History':{headers:['Purchase Date','Invoice','Supplier','Status','Item','Quantity Purchased','Unit','Unit Cost ('+currency+')','Line Total ('+currency+')','Currency'],rows:purchaseRows},
+      'Purchase Used History':{headers:['Usage Date','Item','Invoice','Quantity Used','Unit','Reason','Notes'],rows:usedRows},
+      'Current Purchase Stock':{headers:['Purchase Date','Item','Invoice','Purchased','Used','In Stock','Unit'],rows:stockRows}
+    };
+  }
+  async function downloadPurchaseExcel(){
+    const btn=$('downloadPurchaseExcelBtn');btn.disabled=true;btn.textContent='PREPARING EXCEL...';
+    try{
+      if(!window.XLSX)throw new Error('Excel library could not load. Check your internet connection and try again.');
+      const data=await buildPurchaseReportData(), sheets=purchaseReportSheets(data);
+      const wb=XLSX.utils.book_new();
+      Object.entries(sheets).forEach(([name,section])=>{
+        const ws=XLSX.utils.aoa_to_sheet([section.headers,...section.rows]);
+        ws['!cols']=section.headers.map((h,i)=>({wch:Math.min(30,Math.max(12,String(h).length+3,...section.rows.slice(0,80).map(r=>String(r[i]??'').length+2)))}));
+        ws['!autofilter']={ref:ws['!ref']};
+        XLSX.utils.book_append_sheet(wb,ws,name);
+      });
+      const stamp=new Date().toISOString().slice(0,10);
+      XLSX.writeFile(wb,`NAF_POS_Purchase_Reports_${stamp}.xlsx`);
+      showAppNotice('Excel report downloaded successfully.');
+    }catch(err){moduleError('Could not download Excel report',err);}
+    finally{btn.disabled=false;btn.textContent='DOWNLOAD EXCEL';}
+  }
+  async function downloadPurchasePdf(){
+    const btn=$('downloadPurchasePdfBtn');btn.disabled=true;btn.textContent='PREPARING PDF...';
+    try{
+      const data=await buildPurchaseReportData(), sheets=purchaseReportSheets(data);
+      const w=window.open('','_blank','width=1100,height=850');
+      if(!w)throw new Error('Allow pop-ups to open the PDF report, then choose Save as PDF in the print window.');
+      const esc=v=>safeText(v??'');
+      const sections=Object.entries(sheets).map(([name,section])=>{
+        const rows=section.rows.length?section.rows.map(r=>'<tr>'+r.map(v=>'<td>'+esc(v)+'</td>').join('')+'</tr>').join(''):`<tr><td colspan="${section.headers.length}">No records found.</td></tr>`;
+        return `<section><h2>${esc(name)}</h2><table><thead><tr>${section.headers.map(h=>'<th>'+esc(h)+'</th>').join('')}</tr></thead><tbody>${rows}</tbody></table></section>`;
+      }).join('');
+      w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>NAF POS Purchase Reports</title><style>
+      @page{size:A4 landscape;margin:12mm}body{font-family:Arial,sans-serif;color:#172033;padding:18px}header{border-bottom:2px solid #d5a832;padding-bottom:12px;margin-bottom:18px}h1{font-size:22px;margin:0 0 5px}header p{font-size:11px;color:#64748b;margin:0}section{margin:0 0 26px;page-break-inside:avoid}h2{font-size:16px;margin:0 0 9px;color:#17243a}table{width:100%;border-collapse:collapse}th,td{border:1px solid #d8dee8;padding:6px;text-align:left;font-size:9px;overflow-wrap:anywhere}th{background:#eef2f7}button{border:0;border-radius:7px;background:#e5b94f;padding:10px 16px;font-weight:bold;margin-bottom:15px}@media print{button{display:none}section{page-break-after:always}section:last-child{page-break-after:auto}}</style></head><body><button onclick="window.print()">PRINT / SAVE AS PDF</button><header><h1>${esc(activeRestaurant?.name||'NAF POS')} — Purchase Reports</h1><p>Generated ${esc(new Date().toLocaleString())} · Currency ${esc(restaurantCurrency())}</p></header>${sections}</body></html>`);
+      w.document.close();
+      showAppNotice('PDF report is ready. In the print window choose “Save as PDF”.');
+    }catch(err){moduleError('Could not prepare PDF report',err);}
+    finally{btn.disabled=false;btn.textContent='DOWNLOAD PDF';}
+  }
+  $('downloadPurchaseExcelBtn').addEventListener('click',downloadPurchaseExcel);
+  $('downloadPurchasePdfBtn').addEventListener('click',downloadPurchasePdf);
+
   function filterPrintRowsByDate(rows,dateGetter,fromId,toId){
     const from=$(fromId)?.value||"", to=$(toId)?.value||"";
     if(from&&to&&from>to){showAppNotice("Invalid date range: From date must be on or before To date.");return null;}
