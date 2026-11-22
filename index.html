@@ -55,6 +55,19 @@
     @media(max-width:720px){.app-shell.visible{display:block}.sidebar{width:100%;padding:12px 14px}.sidebrand{padding:2px 4px 12px}.navlabel,.sidebottom{display:none}.navlist{display:flex;overflow-x:auto;padding-top:12px}.navitem{white-space:nowrap;padding:9px 11px}.mainarea{padding:20px 14px}.topbar{align-items:flex-start}.userbox{gap:7px}.usertext{display:none}.stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.stat{padding:14px}.statvalue{font-size:20px}.lowergrid{grid-template-columns:1fr}.pageheading{font-size:24px}}
 
 
+
+    /* Restaurant letterhead / writing page */
+    .letter-tools{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+    .letter-tools input{height:40px;border:1px solid var(--line);border-radius:9px;padding:0 11px;font:inherit}
+    .letter-paper{background:#fff;max-width:900px;margin:0 auto;border:1px solid #dfe4ed;border-radius:12px;box-shadow:0 8px 30px #17243a0c;padding:34px 38px;color:#17243a}
+    .letter-head{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:center;border-bottom:3px solid #c99a20;padding-bottom:17px}
+    .letter-brand{display:flex;align-items:center;gap:14px;min-width:0}.letter-logo{width:86px;height:86px;object-fit:contain;border:1px solid #e7ebf1;border-radius:12px;padding:5px;background:#fff}.letter-brand h2{font-size:25px;margin:0 0 5px;overflow-wrap:anywhere}.letter-brand small{color:#a17a1b;font-weight:800;letter-spacing:1px}
+    .letter-contact{font-size:12px;line-height:1.8;color:#596579;text-align:right;overflow-wrap:anywhere}.letter-title{text-align:center;margin:20px 0 14px}.letter-title span{display:inline-block;background:#172b4d;color:#fff;border-radius:30px;padding:9px 28px;font-size:19px;font-weight:850;letter-spacing:.6px}
+    .letter-meta{display:flex;justify-content:space-between;gap:12px;font-size:12px;color:#39465b;margin-bottom:12px}.letter-write{width:100%;min-height:650px;resize:vertical;border:1px solid #233653;border-radius:10px;padding:18px 16px;font:15px/42px Arial,sans-serif;color:#17243a;background:repeating-linear-gradient(to bottom,#fff 0,#fff 40px,#aebbd0 41px,#fff 42px);outline:none}
+    .letter-foot{border-top:2px solid #c99a20;margin-top:18px;padding-top:10px;text-align:center;color:#78849a;font-size:11px}
+    @media(max-width:720px){.letter-paper{padding:20px 14px}.letter-head{grid-template-columns:1fr}.letter-contact{text-align:left}.letter-brand h2{font-size:20px}.letter-logo{width:66px;height:66px}.letter-write{min-height:560px}}
+    @media print{body *{visibility:hidden!important}.letter-paper,.letter-paper *{visibility:visible!important}.letter-paper{position:absolute;left:0;top:0;width:100%;max-width:none;margin:0;border:0;border-radius:0;box-shadow:none;padding:12mm 13mm}.letter-tools,.no-print{display:none!important}.letter-write{min-height:225mm;height:225mm;resize:none;border:1px solid #233653;print-color-adjust:exact;-webkit-print-color-adjust:exact}.letter-head{break-inside:avoid}.letter-title,.letter-meta{break-inside:avoid}}
+
     .navitem{cursor:pointer;border:0;background:transparent;width:100%;text-align:left;font-family:inherit}
     .pagepanel{display:none}.pagepanel.active{display:block}
     .poslayout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(300px,.85fr);gap:16px}
@@ -360,6 +373,7 @@
         <button type="button" class="navitem" data-page="customers"><span class="navicon">♙</span>Customers</button>
         <button type="button" class="navitem" data-page="suppliers"><span class="navicon">♧</span>Suppliers</button>
         <button type="button" class="navitem" data-page="sales-history"><span class="navicon">▤</span>Sales History</button>
+        <button type="button" class="navitem" data-page="letterhead"><span class="navicon">✎</span>Writing Paper</button>
         <button type="button" class="navitem" data-page="reports"><span class="navicon">▥</span>Reports</button>
         <button type="button" class="navitem" data-page="cashier-management"><span class="navicon">♟</span>Cashier Management</button>
         <button type="button" class="navitem" data-page="manager-management"><span class="navicon">♙</span>Manager Management</button>
@@ -697,6 +711,20 @@
         </div>
         <div class="module-card" id="ownerPasswordSettings"><h3>Change Owner Password</h3><form id="passwordForm"><div class="module-form"><div class="module-field"><label>NEW PASSWORD</label><input id="newPassword" type="password" minlength="8" required></div><div class="module-field"><label>CONFIRM PASSWORD</label><input id="confirmPassword" type="password" minlength="8" required></div></div><div class="module-actions"><button class="menu-btn" type="submit">UPDATE PASSWORD</button></div></form></div>
       </section>
+      <section id="letterheadPage" class="pagepanel">
+        <div class="module-card no-print"><h3>Restaurant Writing Paper</h3><p class="module-note">Restaurant logo and contact information are taken from your restaurant settings. Write a note below, save it on this device, or print an A4 letterhead.</p>
+          <div class="letter-tools"><input id="letterSubject" type="text" maxlength="100" placeholder="Document title (e.g. Note / Memo)" value="Note / Memo"><button class="menu-btn" id="letterSaveBtn" type="button">SAVE NOTE</button><button class="menu-btn secondary" id="letterPrintBtn" type="button">PRINT A4</button><button class="menu-btn secondary" id="letterClearBtn" type="button">CLEAR</button></div>
+          <div class="module-note" id="letterSaveStatus" aria-live="polite">Notes are saved locally in this browser on this device.</div>
+        </div>
+        <div class="letter-paper" id="letterPaper">
+          <div class="letter-head"><div class="letter-brand"><img class="letter-logo" id="letterLogo" alt="Restaurant logo"><div><h2 id="letterRestaurantName">Restaurant Name</h2><small>RESTAURANT &amp; CAFE</small></div></div><div class="letter-contact"><div id="letterAddress">Restaurant address</div><div id="letterPhone">Phone number</div><div id="letterEmail">Email address</div></div></div>
+          <div class="letter-title"><span id="letterPrintedTitle">NOTE / MEMO</span></div>
+          <div class="letter-meta"><span>Ref No: <b id="letterRef">NAF-________</b></span><span>Date: <b id="letterDate"></b></span></div>
+          <textarea id="letterBody" class="letter-write" aria-label="Write your note here" placeholder="Write here..."></textarea>
+          <div class="letter-foot" id="letterFooter">Thank you · Powered by NAF POS</div>
+        </div>
+      </section>
+
       <section id="supportPage" class="pagepanel">
         <div class="module-card">
           <h3>Support Message</h3>
@@ -1042,7 +1070,7 @@
       if($("dashRestaurantName")) $("dashRestaurantName").textContent=managerRestaurant.name;
       if($("userAvatar")) $("userAvatar").textContent=(managerRecord.name||"M").trim().charAt(0).toUpperCase();
       if($("restaurantInfo")) $("restaurantInfo").textContent=managerRestaurant.name+" · Manager";
-      document.querySelectorAll(".navitem[data-page]").forEach(el=>{el.hidden=! ["dashboard","pos","menu","purchases","customers","suppliers","sales-history","support"].includes(el.dataset.page);});
+      document.querySelectorAll(".navitem[data-page]").forEach(el=>{el.hidden=! ["dashboard","pos","menu","purchases","customers","suppliers","sales-history","letterhead","support"].includes(el.dataset.page);});
       $("managerDashboardNotice").hidden=false;
       document.querySelectorAll("#dashboardPage .stats,#dashboardPage .lowergrid").forEach(el=>el.hidden=true);
       showPage("dashboard");
@@ -1207,7 +1235,7 @@
       showAppNotice("Access denied: this account is not a Super Admin.");
       return;
     }
-    if (currentManager && !["dashboard","pos","menu","purchases","customers","suppliers","sales-history","support"].includes(page)) {
+    if (currentManager && !["dashboard","pos","menu","purchases","customers","suppliers","sales-history","letterhead","support"].includes(page)) {
       showAppNotice("This page is not available for Manager accounts.");
       page = "dashboard";
     }
@@ -1217,8 +1245,8 @@
     }
     document.querySelectorAll(".pagepanel").forEach(el => el.classList.remove("active"));
     document.querySelectorAll(".navitem[data-page]").forEach(el => el.classList.toggle("active", el.dataset.page === page));
-    const titles = {dashboard:"Dashboard", pos:"POS / New Sale", menu:"Menu", purchases:"Purchases", expenses:"Expenses", customers:"Customers", suppliers:"Suppliers", "sales-history":"Sales History", reports:"Reports", "cashier-management":"Cashier Management", "manager-management":"Manager Management", employees:"Employees", budget:"Budget", settings:"Settings", subscription:"Subscription", support:"Support Message", "super-admin":"Super Admin"};
-    const pageIds = {dashboard:"dashboardPage",pos:"posPage",menu:"menuPage",purchases:"purchasesPage",expenses:"expensesPage",customers:"customersPage",suppliers:"suppliersPage","sales-history":"salesHistoryPage",reports:"reportsPage","cashier-management":"cashier-managementPage","manager-management":"manager-managementPage",employees:"employeesPage",budget:"budgetPage",settings:"settingsPage",subscription:"subscriptionPage","super-admin":"super-adminPage", support:"supportPage"};
+    const titles = {dashboard:"Dashboard", pos:"POS / New Sale", menu:"Menu", purchases:"Purchases", expenses:"Expenses", customers:"Customers", suppliers:"Suppliers", "sales-history":"Sales History", letterhead:"Writing Paper", reports:"Reports", "cashier-management":"Cashier Management", "manager-management":"Manager Management", employees:"Employees", budget:"Budget", settings:"Settings", subscription:"Subscription", support:"Support Message", "super-admin":"Super Admin"};
+    const pageIds = {dashboard:"dashboardPage",pos:"posPage",menu:"menuPage",purchases:"purchasesPage",expenses:"expensesPage",customers:"customersPage",suppliers:"suppliersPage","sales-history":"salesHistoryPage",letterhead:"letterheadPage",reports:"reportsPage","cashier-management":"cashier-managementPage","manager-management":"manager-managementPage",employees:"employeesPage",budget:"budgetPage",settings:"settingsPage",subscription:"subscriptionPage","super-admin":"super-adminPage", support:"supportPage"};
     const target = $(pageIds[page] || "dashboardPage");
     target.classList.add("active");
     if ($("pageheading")) $("pageheading").textContent = titles[page] || "Dashboard";
@@ -1267,7 +1295,7 @@
   document.querySelectorAll(".navitem[data-page]").forEach(button => {
     button.addEventListener("click", () => {
       const page = button.dataset.page;
-      if (currentManager && !["dashboard","pos","menu","purchases","customers","suppliers","sales-history","support"].includes(page)) {
+      if (currentManager && !["dashboard","pos","menu","purchases","customers","suppliers","sales-history","letterhead","support"].includes(page)) {
         showAppNotice("This page is not available for Manager accounts.");
         showPage("dashboard");
         return;
@@ -1278,7 +1306,7 @@
         return;
       }
       if (page === "subscription") refreshCustomerSubscriptionCard();
-      if (["dashboard", "pos", "menu", "purchases", "expenses", "customers", "suppliers", "sales-history", "reports", "cashier-management", "manager-management", "employees", "budget", "settings", "subscription", "support", "super-admin"].includes(page)) {
+      if (["dashboard", "pos", "menu", "purchases", "expenses", "customers", "suppliers", "sales-history", "reports", "cashier-management", "manager-management", "employees", "budget", "settings", "subscription", "letterhead", "support", "super-admin"].includes(page)) {
         $("appNotice").classList.remove("show");
         showPage(page);
       } else showAppNotice("Super Admin module is a separate protected administration step.");
@@ -2941,6 +2969,31 @@
       closeSupportReplyModal();showAppNotice("Reply sent.");await loadSupportMessages();
     }catch(err){showAppNotice("Could not send reply: "+err.message);}finally{btn.disabled=false;}
   });
+
+  function letterStorageKey(){ return `naf_letterhead_${activeRestaurant?.id || "unknown"}`; }
+  function refreshLetterhead(){
+    const r=activeRestaurant||{};
+    const set=(id,value)=>{const el=$(id);if(el)el.textContent=value||"";};
+    set("letterRestaurantName",r.name||"Restaurant Name");
+    set("letterAddress",r.address||"Address not set");
+    set("letterPhone",r.phone||"Phone not set");
+    set("letterEmail",r.email||"");
+    set("letterFooter",`${r.name||"Restaurant"} · Powered by NAF POS`);
+    const logo=$("letterLogo"); if(logo){if(r.logo_url){logo.src=r.logo_url;logo.style.display="block";}else{logo.removeAttribute("src");logo.style.display="none";}}
+    const d=new Date(); set("letterDate",d.toLocaleDateString());
+    set("letterRef",`NAF-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`);
+    const saved=localStorage.getItem(letterStorageKey());
+    if(saved){try{const v=JSON.parse(saved);$("letterSubject").value=v.subject||"Note / Memo";$("letterBody").value=v.body||"";}catch{}}
+    set("letterPrintedTitle",($("letterSubject").value||"Note / Memo").toUpperCase());
+  }
+  $("letterSubject").addEventListener("input",()=>{ $("letterPrintedTitle").textContent=($("letterSubject").value||"Note / Memo").toUpperCase(); });
+  $("letterSaveBtn").addEventListener("click",()=>{
+    try{localStorage.setItem(letterStorageKey(),JSON.stringify({subject:$("letterSubject").value,body:$("letterBody").value,savedAt:new Date().toISOString()}));$("letterSaveStatus").textContent="Saved on this device.";}
+    catch(e){$("letterSaveStatus").textContent="Could not save this note in this browser.";}
+  });
+  $("letterPrintBtn").addEventListener("click",()=>{ $("letterPrintedTitle").textContent=($("letterSubject").value||"Note / Memo").toUpperCase(); window.print(); });
+  $("letterClearBtn").addEventListener("click",()=>{if(confirm("Clear the writing area?")){ $("letterBody").value=""; $("letterSaveStatus").textContent="Writing area cleared. Save to keep the empty note."; }});
+  document.querySelectorAll('.navitem[data-page="letterhead"]').forEach(b=>b.addEventListener("click",refreshLetterhead));
 
   $("loginForm").addEventListener("submit", async (event) => {
     event.preventDefault(); clearNotice();
