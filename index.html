@@ -454,6 +454,19 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
 
+
+/* Sales editor, selectable report sections and print navigation */
+.report-options{display:flex;gap:12px;flex-wrap:wrap;padding:12px;background:#f8fafc;border:1px solid var(--line);border-radius:10px;margin:12px 0}
+.report-options label{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:#405069}
+.sales-edit-modal{position:fixed;inset:0;z-index:15000;background:#101a2c99;display:flex;align-items:center;justify-content:center;padding:14px}
+.sales-edit-modal[hidden]{display:none!important}
+.sales-edit-card{background:#fff;border-radius:14px;padding:22px;width:min(520px,100%);max-height:90dvh;overflow:auto}
+.sales-edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sales-edit-grid label{display:grid;gap:5px;font-size:12px;font-weight:750;color:#526075}
+.sales-edit-grid input,.sales-edit-grid select{width:100%;height:42px;border:1px solid var(--line);border-radius:8px;padding:8px;font:inherit}
+.sales-edit-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+@media(max-width:600px){.sales-edit-grid{grid-template-columns:1fr}.report-options{display:grid;grid-template-columns:1fr 1fr}}
+
 </style>
 </head>
 <body>
@@ -716,14 +729,35 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
       <section id="salesHistoryPage" class="pagepanel">
         <div class="module-card"><div class="module-toolbar"><h3 style="margin:0">Invoice History</h3><input id="salesSearch" placeholder="Search invoice number"><label class="module-note">From <input id="salesFrom" type="date"></label><label class="module-note">To <input id="salesTo" type="date"></label><button class="menu-btn secondary" id="salesFilterBtn" type="button">Filter</button><button class="menu-btn secondary" id="salesRefreshBtn" type="button">Refresh</button></div>
           <div class="module-table-wrap"><table class="module-table"><thead><tr><th>DATE</th><th>INVOICE</th><th>PAYMENT</th><th>STATUS</th><th>TOTAL</th><th>ACTIONS</th></tr></thead><tbody id="salesRows"></tbody></table></div></div>
-      </section>
+      
+        <div id="salesEditModal" class="sales-edit-modal" hidden>
+          <div class="sales-edit-card" role="dialog" aria-modal="true" aria-labelledby="salesEditTitle">
+            <h3 id="salesEditTitle">Edit Sale</h3><p class="module-note" id="salesEditInvoice"></p>
+            <form id="salesEditForm">
+              <input id="salesEditId" type="hidden">
+              <div class="sales-edit-grid">
+                <label>Payment method<select id="salesEditPayment"><option value="cash">Cash</option><option value="card">Card</option><option value="transfer">Transfer</option></select></label>
+                <label>Payment status<select id="salesEditPaymentStatus"><option value="paid">Paid</option><option value="pending">Pending</option><option value="refunded">Refunded</option></select></label>
+                <label>Order status<select id="salesEditOrderStatus"><option value="completed">Completed</option><option value="pending">Pending</option><option value="cancelled">Cancelled</option></select></label>
+                <label>Total amount<input id="salesEditTotal" type="number" min="0" step="0.01" required></label>
+              </div>
+              <div class="sales-edit-actions"><button class="menu-btn" type="submit">SAVE CHANGES</button><button class="menu-btn secondary" id="salesEditCancel" type="button">CANCEL</button></div>
+            </form>
+          </div>
+        </div>
+</section>
 
       <section id="customersPage" class="pagepanel">
         <div class="module-card"><h3 id="customerFormTitle">Add Customer</h3><form id="customerForm"><div class="module-form"><div class="module-field"><label>CUSTOMER NAME</label><input id="customerName" required maxlength="120"></div><div class="module-field"><label>PHONE</label><input id="customerPhone" type="tel"></div><div class="module-field"><label>EMAIL</label><input id="customerEmail" type="email"></div><div class="module-field"><label>NOTES</label><input id="customerNotes"></div></div><div class="module-actions"><button class="menu-btn" id="saveCustomerBtn">ADD CUSTOMER</button><button class="menu-btn secondary" id="cancelCustomerEdit" type="button" hidden>Cancel</button></div></form></div>
         <div class="module-card"><div class="module-toolbar"><h3>Customer List</h3><input id="customerSearch" placeholder="Search customers"></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>NAME</th><th>PHONE</th><th>EMAIL</th><th>NOTES</th><th>ACTIONS</th></tr></thead><tbody id="customerRows"></tbody></table></div></div>
       </section>
       <section id="suppliersPage" class="pagepanel"><div class="module-card"><h3 id="supplierPageTitle">Suppliers</h3><p class="module-note">Supplier records are shared with the Purchases module.</p><form id="supplierPageForm"><div class="module-form"><div class="module-field"><label>SUPPLIER NAME</label><input id="supplierPageName" required maxlength="120"></div></div><div class="module-actions"><button class="menu-btn" id="supplierPageSave">ADD SUPPLIER</button><button class="menu-btn secondary" id="supplierPageCancel" type="button" hidden>Cancel</button></div></form></div><div class="module-card"><div class="module-toolbar"><h3>Supplier List</h3><input id="supplierPageSearch" placeholder="Search suppliers"></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>SUPPLIER</th><th>ACTIONS</th></tr></thead><tbody id="supplierPageRows"></tbody></table></div></div></section>
-      <section id="reportsPage" class="pagepanel"><div class="module-card"><div class="module-toolbar"><h3>Business Reports</h3><label>From <input id="reportFrom" type="date"></label><label>To <input id="reportTo" type="date"></label><button class="menu-btn" id="runReport">RUN REPORT</button><button class="menu-btn secondary" id="printReportBtn" type="button">PRINT REPORT</button></div><div class="extra-grid"><div class="extra-stat"><small>Sales</small><b id="reportSales">SAR 0.00</b></div><div class="extra-stat"><small>Purchases</small><b id="reportPurchases">SAR 0.00</b></div><div class="extra-stat"><small>Expenses</small><b id="reportExpenses">SAR 0.00</b></div><div class="extra-stat"><small>Gross Difference (Sales − Purchases − Expenses)</small><b id="reportNet">SAR 0.00</b></div></div><p class="module-note">This is a cash-flow summary, not an accounting-certified net profit calculation.</p></div></section>
+      <section id="reportsPage" class="pagepanel"><div class="module-card"><div class="module-toolbar"><h3>Business Reports</h3><label>From <input id="reportFrom" type="date"></label><label>To <input id="reportTo" type="date"></label><button class="menu-btn" id="runReport">RUN REPORT</button><button class="menu-btn secondary" id="printReportBtn" type="button">PRINT REPORT</button></div><div class="report-options" aria-label="Select report sections">
+      <label><input type="checkbox" id="reportSelectSummary" checked> Summary</label>
+      <label><input type="checkbox" id="reportSelectSales" checked> Sales details</label>
+      <label><input type="checkbox" id="reportSelectPurchases" checked> Purchase details</label>
+      <label><input type="checkbox" id="reportSelectExpenses" checked> Expense details</label>
+    </div><div class="extra-grid"><div class="extra-stat"><small>Sales</small><b id="reportSales">SAR 0.00</b></div><div class="extra-stat"><small>Purchases</small><b id="reportPurchases">SAR 0.00</b></div><div class="extra-stat"><small>Expenses</small><b id="reportExpenses">SAR 0.00</b></div><div class="extra-stat"><small>Gross Difference (Sales − Purchases − Expenses)</small><b id="reportNet">SAR 0.00</b></div></div><p class="module-note">This is a cash-flow summary, not an accounting-certified net profit calculation.</p></div></section>
       <section id="cashier-managementPage" class="pagepanel"><div class="module-card"><h3 id="cashierFormTitle">Cashier Management</h3><p class="module-note">Create a cashier login using a temporary password. Cashiers can access POS, their own Sales History, Reports and limited Settings only.</p><form id="cashierForm"><div class="module-form"><div class="module-field"><label>CASHIER NAME</label><input id="cashierName" required></div><div class="module-field"><label>EMAIL</label><input id="cashierEmail" type="email" required></div><div class="module-field"><label>PHONE</label><input id="cashierPhone"></div><div class="module-field"><label>PASSWORD (minimum 8 characters)</label><input id="cashierPassword" type="password" minlength="8" autocomplete="new-password" required></div><div class="module-field"><label>STATUS</label><select id="cashierStatus"><option value="active">Active</option><option value="inactive">Deactive</option></select></div></div><div class="module-actions"><button class="menu-btn" id="cashierSave">ADD CASHIER</button><button class="menu-btn secondary" id="cashierCancel" type="button" hidden>Cancel</button></div></form></div><div class="module-card"><div class="module-toolbar"><h3>Cashier List</h3><input id="cashierSearch" placeholder="Search cashiers"></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>NAME</th><th>PHONE</th><th>EMAIL</th><th>ROLE</th><th>STATUS</th><th>ACTIONS</th></tr></thead><tbody id="cashierRows"></tbody></table></div></div></section>
       <section id="manager-managementPage" class="pagepanel">
         <div class="module-card"><h3>Manager Management</h3><p class="module-note">Only the restaurant Owner can create and manage Manager accounts. Managers can use POS, Menu, Purchases, Customers, Suppliers and Sales History. Financial reports and owner settings are restricted.</p>
@@ -1431,6 +1465,7 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
     if (page === "support") loadSupportMessages();
   }
 
+  window.nafGoHome = function(){ try { showPage("dashboard"); window.scrollTo({top:0,behavior:"auto"}); } catch(e) {} };
   async function refreshCustomerSubscriptionCard(){
     if(!activeRestaurant || isNafSuperAdmin) return;
     try{
@@ -2444,10 +2479,70 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
   $("cancelExpenseEdit").addEventListener("click",resetExpense);
   $("expenseForm").addEventListener("submit",async e=>{e.preventDefault();const signedInUser=(await client.auth.getUser()).data.user;const payload={restaurant_id:activeRestaurant.id,created_by:editingExpenseId?undefined:(signedInUser?.id||null),title:$("expenseTitle").value.trim(),category:$("expenseCategory").value,amount:Number($("expenseAmount").value),description:$("expenseDescription").value.trim()||null,expense_date:$("expenseDate").value||todayISO()};try{if(editingExpenseId)delete payload.created_by;const result=editingExpenseId?await client.from("expenses").update(payload).eq("id",editingExpenseId).eq("restaurant_id",activeRestaurant.id):await client.from("expenses").insert(payload);if(result.error)throw result.error;showAppNotice(editingExpenseId?"Expense updated.":"Expense saved.");resetExpense();await loadExpenses();await refreshDashboardTotals();}catch(err){moduleError("Could not save expense",err)}});
 
-  async function loadSalesHistory(){if(!activeRestaurant)return;let query=client.from("sales").select("id,invoice_number,subtotal,discount,tax,total_amount,payment_method,payment_status,order_status,created_at").eq("restaurant_id",activeRestaurant.id).order("created_at",{ascending:false}).limit(500);if($("salesFrom").value)query=query.gte("created_at",$("salesFrom").value+"T00:00:00");if($("salesTo").value)query=query.lte("created_at",$("salesTo").value+"T23:59:59");if(currentCashier)query=query.eq("cashier_id",currentCashier.auth_user_id);const {data,error}=await query;if(error){moduleError("Could not load sales history",error);return;}window.nafSales=data||[];renderSalesHistory();}
-  function renderSalesHistory(){const q=($("salesSearch").value||"").toLowerCase();const rows=(window.nafSales||[]).filter(x=>(x.invoice_number||"").toLowerCase().includes(q));$("salesRows").innerHTML=rows.map(x=>`<tr><td>${safeText(new Date(x.created_at).toLocaleString())}</td><td>${safeText(x.invoice_number||"")}</td><td>${safeText(x.payment_method||"")}</td><td>${safeText(x.order_status||x.payment_status||"")}</td><td>${money(x.total_amount)}</td><td><button class="edit" data-view-sale="${safeText(x.id)}">View / Print</button></td></tr>`).join("")||'<tr><td colspan="6" class="muted-empty">No sales found.</td></tr>';}
-  $("salesSearch").addEventListener("input",renderSalesHistory);$("salesFilterBtn").addEventListener("click",loadSalesHistory);$("salesRefreshBtn").addEventListener("click",loadSalesHistory);
-  $("salesRows").addEventListener("click",async e=>{const b=e.target.closest("[data-view-sale]");if(!b)return;const sale=(window.nafSales||[]).find(x=>x.id===b.dataset.viewSale);if(!sale)return;const {data:items,error}=await client.from("sale_items").select("item_name,quantity,unit_price,total_price").eq("sale_id",sale.id);if(error){moduleError("Could not load invoice items",error);return;}const invoice={...sale,tax_rate:sale.subtotal>sale.discount?Math.round((Number(sale.tax||0)/(Number(sale.subtotal||0)-Number(sale.discount||0)))*10000)/100:0,items:items||[]};printInvoice(invoice);});
+  async function loadSalesHistory(){
+    if(!activeRestaurant)return;
+    let query=client.from("sales").select("id,invoice_number,subtotal,discount,tax,total_amount,payment_method,payment_status,order_status,created_at").eq("restaurant_id",activeRestaurant.id).order("created_at",{ascending:false}).limit(500);
+    if($("salesFrom").value)query=query.gte("created_at",$("salesFrom").value+"T00:00:00");
+    if($("salesTo").value)query=query.lte("created_at",$("salesTo").value+"T23:59:59");
+    if(currentCashier)query=query.eq("cashier_id",currentCashier.auth_user_id);
+    const {data,error}=await query;
+    if(error){moduleError("Could not load sales history",error);return;}
+    window.nafSales=data||[];renderSalesHistory();
+  }
+  function renderSalesHistory(){
+    const q=($("salesSearch").value||"").toLowerCase();
+    const rows=(window.nafSales||[]).filter(x=>(x.invoice_number||"").toLowerCase().includes(q));
+    const ownerCanManage=!currentCashier&&!currentManager;
+    $("salesRows").innerHTML=rows.map(x=>`<tr>
+      <td>${safeText(new Date(x.created_at).toLocaleString())}</td><td>${safeText(x.invoice_number||"")}</td>
+      <td>${safeText(x.payment_method||"")}</td><td>${safeText(x.order_status||x.payment_status||"")}</td>
+      <td>${money(x.total_amount)}</td><td><button class="edit" data-view-sale="${safeText(x.id)}">View / Print</button>
+      ${ownerCanManage?` <button class="edit" data-edit-sale="${safeText(x.id)}">Edit</button> <button class="del" data-delete-sale="${safeText(x.id)}">Delete</button>`:""}</td></tr>`).join("")||'<tr><td colspan="6" class="muted-empty">No sales found.</td></tr>';
+  }
+  $("salesSearch").addEventListener("input",renderSalesHistory);
+  $("salesFilterBtn").addEventListener("click",loadSalesHistory);
+  $("salesRefreshBtn").addEventListener("click",loadSalesHistory);
+  $("salesRows").addEventListener("click",async e=>{
+    const view=e.target.closest("[data-view-sale]"),edit=e.target.closest("[data-edit-sale]"),del=e.target.closest("[data-delete-sale]");
+    if(view){
+      const sale=(window.nafSales||[]).find(x=>x.id===view.dataset.viewSale);if(!sale)return;
+      const {data:items,error}=await client.from("sale_items").select("item_name,quantity,unit_price,total_price").eq("sale_id",sale.id);
+      if(error){moduleError("Could not load invoice items",error);return;}
+      const invoice={...sale,tax_rate:Number(sale.subtotal||0)>Number(sale.discount||0)?Math.round((Number(sale.tax||0)/(Number(sale.subtotal||0)-Number(sale.discount||0)))*10000)/100:0,items:items||[]};
+      printInvoice(invoice);return;
+    }
+    if(edit){
+      if(currentCashier||currentManager){showAppNotice("Only the restaurant Owner can edit sales.");return;}
+      const sale=(window.nafSales||[]).find(x=>x.id===edit.dataset.editSale);if(!sale)return;
+      $("salesEditId").value=sale.id;$("salesEditInvoice").textContent="Invoice: "+(sale.invoice_number||"");
+      $("salesEditPayment").value=sale.payment_method||"cash";$("salesEditPaymentStatus").value=sale.payment_status||"paid";
+      $("salesEditOrderStatus").value=sale.order_status||"completed";$("salesEditTotal").value=Number(sale.total_amount||0).toFixed(2);
+      $("salesEditModal").hidden=false;return;
+    }
+    if(del){
+      if(currentCashier||currentManager){showAppNotice("Only the restaurant Owner can delete sales.");return;}
+      const sale=(window.nafSales||[]).find(x=>x.id===del.dataset.deleteSale);if(!sale)return;
+      if(!confirm("Delete invoice "+(sale.invoice_number||"")+" and its sale items? This cannot be undone."))return;
+      const {error:itemError}=await client.from("sale_items").delete().eq("sale_id",sale.id);
+      if(itemError){moduleError("Could not delete sale items. Sale was not deleted.",itemError);return;}
+      const {error}=await client.from("sales").delete().eq("id",sale.id).eq("restaurant_id",activeRestaurant.id);
+      if(error){moduleError("Could not delete sale",error);return;}
+      showAppNotice("Sale deleted.");await loadSalesHistory();await refreshDashboardTotals();
+    }
+  });
+  $("salesEditCancel").addEventListener("click",()=>$("salesEditModal").hidden=true);
+  $("salesEditModal").addEventListener("click",e=>{if(e.target.id==="salesEditModal")$("salesEditModal").hidden=true;});
+  $("salesEditForm").addEventListener("submit",async e=>{
+    e.preventDefault();
+    if(currentCashier||currentManager){showAppNotice("Only the restaurant Owner can edit sales.");return;}
+    const id=$("salesEditId").value,total=Number($("salesEditTotal").value);
+    if(!Number.isFinite(total)||total<0){showAppNotice("Enter a valid sale total.");return;}
+    const payload={payment_method:$("salesEditPayment").value,payment_status:$("salesEditPaymentStatus").value,order_status:$("salesEditOrderStatus").value,total_amount:total};
+    const {error}=await client.from("sales").update(payload).eq("id",id).eq("restaurant_id",activeRestaurant.id);
+    if(error){moduleError("Could not update sale",error);return;}
+    $("salesEditModal").hidden=true;showAppNotice("Sale updated.");await loadSalesHistory();await refreshDashboardTotals();
+  });
+
 
   // Customers: restaurant-scoped CRUD in Supabase.
   let editingCustomerId=null, editingSupplierPageId=null, editingCashierId=null;
@@ -2465,65 +2560,69 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
   $('supplierPageRows').addEventListener('click',async e=>{const ed=e.target.closest('[data-sp-edit]'),dl=e.target.closest('[data-sp-delete]');if(ed){const x=window.nafSupplierPage.find(v=>v.id===ed.dataset.spEdit);editingSupplierPageId=x.id;$('supplierPageName').value=x.name;if ($('supplierPageSave')) $('supplierPageSave').textContent ='UPDATE SUPPLIER';$('supplierPageCancel').hidden=false;}if(dl&&confirm('Delete supplier? Existing purchases remain.')){const {error}=await client.from('suppliers').delete().eq('id',dl.dataset.spDelete).eq('restaurant_id',activeRestaurant.id);if(error)moduleError('Could not delete supplier',error);else loadSupplierPage();}});
   $('supplierPageForm').addEventListener('submit',async e=>{e.preventDefault();const name=$('supplierPageName').value.trim();const q=editingSupplierPageId?client.from('suppliers').update({name}).eq('id',editingSupplierPageId).eq('restaurant_id',activeRestaurant.id):client.from('suppliers').insert({restaurant_id:activeRestaurant.id,name});const {error}=await q;if(error)moduleError('Could not save supplier',error);else{editingSupplierPageId=null;$('supplierPageForm').reset();if ($('supplierPageSave')) $('supplierPageSave').textContent ='ADD SUPPLIER';$('supplierPageCancel').hidden=true;loadSupplierPage();loadPurchases();}});
   $('supplierPageCancel').addEventListener('click',()=>{editingSupplierPageId=null;$('supplierPageForm').reset();if ($('supplierPageSave')) $('supplierPageSave').textContent ='ADD SUPPLIER';$('supplierPageCancel').hidden=true;});
-  // Reports from saved sales, purchases and expenses.
+  // Reports: collect detail rows so the Owner can choose exactly which sections to print.
+  window.nafReportData={sales:[],purchases:[],expenses:[]};
   async function runReports(){
     if(!activeRestaurant)return;
     const from=$('reportFrom').value,to=$('reportTo').value;
-    let sq=client.from('sales').select('total_amount,created_at').eq('restaurant_id',activeRestaurant.id).ilike('order_status','completed');
+    if(from&&to&&from>to){showAppNotice('From date must be on or before To date.');return;}
+    let sq=client.from('sales').select('*').eq('restaurant_id',activeRestaurant.id).ilike('order_status','completed');
     if(from)sq=sq.gte('created_at',from+'T00:00:00');
     if(to)sq=sq.lte('created_at',to+'T23:59:59');
     if(currentCashier)sq=sq.eq('cashier_id',currentCashier.auth_user_id);
-
     if(currentCashier){
-      const salesRes=await sq;
-      if(salesRes.error){moduleError('Could not generate cashier report',salesRes.error);return;}
-      const sales=(salesRes.data||[]).reduce((a,r)=>a+Number(r.total_amount||0),0);
-      if ($('reportSales')) $('reportSales').textContent =money(sales);
-      if ($('reportPurchases')) $('reportPurchases').textContent ='—';
-      if ($('reportExpenses')) $('reportExpenses').textContent ='—';
-      if ($('reportNet')) $('reportNet').textContent =money(sales);
-      return;
+      const sr=await sq;if(sr.error){moduleError('Could not generate cashier report',sr.error);return;}
+      window.nafReportData={sales:sr.data||[],purchases:[],expenses:[]};
+      const total=window.nafReportData.sales.reduce((n,r)=>n+Number(r.total_amount||0),0);
+      $('reportSales').textContent=money(total);$('reportPurchases').textContent='—';$('reportExpenses').textContent='—';$('reportNet').textContent=money(total);return;
     }
-
-    let pq=client.from('purchases').select('total_amount,purchase_date').eq('restaurant_id',activeRestaurant.id);
-    let eq=client.from('expenses').select('amount,expense_date').eq('restaurant_id',activeRestaurant.id);
+    let pq=client.from('purchases').select('*').eq('restaurant_id',activeRestaurant.id);
+    let eq=client.from('expenses').select('*').eq('restaurant_id',activeRestaurant.id);
     if(from){pq=pq.gte('purchase_date',from);eq=eq.gte('expense_date',from);}
     if(to){pq=pq.lte('purchase_date',to);eq=eq.lte('expense_date',to);}
-    const [salesRes,purchasesRes,expensesRes]=await Promise.all([sq,pq,eq]);
-    for(const r of [salesRes,purchasesRes,expensesRes])if(r.error){moduleError('Could not generate report',r.error);return;}
-    const sales=(salesRes.data||[]).reduce((a,r)=>a+Number(r.total_amount||0),0);
-    const purchases=(purchasesRes.data||[]).reduce((a,r)=>a+Number(r.total_amount||0),0);
-    const expenses=(expensesRes.data||[]).reduce((a,r)=>a+Number(r.amount||0),0);
-    if ($('reportSales')) $('reportSales').textContent =money(sales);
-    if ($('reportPurchases')) $('reportPurchases').textContent =money(purchases);
-    if ($('reportExpenses')) $('reportExpenses').textContent =money(expenses);
-    if ($('reportNet')) $('reportNet').textContent =money(sales-purchases-expenses);
+    const [sr,pr,er]=await Promise.all([sq,pq,eq]);
+    for(const r of [sr,pr,er])if(r.error){moduleError('Could not generate report',r.error);return;}
+    window.nafReportData={sales:sr.data||[],purchases:pr.data||[],expenses:er.data||[]};
+    const sales=window.nafReportData.sales.reduce((n,r)=>n+Number(r.total_amount||0),0);
+    const purchases=window.nafReportData.purchases.reduce((n,r)=>n+Number(r.total_amount||0),0);
+    const expenses=window.nafReportData.expenses.reduce((n,r)=>n+Number(r.amount||0),0);
+    $('reportSales').textContent=money(sales);$('reportPurchases').textContent=money(purchases);$('reportExpenses').textContent=money(expenses);$('reportNet').textContent=money(sales-purchases-expenses);
   }
   $('runReport').addEventListener('click',runReports);
+  // Cashier reports are limited to their own sales; Owner can select any report sections.
+  if(currentCashier){
+    ['reportSelectPurchases','reportSelectExpenses'].forEach(id=>{const el=$(id);if(el){el.checked=false;el.disabled=true;el.closest('label').hidden=true;}});
+  }
   $('printReportBtn').addEventListener('click',()=>{
-    const from=$('reportFrom').value||'All dates';
-    const to=$('reportTo').value||'Today / latest';
-    const cashierName=currentCashier?safeText(currentCashier.name):'Owner report';
-    const rows=[
-      ['Sales', $('reportSales').textContent],
-      ['Purchases', $('reportPurchases').textContent],
-      ['Expenses', $('reportExpenses').textContent],
-      [currentCashier?'Cashier sales total':'Gross Difference', $('reportNet').textContent]
-    ];
-    const w=window.open('','_blank','width=800,height=650');
+    const data=window.nafReportData||{sales:[],purchases:[],expenses:[]};
+    const from=$('reportFrom').value||'All dates',to=$('reportTo').value||'Today / latest';
+    const sections=[];
+    const esc=v=>safeText(v==null?'':String(v));
+    const makeTable=(title,heads,rows)=>`<section><h2>${title}</h2><table><thead><tr>${heads.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${rows.length?rows.map(row=>`<tr>${row.map(v=>`<td>${esc(v)}</td>`).join('')}</tr>`).join(''):`<tr><td colspan="${heads.length}">No records for this date range.</td></tr>`}</tbody></table></section>`;
+    if($('reportSelectSummary').checked){
+      sections.push(makeTable('Summary',['Report item','Amount'],[
+        ['Sales',$('reportSales').textContent],['Purchases',$('reportPurchases').textContent],['Expenses',$('reportExpenses').textContent],
+        [currentCashier?'Cashier sales total':'Gross Difference',$('reportNet').textContent]
+      ]));
+    }
+    if($('reportSelectSales').checked)sections.push(makeTable('Sales Details',['Date','Invoice','Payment','Status','Total'],data.sales.map(x=>[x.created_at?new Date(x.created_at).toLocaleString():'',x.invoice_number||'',x.payment_method||'',x.order_status||x.payment_status||'',money(x.total_amount)])));
+    if($('reportSelectPurchases').checked&&!currentCashier)sections.push(makeTable('Purchase Details',['Date','Reference','Supplier','Total'],data.purchases.map(x=>[x.purchase_date||x.created_at||'',x.invoice_number||x.reference_number||x.id||'',x.supplier_name||x.supplier||'',money(x.total_amount)])));
+    if($('reportSelectExpenses').checked&&!currentCashier)sections.push(makeTable('Expense Details',['Date','Description','Category','Amount'],data.expenses.map(x=>[x.expense_date||x.created_at||'',x.title||x.description||x.name||'',x.category||'',money(x.amount)])));
+    if(!sections.length){showAppNotice('Please select at least one report section to print.');return;}
+    const w=window.open('','_blank','width=900,height=750');
     if(!w){showAppNotice('Please allow pop-ups to print the report.');return;}
-    w.document.write(`<!doctype html><html><head><title>NAF POS Report</title><style>
-      body{font-family:Arial,sans-serif;padding:32px;color:#182235}
-      h1{margin:0 0 6px}p{color:#667085}
-      table{width:100%;border-collapse:collapse;margin-top:24px}
-      th,td{padding:14px;border-bottom:1px solid #ddd;text-align:left}
-      th{background:#f4f6fa} .total{font-weight:bold}
-      </style></head><body><h1>NAF POS — Sales Report</h1>
-      <p>Restaurant: ${safeText(activeRestaurant?.name||'')}</p>
-      <p>Account: ${cashierName}</p><p>From: ${safeText(from)} &nbsp; To: ${safeText(to)}</p>
-      <table><thead><tr><th>Report item</th><th>Amount</th></tr></thead><tbody>
-      ${rows.map(r=>`<tr><td>${r[0]}</td><td>${safeText(r[1])}</td></tr>`).join('')}
-      </tbody></table><p>Printed: ${new Date().toLocaleString()}</p>
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NAF POS Report</title><style>
+      *{box-sizing:border-box}body{font-family:Arial,sans-serif;padding:24px;color:#182235;margin:0}
+      .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:0 auto 18px;max-width:1000px}
+      button{border:0;border-radius:8px;padding:11px 15px;background:#e5b94f;font-weight:800;cursor:pointer}
+      button.back{background:#17243a;color:#fff}
+      .report{max-width:1000px;margin:auto}h1{margin:0 0 6px;font-size:24px}p{color:#667085;font-size:12px}
+      section{margin-top:24px;break-inside:avoid}h2{font-size:17px}
+      table{width:100%;border-collapse:collapse;margin-top:10px}th,td{padding:9px;border-bottom:1px solid #ddd;text-align:left;font-size:12px;overflow-wrap:anywhere}
+      th{background:#f4f6fa}@media print{body{padding:8mm}.toolbar{display:none}section{break-inside:auto}tr{break-inside:avoid}}
+      </style></head><body><div class="toolbar"><button class="back" onclick="goBackHome()">← BACK TO HOME</button><button onclick="window.print()">PRINT REPORT</button></div>
+      <main class="report"><h1>NAF POS — Business Report</h1><p>Restaurant: ${esc(activeRestaurant?.name||'')}</p><p>Account: ${esc(currentCashier?currentCashier.name:'Owner report')}</p><p>From: ${esc(from)} &nbsp; To: ${esc(to)}</p>${sections.join('')}<p>Printed: ${esc(new Date().toLocaleString())}</p></main>
+      <script>function goBackHome(){try{if(window.opener&&!window.opener.closed&&window.opener.nafGoHome){window.opener.nafGoHome();window.close();return;}}catch(e){}try{if(window.history.length>1){window.history.back();return;}}catch(e){}document.body.innerHTML='<div style="font-family:Arial;padding:28px"><h2>Return to NAF POS</h2><p>Close this report window and reopen NAF POS from your tablet Home Screen.</p><button onclick="window.close()">CLOSE REPORT</button></div>';}<\/script>
       <script>window.onload=()=>window.print();<\/script></body></html>`);
     w.document.close();
   });
