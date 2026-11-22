@@ -290,6 +290,170 @@
   
     .pin-modal{position:fixed;inset:0;z-index:20000;background:rgba(12,22,38,.72);display:flex;align-items:center;justify-content:center;padding:18px}.pin-modal[hidden]{display:none!important}.pin-card{width:min(420px,100%);background:#fff;border-radius:16px;padding:24px;box-shadow:0 24px 70px #0005}.pin-card h2{font-size:22px;margin:0 0 8px}.pin-card p{color:var(--muted);font-size:13px;line-height:1.5}.pin-card input,.pin-card select{width:100%;height:44px;border:1px solid #dce2eb;border-radius:9px;padding:8px 12px;font:inherit;margin:6px 0 12px}.pin-actions{display:flex;gap:8px;flex-wrap:wrap}.pin-actions button{flex:1;min-width:110px;border:0;border-radius:9px;padding:11px;background:var(--gold);font-weight:800;cursor:pointer}.pin-actions .secondary{background:#edf0f5;color:var(--navy)}.pin-error{color:#a52e3b!important;min-height:18px}
     .support-modal{position:fixed;inset:0;z-index:10000;background:rgba(12,22,38,.58);display:flex;align-items:center;justify-content:center;padding:18px}.support-modal[hidden]{display:none!important}.support-modal-panel{width:min(520px,100%);background:#fff;border-radius:16px;padding:22px;box-shadow:0 24px 70px #0004}.support-modal-panel h3{margin:0 0 8px;color:var(--navy)}.support-modal-panel textarea{width:100%;min-height:125px;border:1px solid #dce2eb;border-radius:9px;padding:11px;font:inherit;font-size:14px;resize:vertical}.support-modal-panel textarea:focus{outline:2px solid #e5b94f66;border-color:var(--gold)}
+
+
+/* NAF POS responsive layout — laptop, touchscreen POS, tablet and phone */
+html{min-width:320px; -webkit-text-size-adjust:100%; text-size-adjust:100%}
+body{min-width:320px}
+button, input, select, textarea{max-width:100%}
+img, svg, video, canvas{max-width:100%}
+.pagepanel, .module-card, .menu-card, .dashcard, .posbox,
+.subscription-card, .letter-paper{min-width:0}
+.module-table-wrap, .menu-table-wrap, .module-table-scroll,
+.subscription-table-scroll{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+input,select,textarea{font-size:16px}
+button,.navitem,.category-chip,.product-card,.menu-btn,.logout,.pos-action{
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+}
+button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
+  min-height:42px;
+}
+.product-card{min-height:96px}
+.poslayout>*{min-width:0}
+.posbox{overflow-wrap:anywhere}
+.pos-toolbar>*{min-width:0}
+.cart-line>*{min-width:0}
+.module-form,.menu-form-grid,.subscription-form,
+.subscription-admin-grid,.module-grid{min-width:0}
+.module-field,.menu-field,.field{min-width:0}
+.module-field input,.module-field select,.module-field textarea,
+.menu-field input,.menu-field select,.menu-field textarea,
+.subscription-form input,.subscription-form select{min-width:0}
+.letter-paper{width:100%}
+.pin-card,.support-modal-panel{max-height:calc(100dvh - 32px);overflow:auto}
+.subscription-gate{padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))}
+
+/* Compact laptop and standard touchscreen terminals (including 1024×600). */
+@media (min-width:901px) and (max-width:1200px){
+  .sidebar{flex-basis:220px;width:220px;padding:18px 12px}
+  .mainarea{padding:18px 18px}
+  .sidebrand{padding-bottom:18px}
+  .navlabel{padding-top:18px}
+  .navitem{padding:10px 9px;gap:9px;font-size:12px}
+  .topbar{gap:10px;margin-bottom:16px}
+  .topbar .top-datebar{gap:5px}
+  .topbar .top-datebar input{width:112px}
+  .topbar .userbox{gap:6px}
+  .topbar .userbox .logout{padding:8px 9px;font-size:12px}
+  .poslayout{grid-template-columns:minmax(0,1.2fr) minmax(270px,.8fr);gap:12px}
+  .posbox{padding:14px}
+  .product-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  .stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+  .stat{padding:14px}
+  .statvalue{font-size:21px}
+}
+
+/* Tablet portrait and smaller windows: navigation moves above the workspace. */
+@media (max-width:900px){
+  html,body.app-mode{height:auto;min-height:100%;overflow:auto}
+  .app-shell.visible{display:block;width:100%;height:auto;min-height:100vh;overflow:visible}
+  .sidebar{
+    position:sticky;top:0;z-index:1000;width:100%;height:auto;min-height:0;
+    max-height:none;padding:10px 14px;overflow:visible;
+    box-shadow:0 4px 14px #101a2c18
+  }
+  .sidebrand{padding:2px 4px 10px}
+  .navlabel,.sidebottom{display:none}
+  .navlist{display:flex;gap:6px;overflow-x:auto;overflow-y:hidden;padding:9px 0 2px;scrollbar-width:thin}
+  .navitem{width:auto;flex:0 0 auto;white-space:nowrap;padding:10px 12px}
+  .mainarea{width:100%;max-width:none;height:auto;min-height:0;margin:0;padding:22px 18px;overflow:visible}
+  .pagepanel,.pagepanel.active{width:100%;min-width:0}
+  .poslayout{grid-template-columns:1fr}
+  .lowergrid{grid-template-columns:1fr}
+  .topbar{align-items:flex-start;flex-wrap:wrap}
+  .topbar .userbox{width:100%;justify-content:flex-start;flex-wrap:wrap}
+  .dashboard-datebar{flex-wrap:wrap}
+  .module-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .subscription-admin-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+/* Touchscreen POS: larger tap targets and comfortable two-column order entry. */
+@media (min-width:721px) and (max-width:1100px) and (pointer:coarse){
+  .poslayout{grid-template-columns:minmax(0,1.15fr) minmax(300px,.85fr)}
+  .product-card{min-height:112px;padding:15px}
+  .category-chip{padding:11px 15px}
+  .qty-controls button{width:38px;height:38px}
+  .pos-action{min-height:52px;font-size:15px}
+  .menu-btn,.logout{min-height:44px}
+}
+
+/* Phone and narrow tablet portrait. */
+@media (max-width:720px){
+  body{padding:10px}
+  .shell{width:100%;min-height:0;border-radius:16px}
+  .panel{padding:24px 18px}
+  .app-shell.visible{display:block}
+  .sidebar{padding:9px 11px}
+  .mainarea{padding:16px 12px}
+  .topbar{gap:10px;margin-bottom:16px}
+  .pageheading{font-size:22px}
+  .topbar .userbox{gap:7px}
+  .topbar .userbox .logout{padding:8px 10px}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .stat{padding:12px}
+  .statvalue{font-size:19px}
+  .product-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .product-card{padding:10px}
+  .product-card img{height:86px}
+  .posbox{padding:12px}
+  .module-grid,.module-form,.menu-form-grid,
+  .subscription-grid,.subscription-form,.subscription-admin-grid{grid-template-columns:1fr}
+  .module-field.full,.menu-field.full,.subscription-form .full{grid-column:auto}
+  .module-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .extra-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .letter-paper{padding:18px 12px}
+  .letter-head{grid-template-columns:1fr}
+  .letter-contact{text-align:left}
+  .letter-write{min-height:520px}
+  .subscription-card{padding:16px}
+  .dashboard-datebar{width:100%;justify-content:stretch}
+  .dashboard-datebar label{flex:1;min-width:0}
+  .dashboard-datebar input{width:100%}
+  .activity-row{grid-template-columns:34px minmax(0,1fr)}
+  .activity-amount{grid-column:2}
+}
+
+/* Very narrow phones. */
+@media (max-width:420px){
+  .mobilebrand{margin-bottom:18px}
+  .tabs{margin-bottom:20px}
+  h2{font-size:24px}
+  .panel{padding:20px 14px}
+  .navlist{gap:4px}
+  .navitem{font-size:11px;padding:9px 10px}
+  .mainarea{padding:13px 9px}
+  .topbar .userbox .logout{font-size:11px;padding:7px 8px}
+  .stats{grid-template-columns:1fr 1fr}
+  .stathead{font-size:10px}
+  .statvalue{font-size:17px}
+  .product-grid{grid-template-columns:1fr 1fr}
+  .cart-total{gap:8px}
+  .module-summary,.extra-grid{grid-template-columns:1fr 1fr}
+  .menu-toolbar{align-items:stretch}
+  .menu-toolbar>*{max-width:100%}
+  .pin-modal,.support-modal{padding:10px}
+}
+
+/* Short landscape POS displays: preserve access to all controls through scrolling. */
+@media (min-width:721px) and (max-height:700px){
+  .mainarea{padding-top:12px;padding-bottom:16px}
+  .topbar{margin-bottom:12px}
+  .welcome{padding:17px 20px;margin-bottom:14px}
+  .stats{margin-bottom:14px}
+  .stat{padding:11px}
+  .statvalue{margin-top:7px}
+  .posbox{padding:12px}
+  .cart-list{max-height:210px}
+  .product-card{padding:9px}
+  .product-card img{height:72px}
+}
+
+/* Respect reduced-motion preferences and prevent accidental horizontal page overflow. */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+
 </style>
 </head>
 <body>
