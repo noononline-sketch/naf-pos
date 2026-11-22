@@ -1122,37 +1122,64 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
     await loadCustomerSubscriptionDetails(restaurantId);
     const row=await getRestaurantSubscriptionAccess(restaurantId);
     if(row?.can_access===true) return true;
+
+    // Keep the application behind a full-screen subscription gate until approval.
     await loadSubscriptionPublicData();
-    const status=row?.subscription_status||"not_found";
+    const status=String(row?.subscription_status||"not_found").toLowerCase();
     const expiry=row?.expires_at?new Date(row.expires_at).toLocaleDateString():"not available";
-    const pendingRes=await client.from("naf_payment_requests").select("id,status,created_at,rejection_reason").eq("restaurant_id",restaurantId).order("created_at",{ascending:false}).limit(1);
+    const pendingRes=await client.from("naf_payment_requests")
+      .select("id,status,created_at,rejection_reason")
+      .eq("restaurant_id",restaurantId)
+      .order("created_at",{ascending:false}).limit(1);
     if(pendingRes.error) throw pendingRes.error;
     const pending=pendingRes.data?.[0];
-    showSubscriptionGate("",`Status: ${status}. Expiry: ${expiry}.`+(pending?.status?` Latest payment request: ${pending.status}.`:""));
-    const isManuallySuspended=String(status).toLowerCase()==="suspended";
+
+    showSubscriptionGate("",
+      `Status: ${status}. Expiry: ${expiry}.`+
+      (pending?.status?` Latest payment request: ${pending.status}.`:""));
+
+    const isManuallySuspended=status==="suspended";
     const paymentForm=$("subscriptionPaymentForm");
     const suspendedPanel=$("suspendedAccountContact");
+    const backHome=$("subscriptionBackHome");
+
     if(isManuallySuspended){
+      // A manually suspended account cannot submit a payment or access the app.
       if(paymentForm) paymentForm.hidden=true;
+      if(backHome) backHome.hidden=true;
       if($("subscriptionPlanCards")) $("subscriptionPlanCards").hidden=true;
       if($("subscriptionPaymentInfo")) $("subscriptionPaymentInfo").hidden=true;
       if(suspendedPanel) suspendedPanel.hidden=false;
       if($("subscriptionGateTitle")) $("subscriptionGateTitle").textContent=subscriptionSettingsCache?.suspended_title||"Account Suspended";
       if($("subscriptionGateMessage")) $("subscriptionGateMessage").textContent=subscriptionSettingsCache?.suspended_message||"Your account has been suspended by NAF POS Super Admin. Please contact support.";
-      if($("subscriptionGateStatus")) $("subscriptionGateStatus").textContent="This account was suspended by NAF POS Super Admin. Subscription payment submission is disabled. Please contact Super Admin.";
+      if($("subscriptionGateStatus")) $("subscriptionGateStatus").textContent="This account was suspended by NAF POS Super Admin. Payment submission and app access are disabled.";
       if($("suspendedAccountContactMessage")) $("suspendedAccountContactMessage").textContent=subscriptionSettingsCache?.suspended_message||"Your account has been suspended by NAF POS Super Admin. Please contact support.";
       const supportEmail=subscriptionSettingsCache?.suspended_contact_email||subscriptionSettingsCache?.contact_email||"noononline34@gmail.com";
-      if($("suspendedAccountContactEmail")){$("suspendedAccountContactEmail").textContent=supportEmail;$("suspendedAccountContactEmail").href="mailto:"+supportEmail;}
+      if($("suspendedAccountContactEmail")){
+        $("suspendedAccountContactEmail").textContent=supportEmail;
+        $("suspendedAccountContactEmail").href="mailto:"+supportEmail;
+      }
     }else{
+      // Expired / ended trial: lock all POS pages, but let the OWNER request renewal.
       if(suspendedPanel) suspendedPanel.hidden=true;
       if($("subscriptionPlanCards")) $("subscriptionPlanCards").hidden=false;
       if($("subscriptionPaymentInfo")) $("subscriptionPaymentInfo").hidden=false;
+      if($("subscriptionGateTitle")) $("subscriptionGateTitle").textContent=subscriptionSettingsCache?.expiry_title||"Subscription Expired";
+      if($("subscriptionGateMessage")) $("subscriptionGateMessage").textContent=subscriptionSettingsCache?.expiry_message||"Your subscription has expired. Choose a plan and submit your payment receipt to restore access.";
+      if($("subscriptionGateStatus")) $("subscriptionGateStatus").textContent=
+        `Your subscription is ${status}. NAF POS is locked until Super Admin approves your renewal payment.`+
+        (pending?.status?` Latest payment request: ${pending.status}.`:"");
+      // No route back into the workspace while expired. Sign out remains available.
+      if(backHome) backHome.hidden=true;
       if(currentCashier || currentManager){
         if(paymentForm) paymentForm.hidden=true;
-        if ($("subscriptionGateMessage")) $("subscriptionGateMessage").textContent ="This restaurant subscription is not active. Please contact the restaurant owner.";
-      } else {
-        if(paymentForm) paymentForm.hidden=false;
-        if(paymentForm) paymentForm.dataset.restaurantId=restaurantId;
+        if($("subscriptionGateMessage")) $("subscriptionGateMessage").textContent=
+          "This restaurant subscription has expired. Please contact the restaurant owner to renew it.";
+      }else{
+        if(paymentForm){
+          paymentForm.hidden=false;
+          paymentForm.dataset.restaurantId=restaurantId;
+        }
       }
     }
     return false;
