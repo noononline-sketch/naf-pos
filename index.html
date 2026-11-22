@@ -1122,64 +1122,37 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
     await loadCustomerSubscriptionDetails(restaurantId);
     const row=await getRestaurantSubscriptionAccess(restaurantId);
     if(row?.can_access===true) return true;
-
-    // Keep the application behind a full-screen subscription gate until approval.
     await loadSubscriptionPublicData();
-    const status=String(row?.subscription_status||"not_found").toLowerCase();
+    const status=row?.subscription_status||"not_found";
     const expiry=row?.expires_at?new Date(row.expires_at).toLocaleDateString():"not available";
-    const pendingRes=await client.from("naf_payment_requests")
-      .select("id,status,created_at,rejection_reason")
-      .eq("restaurant_id",restaurantId)
-      .order("created_at",{ascending:false}).limit(1);
+    const pendingRes=await client.from("naf_payment_requests").select("id,status,created_at,rejection_reason").eq("restaurant_id",restaurantId).order("created_at",{ascending:false}).limit(1);
     if(pendingRes.error) throw pendingRes.error;
     const pending=pendingRes.data?.[0];
-
-    showSubscriptionGate("",
-      `Status: ${status}. Expiry: ${expiry}.`+
-      (pending?.status?` Latest payment request: ${pending.status}.`:""));
-
-    const isManuallySuspended=status==="suspended";
+    showSubscriptionGate("",`Status: ${status}. Expiry: ${expiry}.`+(pending?.status?` Latest payment request: ${pending.status}.`:""));
+    const isManuallySuspended=String(status).toLowerCase()==="suspended";
     const paymentForm=$("subscriptionPaymentForm");
     const suspendedPanel=$("suspendedAccountContact");
-    const backHome=$("subscriptionBackHome");
-
     if(isManuallySuspended){
-      // A manually suspended account cannot submit a payment or access the app.
       if(paymentForm) paymentForm.hidden=true;
-      if(backHome) backHome.hidden=true;
       if($("subscriptionPlanCards")) $("subscriptionPlanCards").hidden=true;
       if($("subscriptionPaymentInfo")) $("subscriptionPaymentInfo").hidden=true;
       if(suspendedPanel) suspendedPanel.hidden=false;
       if($("subscriptionGateTitle")) $("subscriptionGateTitle").textContent=subscriptionSettingsCache?.suspended_title||"Account Suspended";
       if($("subscriptionGateMessage")) $("subscriptionGateMessage").textContent=subscriptionSettingsCache?.suspended_message||"Your account has been suspended by NAF POS Super Admin. Please contact support.";
-      if($("subscriptionGateStatus")) $("subscriptionGateStatus").textContent="This account was suspended by NAF POS Super Admin. Payment submission and app access are disabled.";
+      if($("subscriptionGateStatus")) $("subscriptionGateStatus").textContent="This account was suspended by NAF POS Super Admin. Subscription payment submission is disabled. Please contact Super Admin.";
       if($("suspendedAccountContactMessage")) $("suspendedAccountContactMessage").textContent=subscriptionSettingsCache?.suspended_message||"Your account has been suspended by NAF POS Super Admin. Please contact support.";
       const supportEmail=subscriptionSettingsCache?.suspended_contact_email||subscriptionSettingsCache?.contact_email||"noononline34@gmail.com";
-      if($("suspendedAccountContactEmail")){
-        $("suspendedAccountContactEmail").textContent=supportEmail;
-        $("suspendedAccountContactEmail").href="mailto:"+supportEmail;
-      }
+      if($("suspendedAccountContactEmail")){$("suspendedAccountContactEmail").textContent=supportEmail;$("suspendedAccountContactEmail").href="mailto:"+supportEmail;}
     }else{
-      // Expired / ended trial: lock all POS pages, but let the OWNER request renewal.
       if(suspendedPanel) suspendedPanel.hidden=true;
       if($("subscriptionPlanCards")) $("subscriptionPlanCards").hidden=false;
       if($("subscriptionPaymentInfo")) $("subscriptionPaymentInfo").hidden=false;
-      if($("subscriptionGateTitle")) $("subscriptionGateTitle").textContent=subscriptionSettingsCache?.expiry_title||"Subscription Expired";
-      if($("subscriptionGateMessage")) $("subscriptionGateMessage").textContent=subscriptionSettingsCache?.expiry_message||"Your subscription has expired. Choose a plan and submit your payment receipt to restore access.";
-      if($("subscriptionGateStatus")) $("subscriptionGateStatus").textContent=
-        `Your subscription is ${status}. NAF POS is locked until Super Admin approves your renewal payment.`+
-        (pending?.status?` Latest payment request: ${pending.status}.`:"");
-      // No route back into the workspace while expired. Sign out remains available.
-      if(backHome) backHome.hidden=true;
       if(currentCashier || currentManager){
         if(paymentForm) paymentForm.hidden=true;
-        if($("subscriptionGateMessage")) $("subscriptionGateMessage").textContent=
-          "This restaurant subscription has expired. Please contact the restaurant owner to renew it.";
-      }else{
-        if(paymentForm){
-          paymentForm.hidden=false;
-          paymentForm.dataset.restaurantId=restaurantId;
-        }
+        if ($("subscriptionGateMessage")) $("subscriptionGateMessage").textContent ="This restaurant subscription is not active. Please contact the restaurant owner.";
+      } else {
+        if(paymentForm) paymentForm.hidden=false;
+        if(paymentForm) paymentForm.dataset.restaurantId=restaurantId;
       }
     }
     return false;
@@ -2044,22 +2017,23 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
       .thanks{font-weight:800;color:#172d52;font-size:15px}.foot{color:#778196;font-size:10px;margin-top:5px}
       #invoiceQr{width:88px;height:88px;padding:5px;border:1px solid #e6eaf0;border-radius:8px}
       @media print{body{background:#fff;padding:0}.toolbar{display:none}.sheet{border:0;box-shadow:none;border-radius:0;margin:0 auto;padding:8mm;max-width:none}}
-      body[data-paper="80mm"]{padding:12px}.paper-80 .sheet{width:80mm;max-width:80mm;padding:5mm;border:0;box-shadow:none;border-radius:0}
-      .paper-80 .header{gap:8px;padding-bottom:10px}.paper-80 .logo{width:48px;height:48px}.paper-80 .brand h1{font-size:16px}.paper-80 .brand p{font-size:9px}
-      .paper-80 .tag{font-size:8px}.paper-80 .meta{grid-template-columns:1fr;gap:5px;padding:8px;margin:10px 0;font-size:9px}
-      .paper-80 table{margin-top:10px}.paper-80 th,.paper-80 td{font-size:9px;padding:6px 3px}.paper-80 .totals{max-width:100%;margin-top:12px}
-      .paper-80 .totals div{font-size:10px;padding:4px 0}.paper-80 .grand{font-size:14px!important}.paper-80 .bottom{margin-top:14px;gap:8px}
-      .paper-80 .thanks{font-size:11px}.paper-80 .foot{font-size:8px}
-      .paper-80 .bottom{flex-direction:column;align-items:center;text-align:center;gap:8px}
-      .paper-80 #invoiceQr{width:42px;height:42px;padding:2px;display:grid;place-items:center;margin:0 auto}
-      .paper-80 #invoiceQr canvas,.paper-80 #invoiceQr img{width:38px!important;height:38px!important;max-width:100%;max-height:100%;display:block}
-      .paper-80 table{table-layout:fixed;width:100%}.paper-80 th:first-child,.paper-80 td:first-child{width:34%;overflow-wrap:anywhere}
+      body[data-paper="80mm"]{padding:8px;background:#fff;color:#000}.paper-80 .sheet{width:80mm;min-width:80mm;max-width:80mm;padding:3mm 3.5mm;border:0;box-shadow:none;border-radius:0;margin:0 auto;color:#000}
+      .paper-80 .header{gap:7px;padding-bottom:8px;border-bottom:2px solid #111;align-items:center}.paper-80 .logo{width:46px;height:46px;padding:2px;border:0;border-radius:4px}.paper-80 .brand{min-width:0;flex:1}.paper-80 .brand h1{font-size:17px;line-height:1.15;margin:0 0 4px;color:#000;font-weight:900;overflow-wrap:anywhere}.paper-80 .brand p{font-size:10px;line-height:1.25;margin:2px 0;color:#111;overflow-wrap:anywhere}
+      .paper-80 .tag{font-size:9px;margin-top:5px;padding:3px 6px;border-radius:2px;background:#eee;color:#000;letter-spacing:.04em}
+      .paper-80 .meta{grid-template-columns:1fr 1fr;gap:6px 8px;padding:7px 0;margin:8px 0;border-radius:0;border-bottom:1px dashed #555;background:#fff;font-size:10px;line-height:1.25}.paper-80 .meta span{font-size:9px;color:#333}.paper-80 .meta b{font-size:10px;color:#000;overflow-wrap:anywhere}
+      .paper-80 table{margin-top:7px;width:100%;table-layout:fixed;border-collapse:collapse}.paper-80 th{font-size:10px;padding:6px 3px;background:#222;color:#fff}.paper-80 td{font-size:10px;line-height:1.25;padding:7px 3px;border-bottom:1px solid #bbb;color:#000}.paper-80 .totals{max-width:100%;margin-top:9px}
+      .paper-80 .totals div{font-size:11px;padding:4px 1px;color:#000}.paper-80 .totals b{font-weight:800}.paper-80 .grand{font-size:17px!important;font-weight:900;border-top:2px solid #000;margin-top:6px;padding-top:8px!important;color:#000}.paper-80 .bottom{margin-top:10px;padding-top:8px;gap:7px;border-top:1px dashed #555}
+      .paper-80 .thanks{font-size:12px;color:#000;font-weight:900}.paper-80 .foot{font-size:9px;color:#222;line-height:1.3;overflow-wrap:anywhere}
+      .paper-80 .bottom{flex-direction:column;align-items:center;text-align:center;gap:7px}
+      .paper-80 #invoiceQr{width:58px;height:58px;padding:2px;border:0;border-radius:0;display:grid;place-items:center;margin:0 auto}
+      .paper-80 #invoiceQr canvas,.paper-80 #invoiceQr img{width:54px!important;height:54px!important;max-width:100%;max-height:100%;display:block}
+      .paper-80 th:first-child,.paper-80 td:first-child{width:34%;overflow-wrap:anywhere;text-align:left}
       .paper-80 th:nth-child(2),.paper-80 td:nth-child(2){width:10%;text-align:center}
-      .paper-80 th:nth-child(3),.paper-80 td:nth-child(3){width:27%}
-      .paper-80 th:nth-child(4),.paper-80 td:nth-child(4){width:29%}
-      @media print{body[data-paper="80mm"]{width:80mm;min-width:80mm;max-width:80mm;padding:0;margin:0}
-      body[data-paper="80mm"] .sheet{width:80mm;min-width:80mm;max-width:80mm;padding:3mm;margin:0;border:0;box-shadow:none}
-      body[data-paper="80mm"] .paper-80 #invoiceQr{width:42px;height:42px}}
+      .paper-80 th:nth-child(3),.paper-80 td:nth-child(3){width:27%;white-space:nowrap}
+      .paper-80 th:nth-child(4),.paper-80 td:nth-child(4){width:29%;white-space:nowrap}
+      @media print{@page{size:80mm auto;margin:0}body[data-paper="80mm"]{width:80mm;min-width:80mm;max-width:80mm;padding:0;margin:0;background:#fff}
+      body[data-paper="80mm"] .sheet{width:80mm;min-width:80mm;max-width:80mm;padding:3mm 3.5mm;margin:0;border:0;box-shadow:none}
+      body[data-paper="80mm"] .paper-80 #invoiceQr{width:58px;height:58px}}
       </style></head><body data-paper="A4"><div class="toolbar">
       <label for="paperSize">Print size</label><select id="paperSize"><option value="A4">A4 Invoice</option><option value="80mm">80mm Thermal Receipt</option></select>
       <button type="button" class="back-pos" onclick="backToPOS()">← BACK TO POS / HOME</button>
