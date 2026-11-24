@@ -491,6 +491,12 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
 .sales-edit-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
 @media(max-width:600px){.sales-edit-grid{grid-template-columns:1fr}.report-options{display:grid;grid-template-columns:1fr 1fr}}
 
+
+    /* Monthly employee salary tracking */
+    #employeesPage .salary-status{display:inline-block;padding:4px 8px;border-radius:20px;font-size:11px;font-weight:800}
+    #employeesPage .salary-status.paid{background:#dcfce7;color:#166534}
+    #employeesPage .salary-status.partial{background:#fef3c7;color:#92400e}
+    #employeesPage .salary-status.unpaid{background:#fee2e2;color:#991b1b}
 </style>
 </head>
 <body>
@@ -848,7 +854,29 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
           <div class="module-field"><label>FULL NAME</label><input id="employeeName" required maxlength="120"></div><div class="module-field"><label>ROLE</label><select id="employeeRole"><option>Manager</option><option>Cashier</option><option>Chef</option><option>Waiter</option><option>Cleaner</option><option>Other</option></select></div>
           <div class="module-field"><label>PHONE</label><input id="employeePhone" type="tel"></div><div class="module-field"><label>EMAIL</label><input id="employeeEmail" type="email"></div><div class="module-field"><label>SALARY (<span data-restaurant-currency>SAR</span>)</label><input id="employeeSalary" type="number" min="0" step="0.01" value="0"></div>
         </div><div class="module-actions"><button class="menu-btn" type="submit" id="saveEmployeeBtn">SAVE EMPLOYEE</button><button class="menu-btn secondary" id="cancelEmployeeEdit" type="button" hidden>Cancel</button></div></form><p class="module-note">Employee records are stored in the restaurant's employees table. This does not automatically create a login account.</p></div>
-        <div class="module-card"><div class="module-toolbar"><h3 style="margin:0">Employee List</h3><input id="employeeSearch" placeholder="Search employees"></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>NAME</th><th>ROLE</th><th>PHONE</th><th>EMAIL</th><th>SALARY</th><th>ACTIONS</th></tr></thead><tbody id="employeeRows"></tbody></table></div></div>
+        <div class="module-card"><div class="module-toolbar"><h3 style="margin:0">Employee List</h3><input id="employeeSearch" placeholder="Search employees"></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>NAME</th><th>ROLE</th><th>PHONE</th><th>EMAIL</th><th>MONTHLY SALARY</th><th>ACTIONS</th></tr></thead><tbody id="employeeRows"></tbody></table></div></div>
+        <div class="module-summary">
+          <article class="stat"><div class="stathead">Monthly Salary Total</div><div class="statvalue" id="salaryTotalDue">0</div><div class="statnote">Selected month</div></article>
+          <article class="stat"><div class="stathead">Paid</div><div class="statvalue" id="salaryTotalPaid">0</div><div class="statnote">Payments recorded</div></article>
+          <article class="stat"><div class="stathead">Unpaid</div><div class="statvalue" id="salaryTotalUnpaid">0</div><div class="statnote">Remaining balance</div></article>
+        </div>
+        <div class="module-card">
+          <div class="module-toolbar"><h3 style="margin:0">Monthly Salary Tracking</h3><label style="font-size:12px;font-weight:750">MONTH <input id="salaryMonth" type="month" style="height:38px;border:1px solid var(--line);border-radius:8px;padding:0 9px"></label><button class="menu-btn secondary" type="button" id="refreshSalaryTracking">REFRESH</button></div>
+          <div class="module-table-wrap"><table class="module-table"><thead><tr><th>EMPLOYEE</th><th>MONTHLY SALARY</th><th>PAID</th><th>UNPAID</th><th>STATUS</th><th>ACTION</th></tr></thead><tbody id="salaryTrackingRows"></tbody></table></div>
+        </div>
+        <div class="module-card">
+          <h3>Record Salary Payment</h3>
+          <form id="salaryPaymentForm"><div class="module-form">
+            <div class="module-field"><label>EMPLOYEE</label><select id="salaryPaymentEmployee" required></select></div>
+            <div class="module-field"><label>PAYMENT MONTH</label><input id="salaryPaymentMonth" type="month" required></div>
+            <div class="module-field"><label>PAYMENT DATE</label><input id="salaryPaymentDate" type="date" required></div>
+            <div class="module-field"><label>AMOUNT PAID (<span data-restaurant-currency>SAR</span>)</label><input id="salaryPaymentAmount" type="number" min="0.01" step="0.01" required></div>
+            <div class="module-field"><label>PAYMENT METHOD</label><select id="salaryPaymentMethod"><option>Cash</option><option>Bank Transfer</option><option>Card</option><option>Other</option></select></div>
+            <div class="module-field"><label>NOTE / REFERENCE</label><input id="salaryPaymentNote" maxlength="200" placeholder="Optional note or reference"></div>
+          </div><div class="module-actions"><button class="menu-btn" type="submit">SAVE SALARY PAYMENT</button></div></form>
+          <p class="module-note">You can record more than one partial payment in a month. The remaining balance updates automatically.</p>
+        </div>
+        <div class="module-card"><div class="module-toolbar"><h3 style="margin:0">Salary Payment History</h3></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>DATE</th><th>EMPLOYEE</th><th>MONTH</th><th>AMOUNT</th><th>METHOD</th><th>NOTE</th></tr></thead><tbody id="salaryPaymentRows"></tbody></table></div></div>
       </section>
 
       <section id="budgetPage" class="pagepanel">
@@ -2964,16 +2992,82 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
   async function loadAdminSubscriptionPanel(){await Promise.all([loadAdminSubscriptionSettings(),loadAdminPlans(),loadAdminPaymentRequests(),loadAdminRestaurants(),loadNafPaymentLedger()]);}
   $('refreshAdminRestaurants').addEventListener('click',loadAdminRestaurants);$('refreshPaymentRequests').addEventListener('click',loadAdminPaymentRequests);
 
-  async function loadEmployees(){if(!activeRestaurant)return;const {data,error}=await client.from("employees").select("id,name,role,phone,email,salary,created_at").eq("restaurant_id",activeRestaurant.id).order("created_at",{ascending:false}).limit(300);if(error){moduleError("Could not load employees (check employees table columns)",error);return;}window.nafEmployees=data||[];renderEmployees();}
+  function currentSalaryMonth(){return new Date().toISOString().slice(0,7);}
+  function monthStart(value){return (value||currentSalaryMonth())+'-01';}
+  async function loadEmployees(){
+    if(!activeRestaurant)return;
+    const {data,error}=await client.from("employees").select("id,name,role,phone,email,salary,created_at").eq("restaurant_id",activeRestaurant.id).order("created_at",{ascending:false}).limit(300);
+    if(error){moduleError("Could not load employees (check employees table columns)",error);return;}
+    window.nafEmployees=data||[];
+    const month=$("salaryMonth").value||currentSalaryMonth();
+    $("salaryPaymentMonth").value=month;$("salaryPaymentDate").value=new Date().toISOString().slice(0,10);
+    $("salaryPaymentEmployee").innerHTML=window.nafEmployees.map(x=>`<option value="${safeText(x.id)}">${safeText(employeeName(x))}</option>`).join("");
+    renderEmployees();await loadSalaryPayments();
+  }
   function employeeName(x){return x.name||"";}
-  function renderEmployees(){const q=($("employeeSearch").value||"").toLowerCase();const rows=(window.nafEmployees||[]).filter(x=>employeeName(x).toLowerCase().includes(q)||(x.role||"").toLowerCase().includes(q));$("employeeRows").innerHTML=rows.map(x=>`<tr><td>${safeText(employeeName(x))}</td><td>${safeText(x.role||"")}</td><td>${safeText(x.phone||"")}</td><td>${safeText(x.email||"")}</td><td>${money(x.salary)}</td><td><button class="edit" data-edit-employee="${safeText(x.id)}">Edit</button> <button class="del" data-delete-employee="${safeText(x.id)}">Delete</button></td></tr>`).join("")||'<tr><td colspan="6" class="muted-empty">No employees found.</td></tr>';}
+  function renderEmployees(){
+    const q=($("employeeSearch").value||"").toLowerCase();
+    const rows=(window.nafEmployees||[]).filter(x=>employeeName(x).toLowerCase().includes(q)||(x.role||"").toLowerCase().includes(q));
+    $("employeeRows").innerHTML=rows.map(x=>`<tr><td>${safeText(employeeName(x))}</td><td>${safeText(x.role||"")}</td><td>${safeText(x.phone||"")}</td><td>${safeText(x.email||"")}</td><td>${money(x.salary)}</td><td><button class="edit" data-edit-employee="${safeText(x.id)}">Edit</button> <button class="del" data-delete-employee="${safeText(x.id)}">Delete</button></td></tr>`).join("")||'<tr><td colspan="6" class="muted-empty">No employees found.</td></tr>';
+  }
+  async function loadSalaryPayments(){
+    if(!activeRestaurant)return;
+    const month=$("salaryMonth").value||currentSalaryMonth(),from=monthStart(month);
+    const d=new Date(from+"T00:00:00"),to=new Date(d.getFullYear(),d.getMonth()+1,1).toISOString().slice(0,10);
+    const {data,error}=await client.from("employee_salary_payments").select("id,employee_id,salary_month,paid_on,amount,payment_method,note,created_at").eq("restaurant_id",activeRestaurant.id).gte("salary_month",from).lt("salary_month",to).order("paid_on",{ascending:false}).limit(1000);
+    if(error){moduleError("Could not load salary payments. Run the Employee Salary SQL setup first.",error);return;}
+    window.nafSalaryPayments=data||[];renderSalaryTracking();
+  }
+  function renderSalaryTracking(){
+    const employees=window.nafEmployees||[],payments=window.nafSalaryPayments||[],sums=new Map();
+    payments.forEach(p=>sums.set(p.employee_id,(sums.get(p.employee_id)||0)+Number(p.amount||0)));
+    let due=0,paid=0;
+    $("salaryTrackingRows").innerHTML=employees.map(emp=>{
+      const monthly=Number(emp.salary||0),paidAmt=sums.get(emp.id)||0,remaining=Math.max(0,monthly-paidAmt);
+      const status=remaining<=0&&monthly>0?"Paid":paidAmt>0?"Partially Paid":"Unpaid";
+      due+=monthly;paid+=Math.min(monthly,paidAmt);
+      const cls=status==="Paid"?"paid":status==="Unpaid"?"unpaid":"partial";
+      return `<tr><td>${safeText(employeeName(emp))}</td><td>${money(monthly)}</td><td>${money(paidAmt)}</td><td>${money(remaining)}</td><td><span class="salary-status ${cls}">${status}</span></td><td><button class="edit" data-salary-employee="${safeText(emp.id)}">Pay</button></td></tr>`;
+    }).join("")||'<tr><td colspan="6" class="muted-empty">No employees found.</td></tr>';
+    $("salaryTotalDue").textContent=money(due);$("salaryTotalPaid").textContent=money(paid);$("salaryTotalUnpaid").textContent=money(Math.max(0,due-paid));
+    const byId=new Map(employees.map(x=>[x.id,x]));
+    $("salaryPaymentRows").innerHTML=payments.map(p=>`<tr><td>${safeText(p.paid_on||"")}</td><td>${safeText(employeeName(byId.get(p.employee_id)||{}))}</td><td>${safeText(String(p.salary_month||"").slice(0,7))}</td><td>${money(p.amount)}</td><td>${safeText(p.payment_method||"")}</td><td>${safeText(p.note||"")}</td></tr>`).join("")||'<tr><td colspan="6" class="muted-empty">No salary payments for this month.</td></tr>';
+  }
   $("employeeSearch").addEventListener("input",renderEmployees);
-  $("employeeRows").addEventListener("click",async e=>{const edit=e.target.closest("[data-edit-employee]"),del=e.target.closest("[data-delete-employee]");if(edit){const x=window.nafEmployees.find(r=>r.id===edit.dataset.editEmployee);editingEmployeeId=x.id;$("employeeName").value=employeeName(x);$("employeeRole").value=x.role||"Other";$("employeePhone").value=x.phone||"";$("employeeEmail").value=x.email||"";$("employeeSalary").value=x.salary||0;if ($("employeeFormTitle")) $("employeeFormTitle").textContent ="Edit Employee";if ($("saveEmployeeBtn")) $("saveEmployeeBtn").textContent ="UPDATE EMPLOYEE";$("cancelEmployeeEdit").hidden=false;return;}if(del&&confirm("Delete this employee record?")){const {error}=await client.from("employees").delete().eq("id",del.dataset.deleteEmployee).eq("restaurant_id",activeRestaurant.id);if(error)moduleError("Could not delete employee",error);else{showAppNotice("Employee deleted.");loadEmployees();}}});
+  $("employeeRows").addEventListener("click",async e=>{
+    const edit=e.target.closest("[data-edit-employee]"),del=e.target.closest("[data-delete-employee]");
+    if(edit){const x=window.nafEmployees.find(r=>r.id===edit.dataset.editEmployee);editingEmployeeId=x.id;$("employeeName").value=employeeName(x);$("employeeRole").value=x.role||"Other";$("employeePhone").value=x.phone||"";$("employeeEmail").value=x.email||"";$("employeeSalary").value=x.salary||0;if ($("employeeFormTitle")) $("employeeFormTitle").textContent ="Edit Employee";if ($("saveEmployeeBtn")) $("saveEmployeeBtn").textContent ="UPDATE EMPLOYEE";$("cancelEmployeeEdit").hidden=false;return;}
+    if(del&&confirm("Delete this employee record?")){const {error}=await client.from("employees").delete().eq("id",del.dataset.deleteEmployee).eq("restaurant_id",activeRestaurant.id);if(error)moduleError("Could not delete employee",error);else{showAppNotice("Employee deleted.");await loadEmployees();}}
+  });
+  $("salaryTrackingRows").addEventListener("click",e=>{
+    const btn=e.target.closest("[data-salary-employee]");if(!btn)return;
+    $("salaryPaymentEmployee").value=btn.dataset.salaryEmployee;$("salaryPaymentMonth").value=$("salaryMonth").value||currentSalaryMonth();
+    $("salaryPaymentAmount").focus();$("salaryPaymentForm").scrollIntoView({behavior:"smooth",block:"center"});
+  });
+  $("salaryMonth").value=currentSalaryMonth();
+  $("salaryMonth").addEventListener("change",async()=>{$("salaryPaymentMonth").value=$("salaryMonth").value;await loadSalaryPayments();});
+  $("salaryPaymentMonth").addEventListener("change",async()=>{const value=$("salaryPaymentMonth").value;if(value){$("salaryMonth").value=value;await loadSalaryPayments();}});
+  $("refreshSalaryTracking").addEventListener("click",loadEmployees);
+  $("salaryPaymentForm").addEventListener("submit",async e=>{
+    e.preventDefault();
+    const employeeId=$("salaryPaymentEmployee").value,emp=(window.nafEmployees||[]).find(x=>x.id===employeeId);
+    const month=$("salaryPaymentMonth").value,amount=Number($("salaryPaymentAmount").value);
+    if(!emp){showAppNotice("Select an employee first.");return;}
+    if(!month||!Number.isFinite(amount)||amount<=0){showAppNotice("Enter a valid month and payment amount.");return;}
+    const paidAlready=(window.nafSalaryPayments||[]).filter(p=>p.employee_id===employeeId).reduce((a,p)=>a+Number(p.amount||0),0);
+    const remaining=Math.max(0,Number(emp.salary||0)-paidAlready);
+    if(amount>remaining+0.00001){showAppNotice("Payment is higher than the remaining salary balance ("+money(remaining)+").");return;}
+    const payload={restaurant_id:activeRestaurant.id,employee_id:employeeId,salary_month:monthStart(month),paid_on:$("salaryPaymentDate").value,payment_method:$("salaryPaymentMethod").value,amount,note:$("salaryPaymentNote").value.trim()||null};
+    try{const {error}=await client.from("employee_salary_payments").insert(payload);if(error)throw error;
+      showAppNotice("Salary payment saved.");$("salaryPaymentAmount").value="";$("salaryPaymentNote").value="";
+      $("salaryMonth").value=month;$("salaryPaymentMonth").value=month;await loadSalaryPayments();
+    }catch(err){moduleError("Could not save salary payment. Check the SQL table and RLS policies.",err);}
+  });
   function resetEmployee(){editingEmployeeId=null;$("employeeForm").reset();$("employeeSalary").value="0";if ($("employeeFormTitle")) $("employeeFormTitle").textContent ="Add Employee";if ($("saveEmployeeBtn")) $("saveEmployeeBtn").textContent ="SAVE EMPLOYEE";$("cancelEmployeeEdit").hidden=true;}
   $("cancelEmployeeEdit").addEventListener("click",resetEmployee);
   $("employeeForm").addEventListener("submit",async e=>{e.preventDefault();const payload={restaurant_id:activeRestaurant.id,name:$("employeeName").value.trim(),role:$("employeeRole").value,phone:$("employeePhone").value.trim()||null,email:$("employeeEmail").value.trim()||null,salary:Number($("employeeSalary").value||0)};try{const result=editingEmployeeId?await client.from("employees").update(payload).eq("id",editingEmployeeId).eq("restaurant_id",activeRestaurant.id):await client.from("employees").insert(payload);if(result.error)throw result.error;showAppNotice(editingEmployeeId?"Employee updated.":"Employee saved.");resetEmployee();await loadEmployees();}catch(err){moduleError("Could not save employee. Check employee column names",err)}});
 
-  async function loadBudget(){if(!activeRestaurant)return;const {data,error}=await client.from("budgets").select("id,title,amount,spent,start_date,end_date,created_at").eq("restaurant_id",activeRestaurant.id).order("start_date",{ascending:false}).limit(300);if(error){moduleError("Could not load budgets",error);return;}window.nafBudgets=data||[];renderBudget();}
+async function loadBudget(){if(!activeRestaurant)return;const {data,error}=await client.from("budgets").select("id,title,amount,spent,start_date,end_date,created_at").eq("restaurant_id",activeRestaurant.id).order("start_date",{ascending:false}).limit(300);if(error){moduleError("Could not load budgets",error);return;}window.nafBudgets=data||[];renderBudget();}
   function renderBudget(){const rows=window.nafBudgets||[];const total=rows.reduce((a,x)=>a+Number(x.amount||0),0),spent=rows.reduce((a,x)=>a+Number(x.spent||0),0);if ($("budgetModuleTotal")) $("budgetModuleTotal").textContent =money(total);if ($("budgetModuleSpent")) $("budgetModuleSpent").textContent =money(spent);if ($("budgetModuleRemaining")) $("budgetModuleRemaining").textContent =money(total-spent);$("budgetRows").innerHTML=rows.map(x=>`<tr><td>${safeText(x.title)}</td><td>${safeText(x.start_date||"")} – ${safeText(x.end_date||"")}</td><td>${money(x.amount)}</td><td>${money(x.spent)}</td><td>${money(Number(x.amount||0)-Number(x.spent||0))}</td><td><button class="edit" data-edit-budget="${safeText(x.id)}">Edit</button> <button class="del" data-delete-budget="${safeText(x.id)}">Delete</button></td></tr>`).join("")||'<tr><td colspan="6" class="muted-empty">No budgets created.</td></tr>';}
   $("budgetRows").addEventListener("click",async e=>{const edit=e.target.closest("[data-edit-budget]"),del=e.target.closest("[data-delete-budget]");if(edit){const x=window.nafBudgets.find(r=>r.id===edit.dataset.editBudget);editingBudgetId=x.id;$("budgetTitle").value=x.title;$("budgetAmount").value=x.amount;$("budgetStart").value=x.start_date;$("budgetEnd").value=x.end_date;if ($("budgetFormTitle")) $("budgetFormTitle").textContent ="Edit Budget";if ($("saveBudgetBtn")) $("saveBudgetBtn").textContent ="UPDATE BUDGET";$("cancelBudgetEdit").hidden=false;return;}if(del&&confirm("Delete this budget?")){const {error}=await client.from("budgets").delete().eq("id",del.dataset.deleteBudget).eq("restaurant_id",activeRestaurant.id);if(error)moduleError("Could not delete budget",error);else{showAppNotice("Budget deleted.");await loadBudget();await refreshDashboardTotals();}}});
   function resetBudget(){editingBudgetId=null;$("budgetForm").reset();if ($("budgetFormTitle")) $("budgetFormTitle").textContent ="Set Budget";if ($("saveBudgetBtn")) $("saveBudgetBtn").textContent ="SAVE BUDGET";$("cancelBudgetEdit").hidden=true;}
