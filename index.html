@@ -663,7 +663,10 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
           <div class="overview-metric"><span>Purchase Cost</span><b id="overviewPurchases">—</b></div>
           <div class="overview-metric"><span>Total Expenses</span><b id="overviewExpenses">—</b></div>
           <div class="overview-metric"><span>Net Profit</span><b id="overviewNetProfit">—</b></div>
-          <div class="overview-metric"><span>Stock Value</span><b id="overviewStockValue">Not tracked</b><small>Inventory quantities are not currently stored in the menu table.</small></div>
+          <div class="overview-metric"><span>Current Purchase Stock</span><b id="overviewCurrentPurchaseStock">—</b><small id="overviewCurrentPurchaseStockNote">Remaining stock lines</small></div>
+          <div class="overview-metric"><span>Purchase Used</span><b id="overviewPurchaseUsed">—</b><small id="overviewPurchaseUsedNote">Usage records in selected period</small></div>
+          <div class="overview-metric"><span>Stock Usage Value</span><b id="overviewStockUsageValue">—</b><small>Cost value of items used in selected period</small></div>
+          <div class="overview-metric"><span>Remaining Stock Value</span><b id="overviewRemainingStockValue">—</b><small>Cost value of current remaining stock</small></div>
           <div class="overview-metric"><span>Pending Payments</span><b id="overviewPendingPayments">—</b></div>
         </div><div class="muted" id="restaurantInfo">Loading restaurant details…</div></article>
       </section>
@@ -1525,7 +1528,7 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
     $("recentSales").innerHTML=activity.length?activity.map(x=>`<div class="activity-row"><div class="activity-dot">${x.icon}</div><div class="activity-main"><b>${safeText(x.kind)} · ${safeText(x.title)}</b><small>${safeText(x.detail)} · By: ${safeText(actorNames[x.actorId]||"Staff not recorded")} · ${safeText(x.at?new Date(x.at).toLocaleString():"Time unavailable")}</small></div><div class="activity-amount">${fmt(x.amount)}</div></div>`).join(""):'<div class="empty">No recent sales, purchases or expenses.</div>';
   }
   $("refreshDashboardBtn")?.addEventListener("click",refreshDashboardData);
-  $("applyDashboardDates")?.addEventListener("click",refreshDashboardData);
+  $("applyDashboardDates")?.addEventListener("click",()=>{refreshDashboardData();updateDashboardPurchaseStock();});
   $("dashboardFromDate")?.addEventListener("change",()=>{if($("dashboardToDate").value&&$("dashboardFromDate").value>$("dashboardToDate").value)$("dashboardToDate").value=$("dashboardFromDate").value;});
   $("dashboardToDate")?.addEventListener("change",()=>{if($("dashboardFromDate").value&&$("dashboardToDate").value<$("dashboardFromDate").value)$("dashboardFromDate").value=$("dashboardToDate").value;});
   $("refreshAppBtn")?.addEventListener("click", async () => {
@@ -2291,6 +2294,31 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
     const selected=purchaseUsageSources[Number(select.value)];
     $('purchaseUsedUnit').value=selected?.unit||'';
   }
+  function updateDashboardPurchaseStock(){
+    if(!activeRestaurant)return;
+    const currency=activeRestaurant.currency||"SAR";
+    const fmt=value=>currency+" "+Number(value||0).toLocaleString("en-SA",{minimumFractionDigits:2,maximumFractionDigits:2});
+    const stock=window.nafPurchaseStock||[];
+    const usages=window.nafPurchaseUsages||[];
+    const from=$('dashboardFromDate')?.value||'',to=$('dashboardToDate')?.value||'';
+    const inPeriod=u=>{const d=String(u.usage_date||'').slice(0,10);return (!from||d>=from)&&(!to||d<=to);};
+    const remainingLines=stock.filter(x=>Number(x.remaining||0)>0);
+    const remainingValue=stock.reduce((sum,x)=>sum+Number(x.remaining||0)*Number(x.unit_cost||0),0);
+    const sourceMap=new Map((window.nafAllPurchaseStock||stock).map(x=>[purchaseUsageKey(x),x]));
+    const periodUsages=usages.filter(inPeriod);
+    const usageValue=periodUsages.reduce((sum,u)=>{
+      const source=sourceMap.get(purchaseUsageKey(u));
+      return sum+Number(u.quantity_used||0)*Number(source?.unit_cost||0);
+    },0);
+    const el=id=>$(id);
+    if(el('overviewCurrentPurchaseStock'))el('overviewCurrentPurchaseStock').textContent=fmt(remainingValue);
+    if(el('overviewCurrentPurchaseStockNote'))el('overviewCurrentPurchaseStockNote').textContent=remainingLines.length+' item/invoice stock lines remaining';
+    if(el('overviewPurchaseUsed'))el('overviewPurchaseUsed').textContent=fmt(usageValue);
+    if(el('overviewPurchaseUsedNote'))el('overviewPurchaseUsedNote').textContent=periodUsages.length+' usage records in selected period';
+    if(el('overviewStockUsageValue'))el('overviewStockUsageValue').textContent=fmt(usageValue);
+    if(el('overviewRemainingStockValue'))el('overviewRemainingStockValue').textContent=fmt(remainingValue);
+  }
+
   async function loadPurchaseUsage(){
     if(!activeRestaurant)return;
     const receivedPurchaseIds=(window.nafPurchases||[]).filter(p=>p.status==='received').map(p=>p.id);
@@ -2310,6 +2338,11 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
     const purchaseMap=Object.fromEntries(purchases.map(p=>[p.id,p]));
     const usedMap={};
     usages.forEach(u=>{const k=purchaseUsageKey(u);usedMap[k]=(usedMap[k]||0)+Number(u.quantity_used||0);});
+    window.nafAllPurchaseStock=items.map(it=>{
+      const p=purchaseMap[it.purchase_id];if(!p)return null;
+      const key=purchaseUsageKey(it),purchased=Number(it.quantity||0),used=Number(usedMap[key]||0);
+      return {...it,invoice_number:p.invoice_number||'—',purchase_date:p.purchase_date||'',purchased,used,remaining:Math.max(0,purchased-used),key};
+    }).filter(Boolean);
     purchaseUsageSources=items.map(it=>{
       const p=purchaseMap[it.purchase_id]; if(!p)return null;
       const key=purchaseUsageKey(it), purchased=Number(it.quantity||0), used=Number(usedMap[key]||0);
@@ -2330,6 +2363,7 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
     window.nafVisiblePurchaseUsages=visibleUsages;
     window.nafVisiblePurchaseStock=visibleStock;
     window.nafPurchaseStock=purchaseUsageSources;
+    updateDashboardPurchaseStock();
   }
   $('purchaseUsedSource').addEventListener('change',()=>{
     const x=purchaseUsageSources[Number($('purchaseUsedSource').value)];
