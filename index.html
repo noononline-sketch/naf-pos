@@ -241,7 +241,29 @@
 
 
 
-/* Super Admin subscription search + bounded scrolling for long restaurant lists */
+
+/* Super Admin: independent scrolling for subscriptions, upcoming dates and payment requests. */
+.admin-independent-scroll{
+  max-height:360px;
+  overflow:auto;
+  overscroll-behavior:contain;
+  border:1px solid var(--line);
+  border-radius:9px;
+  scrollbar-gutter:stable;
+  -webkit-overflow-scrolling:touch;
+}
+.admin-independent-scroll thead th{
+  position:sticky;
+  top:0;
+  z-index:3;
+  background:#f1f5f9;
+  box-shadow:0 1px 0 var(--line);
+}
+@media(max-width:700px){
+  .admin-independent-scroll{max-height:300px}
+}
+
+    /* Super Admin subscription search + bounded scrolling for long restaurant lists */
 #adminSubscriptionsCard .subscription-searchbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px;margin:10px 0;background:#f8fafc;border:1px solid var(--line);border-radius:10px}
 #adminSubscriptionsCard .subscription-searchbar label{font-size:10px;font-weight:800;color:var(--muted);white-space:nowrap}
 #adminSubscriptionsCard .subscription-searchbar input{flex:1;min-width:230px;height:40px;border:1px solid var(--line);border-radius:8px;padding:0 12px;background:#fff;color:var(--ink);font:inherit}
@@ -795,7 +817,7 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
           </div><div class="module-actions"><button class="menu-btn" type="submit">SAVE SUBSCRIPTION SETTINGS</button></div></form></div>
           <div class="module-card"><h3>Subscription Plans</h3><form id="adminPlanForm"><div class="module-form"><div class="module-field"><label>PLAN NAME</label><input id="adminPlanName" required></div><div class="module-field"><label>PLAN CODE</label><input id="adminPlanCode" required></div><div class="module-field"><label>DURATION DAYS</label><input id="adminPlanDays" type="number" min="1" max="3650" required></div><div class="module-field"><label>PRICE</label><input id="adminPlanPrice" type="number" min="0" step="0.01" required></div><div class="module-field"><label>CURRENCY</label><input id="adminPlanCurrency" value="SAR" required></div><div class="module-field"><label>STATUS</label><select id="adminPlanActive"><option value="true">Active</option><option value="false">Inactive</option></select></div></div><div class="module-actions"><button class="menu-btn" type="submit">ADD PLAN</button></div></form><div class="module-table-wrap"><table class="module-table"><thead><tr><th>PLAN</th><th>DAYS</th><th>PRICE</th><th>STATUS</th><th>ACTION</th></tr></thead><tbody id="adminPlanRows"></tbody></table></div></div>
         </div>
-        <div class="module-card"><div class="module-toolbar"><h3 style="margin:0">Payment Requests</h3><button class="menu-btn secondary" id="refreshPaymentRequests" type="button">REFRESH REQUESTS</button></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>RESTAURANT</th><th>PLAN</th><th>AMOUNT</th><th>REFERENCE</th><th>RECEIPT</th><th>STATUS</th><th>ACTIONS</th></tr></thead><tbody id="adminPaymentRows"></tbody></table></div></div>
+        <div class="module-card"><div class="module-toolbar"><h3 style="margin:0">Payment Requests</h3><button class="menu-btn secondary" id="refreshPaymentRequests" type="button">REFRESH REQUESTS</button></div><div id="adminPaymentRequestsScroll" class="module-table-wrap admin-independent-scroll"><table class="module-table"><thead><tr><th>RESTAURANT</th><th>PLAN</th><th>AMOUNT</th><th>REFERENCE</th><th>RECEIPT</th><th>STATUS</th><th>ACTIONS</th></tr></thead><tbody id="adminPaymentRows"></tbody></table></div></div>
         <section class="module-card" id="nafPaymentTrackerCard">
           <h3>Payment Tracker · Approved Revenue</h3>
           <p class="module-note">Approved customer payments only. ETB and SAR totals are kept separate. Super Admin lifetime-free restaurant is excluded.</p>
@@ -815,7 +837,7 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
               <div class="module-field full"><label>NOTE</label><input id="nafManualNote" maxlength="500" placeholder="Optional note"></div>
             </div><div class="module-actions"><button class="menu-btn" type="submit">SAVE APPROVED PAYMENT</button></div></form>
           </div>
-          <div class="module-card"><div class="module-toolbar"><h3 style="margin:0">Upcoming Subscription Dates</h3><span class="module-note">Next 30 days</span></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>RESTAURANT</th><th>PLAN STATUS</th><th>EXPIRES</th><th>DAYS LEFT</th></tr></thead><tbody id="nafUpcomingPayments"><tr><td colspan="4">Loading…</td></tr></tbody></table></div></div>
+          <div class="module-card"><div class="module-toolbar"><h3 style="margin:0">Upcoming Subscription Dates</h3><span class="module-note">Next 30 days</span></div><div id="nafUpcomingSubscriptionsScroll" class="module-table-wrap admin-independent-scroll"><table class="module-table"><thead><tr><th>RESTAURANT</th><th>PLAN STATUS</th><th>EXPIRES</th><th>DAYS LEFT</th></tr></thead><tbody id="nafUpcomingPayments"><tr><td colspan="4">Loading…</td></tr></tbody></table></div></div>
           <div class="module-toolbar"><h3 style="margin:0">Approved Payment History</h3><button class="menu-btn secondary" id="nafRefreshLedger" type="button">REFRESH HISTORY</button></div>
           <div class="module-table-wrap"><table class="module-table"><thead><tr><th>DATE</th><th>RESTAURANT</th><th>AMOUNT</th><th>METHOD</th><th>REFERENCE</th><th>SOURCE</th><th>ACTIONS</th></tr></thead><tbody id="nafPaymentLedgerRows"><tr><td colspan="7">Loading…</td></tr></tbody></table></div>
         </section>
@@ -2761,7 +2783,72 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
 
   async function requireNafSuperAdmin(){const {data:{user},error}=await client.auth.getUser();if(error)throw error;if(!user)throw new Error("Please sign in.");const {data:ok,error:checkError}=await client.rpc("naf_is_super_admin");if(checkError)throw checkError;if(ok!==true)throw new Error("Access denied: this account is not a Super Admin.");return user;}
   async function loadAdminSubscriptionSettings(){await requireNafSuperAdmin();const {data,error}=await client.from("naf_subscription_settings").select("*").eq("setting_key","main").single();if(error)throw error;subscriptionSettingsCache=data;$('adminTrialDays').value=data.trial_days??5;$('adminSubCurrency').value=data.currency||'SAR';$('adminSubEmail').value=data.contact_email||'';$('adminSubPhone').value=data.contact_phone||'';$('adminSubWhatsapp').value=data.whatsapp_number||'';$('adminSubBank').value=data.bank_name||'';$('adminSubHolder').value=data.account_holder||'';$('adminSubAccount').value=data.account_number||'';$('adminExpiryTitle').value=data.expiry_title||'';$('adminExpiryMessage').value=data.expiry_message||'';$('adminSuspendedTitle').value=data.suspended_title||'Account Suspended';$('adminSuspendedMessage').value=data.suspended_message||'Your account has been suspended by NAF POS Super Admin. Please contact support.';$('adminSuspendedEmail').value=data.suspended_contact_email||data.contact_email||'noononline34@gmail.com';}
-  $('adminSubscriptionSettingsForm').addEventListener('submit',async e=>{e.preventDefault();try{const user=await requireNafSuperAdmin();const payload={trial_days:Number($('adminTrialDays').value),currency:$('adminSubCurrency').value.trim()||'SAR',contact_email:$('adminSubEmail').value.trim()||null,contact_phone:$('adminSubPhone').value.trim()||null,whatsapp_number:$('adminSubWhatsapp').value.trim()||null,bank_name:$('adminSubBank').value.trim()||null,account_holder:$('adminSubHolder').value.trim()||null,account_number:$('adminSubAccount').value.trim()||null,expiry_title:$('adminExpiryTitle').value.trim()||'Subscription Expired',expiry_message:$('adminExpiryMessage').value.trim()||'Please subscribe to continue.',suspended_title:$('adminSuspendedTitle').value.trim()||'Account Suspended',suspended_message:$('adminSuspendedMessage').value.trim()||'Your account has been suspended by NAF POS Super Admin. Please contact support.',suspended_contact_email:$('adminSuspendedEmail').value.trim()||$('adminSubEmail').value.trim()||'noononline34@gmail.com',updated_at:new Date().toISOString(),updated_by:user.id};const {error}=await client.from('naf_subscription_settings').update(payload).eq('setting_key','main');if(error)throw error;showAppNotice('Subscription settings saved. New trial duration applies to newly created restaurants.');await loadAdminSubscriptionSettings();}catch(err){moduleError('Could not save subscription settings',err);}});
+  $('adminSubscriptionSettingsForm').addEventListener('submit',async e=>{
+    e.preventDefault();
+    try{
+      const user=await requireNafSuperAdmin();
+      const newTrialDays=Number($('adminTrialDays').value);
+      if(!Number.isInteger(newTrialDays)||newTrialDays<0||newTrialDays>365)throw new Error('Free Trial Days must be a whole number from 0 to 365.');
+
+      // Read only trial subscriptions. Paid ACTIVE subscriptions and manually suspended
+      // accounts are deliberately excluded from trial recalculation.
+      const {data:trialRows,error:trialReadError}=await client
+        .from('naf_subscriptions')
+        .select('id,trial_started_at,trial_expires_at,expires_at,started_at,created_at')
+        .eq('status','trial');
+      if(trialReadError)throw trialReadError;
+
+      const nowForTrialCheck=Date.now();
+      const trialUpdates=(trialRows||[]).filter(row=>{
+        const currentExpiry=row.trial_expires_at||row.expires_at;
+        // Never restart a trial that had already expired before this settings change.
+        return !currentExpiry || new Date(currentExpiry).getTime()>=nowForTrialCheck;
+      }).map(row=>{
+        const startValue=row.trial_started_at||row.started_at||row.created_at;
+        if(!startValue)return null;
+        const startDate=new Date(startValue);
+        if(Number.isNaN(startDate.getTime()))return null;
+        const expiryDate=new Date(startDate);
+        expiryDate.setDate(expiryDate.getDate()+newTrialDays);
+        return {id:row.id,expires_at:expiryDate.toISOString(),trial_expires_at:expiryDate.toISOString()};
+      }).filter(Boolean);
+
+      // Apply existing-trial expiry updates first. If the database does not permit
+      // the update, stop before saving the new global setting and show the error.
+      for(const update of trialUpdates){
+        const {error}=await client.from('naf_subscriptions')
+          .update({expires_at:update.expires_at,trial_expires_at:update.trial_expires_at,updated_at:new Date().toISOString()})
+          .eq('id',update.id).eq('status','trial');
+        if(error)throw error;
+      }
+
+      const payload={
+        trial_days:newTrialDays,
+        currency:$('adminSubCurrency').value.trim()||'SAR',
+        contact_email:$('adminSubEmail').value.trim()||null,
+        contact_phone:$('adminSubPhone').value.trim()||null,
+        whatsapp_number:$('adminSubWhatsapp').value.trim()||null,
+        bank_name:$('adminSubBank').value.trim()||null,
+        account_holder:$('adminSubHolder').value.trim()||null,
+        account_number:$('adminSubAccount').value.trim()||null,
+        expiry_title:$('adminExpiryTitle').value.trim()||'Subscription Expired',
+        expiry_message:$('adminExpiryMessage').value.trim()||'Please subscribe to continue.',
+        suspended_title:$('adminSuspendedTitle').value.trim()||'Account Suspended',
+        suspended_message:$('adminSuspendedMessage').value.trim()||'Your account has been suspended by NAF POS Super Admin. Please contact support.',
+        suspended_contact_email:$('adminSuspendedEmail').value.trim()||$('adminSubEmail').value.trim()||'noononline34@gmail.com',
+        updated_at:new Date().toISOString(),
+        updated_by:user.id
+      };
+      const {error}=await client.from('naf_subscription_settings').update(payload).eq('setting_key','main');
+      if(error)throw error;
+      showAppNotice(`Subscription settings saved. ${trialUpdates.length} unexpired existing trial account(s) recalculated from their original trial start date. Previously expired trials, paid ACTIVE and suspended accounts were not changed.`);
+      await loadAdminSubscriptionSettings();
+      await loadAdminRestaurants();
+      await loadNafPaymentLedger();
+    }catch(err){
+      moduleError('Could not save subscription settings',err);
+    }
+  });
   async function loadAdminPlans(){await requireNafSuperAdmin();const {data,error}=await client.from('naf_subscription_plans').select('*').order('duration_days');if(error)throw error;subscriptionPlansCache=data||[];$('adminPlanRows').innerHTML=subscriptionPlansCache.map(p=>`<tr><td>${safeText(p.plan_name)}</td><td>${p.duration_days}</td><td>${safeText(p.currency)} ${Number(p.price).toFixed(2)}</td><td>${p.is_active?'Active':'Inactive'}</td><td><button class="edit" data-plan-edit="${safeText(p.id)}">Edit</button></td></tr>`).join('')||'<tr><td colspan="5">No plans.</td></tr>';}
   $('adminPlanForm').addEventListener('submit',async e=>{e.preventDefault();try{await requireNafSuperAdmin();const code=$('adminPlanCode').value.trim().toLowerCase().replace(/[^a-z0-9_-]/g,'-');const payload={plan_code:code,plan_name:$('adminPlanName').value.trim(),duration_days:Number($('adminPlanDays').value),price:Number($('adminPlanPrice').value),currency:$('adminPlanCurrency').value.trim().toUpperCase(),is_active:$('adminPlanActive').value==='true',updated_at:new Date().toISOString()};const {error}=await client.from('naf_subscription_plans').upsert(payload,{onConflict:'plan_code'});if(error)throw error;showAppNotice('Subscription plan saved.');$('adminPlanForm').reset();$('adminPlanCurrency').value='SAR';await loadAdminPlans();}catch(err){moduleError('Could not save subscription plan',err);}});
   $('adminPlanRows').addEventListener('click',e=>{const b=e.target.closest('[data-plan-edit]');if(!b)return;const p=subscriptionPlansCache.find(x=>x.id===b.dataset.planEdit);if(!p)return;$('adminPlanName').value=p.plan_name;$('adminPlanCode').value=p.plan_code;$('adminPlanDays').value=p.duration_days;$('adminPlanPrice').value=p.price;$('adminPlanCurrency').value=p.currency;$('adminPlanActive').value=String(p.is_active);});
