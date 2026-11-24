@@ -716,7 +716,7 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
           <div class="module-actions"><button class="menu-btn" type="submit" id="savePurchaseBtn">SAVE PURCHASE</button></div>
         </form></div>
         <div class="module-card" id="purchaseExportCard"><div class="module-toolbar"><div><h3 style="margin:0">Purchase Reports Download</h3><div class="module-note">Download complete purchase, used-item and remaining-stock reports.</div></div><div class="module-actions" style="margin:0"><button class="menu-btn" id="downloadPurchaseExcelBtn" type="button">DOWNLOAD EXCEL</button><button class="menu-btn secondary" id="downloadPurchasePdfBtn" type="button">DOWNLOAD PDF</button></div></div></div>
-        <div class="module-card purchase-scroll-card" id="purchaseHistoryCard"><div class="module-toolbar"><h3 style="margin:0">Purchase History</h3><input id="purchaseSearch" placeholder="Search invoice or supplier"></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>DATE</th><th>INVOICE</th><th>SUPPLIER</th><th>TOTAL</th><th>STATUS</th><th>ACTIONS</th></tr></thead><tbody id="purchaseRows"></tbody></table></div></div>
+        <div class="module-card purchase-scroll-card" id="purchaseHistoryCard"><div class="module-toolbar"><h3 style="margin:0">Purchase History</h3><input id="purchaseSearch" placeholder="Search invoice or supplier"></div><div class="module-table-wrap"><table class="module-table"><thead><tr><th>DATE</th><th>INVOICE</th><th>SUPPLIER</th><th>ITEM</th><th>QUANTITY</th><th>UNIT</th><th>UNIT COST</th><th>LINE TOTAL</th><th>STATUS</th><th>ACTIONS</th></tr></thead><tbody id="purchaseRows"></tbody></table></div></div>
 
         <div class="module-card" id="purchaseUsedCard">
           <h3>Purchase Used / Stock Usage</h3>
@@ -2482,8 +2482,25 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
     window.nafSuppliers.forEach(x=>{const o=document.createElement('option');o.value=x.id;o.textContent=x.name;sel.appendChild(o)});sel.value=old;
     const names=Object.fromEntries(window.nafSuppliers.map(x=>[x.id,x.name]));
     $('supplierRows').innerHTML=window.nafSuppliers.map(x=>`<tr><td>${safeText(x.name)}</td><td><button class="edit" data-edit-supplier="${safeText(x.id)}">Edit</button> <button class="del" data-delete-supplier="${safeText(x.id)}">Delete</button></td></tr>`).join('')||'<tr><td colspan="2" class="muted-empty">No suppliers yet.</td></tr>';
+    const {data:purchaseItems,error:itemLoadError}=window.nafPurchases.length
+      ? await client.from('purchase_items').select('id,purchase_id,item_name,quantity,unit,unit_cost,total_cost').in('purchase_id',window.nafPurchases.map(x=>x.id))
+      : {data:[],error:null};
+    if(itemLoadError){moduleError('Could not load purchased item details',itemLoadError);return;}
+    window.nafPurchaseItems=purchaseItems||[];
     const q=($('purchaseSearch').value||'').toLowerCase();
-    $('purchaseRows').innerHTML=window.nafPurchases.filter(x=>(x.invoice_number||'').toLowerCase().includes(q)||(names[x.supplier_id]||'').toLowerCase().includes(q)).map(x=>`<tr><td>${safeText(x.purchase_date||'')}</td><td>${safeText(x.invoice_number||'—')}</td><td>${safeText(names[x.supplier_id]||'—')}</td><td>${money(x.total_amount)}</td><td>${safeText(x.status||'')}</td><td><button class="edit" data-edit-purchase="${safeText(x.id)}">Edit</button> <button class="del" data-delete-purchase="${safeText(x.id)}">Delete</button> <button class="edit" data-print-purchase="${safeText(x.id)}">Print</button></td></tr>`).join('')||'<tr><td colspan="6" class="muted-empty">No purchases found.</td></tr>';
+    const visiblePurchases=window.nafPurchases.filter(p=>{
+      const supplier=(names[p.supplier_id]||'').toLowerCase();
+      const invoice=(p.invoice_number||'').toLowerCase();
+      const relatedItems=window.nafPurchaseItems.filter(it=>it.purchase_id===p.id);
+      return !q||invoice.includes(q)||supplier.includes(q)||relatedItems.some(it=>(it.item_name||'').toLowerCase().includes(q));
+    });
+    const purchaseRows=visiblePurchases.flatMap(p=>{
+      const relatedItems=window.nafPurchaseItems.filter(it=>it.purchase_id===p.id);
+      const actions=`<button class="edit" data-edit-purchase="${safeText(p.id)}">Edit</button> <button class="del" data-delete-purchase="${safeText(p.id)}">Delete</button> <button class="edit" data-print-purchase="${safeText(p.id)}">Print</button>`;
+      const rows=relatedItems.length?relatedItems:[null];
+      return rows.map((it,index)=>`<tr><td>${safeText(p.purchase_date||'')}</td><td>${safeText(p.invoice_number||'—')}</td><td>${safeText(names[p.supplier_id]||'—')}</td><td>${safeText(it?.item_name||'—')}</td><td>${it?Number(it.quantity||0):'—'}</td><td>${safeText(it?.unit||'—')}</td><td>${it?money(it.unit_cost):'—'}</td><td>${it?money(it.total_cost??(Number(it.quantity||0)*Number(it.unit_cost||0))):money(p.total_amount)}</td><td>${safeText(p.status||'')}</td><td>${actions}</td></tr>`);
+    }).join('');
+    $('purchaseRows').innerHTML=purchaseRows||'<tr><td colspan="10" class="muted-empty">No purchase items found.</td></tr>';
     window.nafNextPurchaseInvoice=nextPurchaseInvoice(window.nafPurchases);if(!editingPurchaseId)$('purchaseInvoice').value=window.nafNextPurchaseInvoice;
     await loadPurchaseUsage();
   }
