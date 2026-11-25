@@ -538,6 +538,26 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
   #menuPage .menu-table-wrap{max-height:360px}
 }
 
+
+/* Super Admin section printing: print only the selected report. */
+@media print{
+  body.admin-printing *{visibility:hidden!important}
+  body.admin-printing .admin-print-target,
+  body.admin-printing .admin-print-target *{visibility:visible!important}
+  body.admin-printing .admin-print-target{position:absolute!important;left:0!important;top:0!important;width:100%!important;max-width:none!important;margin:0!important;padding:10mm!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:#fff!important}
+  body.admin-printing .admin-print-target .no-print,
+  body.admin-printing .admin-print-target button{display:none!important}
+  body.admin-printing .admin-print-target .module-table-wrap,
+  body.admin-printing .admin-print-target .admin-independent-scroll,
+  body.admin-printing .admin-print-target .subscription-table-scroll{max-height:none!important;overflow:visible!important;border:0!important}
+  body.admin-printing .admin-print-target table{width:100%!important;min-width:0!important;border-collapse:collapse!important}
+  body.admin-printing .admin-print-target th,
+  body.admin-printing .admin-print-target td{font-size:9pt!important;padding:6px!important;border:1px solid #d8dee8!important;color:#111!important}
+  body.admin-printing .admin-print-target thead th{position:static!important;background:#eef2f7!important}
+  body.admin-printing .admin-print-target tr{break-inside:avoid}
+  @page{size:A4 landscape;margin:10mm}
+}
+
 </style>
 </head>
 <body>
@@ -887,11 +907,11 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
               <div class="module-field full"><label>NOTE</label><input id="nafManualNote" maxlength="500" placeholder="Optional note"></div>
             </div><div class="module-actions"><button class="menu-btn" type="submit">SAVE APPROVED PAYMENT</button></div></form>
           </div>
-          <div class="module-card"><div class="module-toolbar"><h3 style="margin:0">Upcoming Subscription Dates</h3><span class="module-note">Next 30 days</span></div><div id="nafUpcomingSubscriptionsScroll" class="module-table-wrap admin-independent-scroll"><table class="module-table"><thead><tr><th>RESTAURANT</th><th>PLAN STATUS</th><th>EXPIRES</th><th>DAYS LEFT</th></tr></thead><tbody id="nafUpcomingPayments"><tr><td colspan="4">Loading…</td></tr></tbody></table></div></div>
-          <div class="module-toolbar"><h3 style="margin:0">Approved Payment History</h3><button class="menu-btn secondary" id="nafRefreshLedger" type="button">REFRESH HISTORY</button></div>
-          <div class="module-table-wrap"><table class="module-table"><thead><tr><th>DATE</th><th>RESTAURANT</th><th>AMOUNT</th><th>METHOD</th><th>REFERENCE</th><th>SOURCE</th><th>ACTIONS</th></tr></thead><tbody id="nafPaymentLedgerRows"><tr><td colspan="7">Loading…</td></tr></tbody></table></div>
+          <div class="module-card" id="nafUpcomingPrintSection"><div class="module-toolbar"><h3 style="margin:0">Upcoming Subscription Dates</h3><div class="module-actions" style="margin:0"><span class="module-note">Next 30 days</span><button class="menu-btn secondary no-print" type="button" onclick="printAdminSection('nafUpcomingPrintSection','Upcoming Subscription Dates')">PRINT</button></div></div><div id="nafUpcomingSubscriptionsScroll" class="module-table-wrap admin-independent-scroll"><table class="module-table"><thead><tr><th>RESTAURANT</th><th>PLAN STATUS</th><th>EXPIRES</th><th>DAYS LEFT</th></tr></thead><tbody id="nafUpcomingPayments"><tr><td colspan="4">Loading…</td></tr></tbody></table></div></div>
+          <div class="module-card" id="nafApprovedHistoryPrintSection"><div class="module-toolbar"><h3 style="margin:0">Approved Payment History</h3><div class="module-actions" style="margin:0"><button class="menu-btn secondary no-print" id="nafRefreshLedger" type="button">REFRESH HISTORY</button><button class="menu-btn secondary no-print" type="button" onclick="printAdminSection('nafApprovedHistoryPrintSection','Approved Payment History')">PRINT</button></div></div>
+          <div class="module-table-wrap"><table class="module-table"><thead><tr><th>DATE</th><th>RESTAURANT</th><th>AMOUNT</th><th>METHOD</th><th>REFERENCE</th><th>SOURCE</th><th>ACTIONS</th></tr></thead><tbody id="nafPaymentLedgerRows"><tr><td colspan="7">Loading…</td></tr></tbody></table></div></div>
         </section>
-        <div class="module-card" id="adminSubscriptionsCard"><div class="module-toolbar"><div><b>Restaurant Subscriptions · Full Details</b><p class="module-note">Owner, plan, subscription dates, remaining days and account status.</p></div><button class="menu-btn secondary" id="refreshAdminRestaurants" type="button">REFRESH</button></div><div class="subscription-searchbar"><label for="adminSubscriptionSearch">SEARCH RESTAURANTS</label><input id="adminSubscriptionSearch" type="search" placeholder="Search restaurant, owner, email, phone, status or plan…"><span id="adminSubscriptionCount">0 restaurants</span></div><div class="module-table-wrap subscription-table-scroll"><table class="module-table"><thead><tr><th>RESTAURANT / CONTACT</th><th>OWNER</th><th>STATUS</th><th>PLAN</th><th>STARTED</th><th>EXPIRES</th><th>DAYS LEFT</th><th>CURRENCY</th><th>OWNER ID</th><th>ACTION</th></tr></thead><tbody id="adminRestaurantRows"><tr><td colspan="10">Press Refresh to load authorized data.</td></tr></tbody></table></div><div class="subscription-legend"><span class="sub-legend trial">TRIAL</span><span class="sub-legend active">ACTIVE</span><span class="sub-legend suspended">SUSPENDED / EXPIRED</span></div></div>
+        <div class="module-card" id="adminSubscriptionsCard"><div class="module-toolbar"><div><b>Restaurant Subscriptions · Full Details</b><p class="module-note">Owner, plan, subscription dates, remaining days and account status.</p></div><div class="module-actions" style="margin:0"><button class="menu-btn secondary no-print" id="refreshAdminRestaurants" type="button">REFRESH</button><button class="menu-btn secondary no-print" type="button" onclick="printAdminSection('adminSubscriptionsCard','Restaurant Subscriptions - Full Details')">PRINT</button></div></div><div class="subscription-searchbar"><label for="adminSubscriptionSearch">SEARCH RESTAURANTS</label><input id="adminSubscriptionSearch" type="search" placeholder="Search restaurant, owner, email, phone, status or plan…"><span id="adminSubscriptionCount">0 restaurants</span></div><div class="module-table-wrap subscription-table-scroll"><table class="module-table"><thead><tr><th>RESTAURANT / CONTACT</th><th>OWNER</th><th>STATUS</th><th>PLAN</th><th>STARTED</th><th>EXPIRES</th><th>DAYS LEFT</th><th>CURRENCY</th><th>OWNER ID</th><th>ACTION</th></tr></thead><tbody id="adminRestaurantRows"><tr><td colspan="10">Press Refresh to load authorized data.</td></tr></tbody></table></div><div class="subscription-legend"><span class="sub-legend trial">TRIAL</span><span class="sub-legend active">ACTIVE</span><span class="sub-legend suspended">SUSPENDED / EXPIRED</span></div></div>
       </section>
       <section id="employeesPage" class="pagepanel">
         <div class="module-card"><h3 id="employeeFormTitle">Add Employee</h3><form id="employeeForm"><div class="module-form">
@@ -3148,6 +3168,27 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
   $('nafPaymentLedgerRows').addEventListener('click',async e=>{const edit=e.target.closest('[data-ledger-edit]'),del=e.target.closest('[data-ledger-delete]');if(!edit&&!del)return;try{await requireNafSuperAdmin();const row=(window.nafPaymentLedger||[]).find(x=>x.id===(edit||del).dataset[edit?'ledgerEdit':'ledgerDelete']);if(!row)return;if(edit){const amount=prompt('Correct amount:',String(row.amount));if(amount===null)return;const date=prompt('Payment date (YYYY-MM-DD):',String(row.paid_at).slice(0,10));if(date===null)return;const method=prompt('Payment method:',row.payment_method||'Cash');if(method===null)return;const reference=prompt('Reference number:',row.reference_number||'');if(reference===null)return;const reason=prompt('Reason for correction (required):');if(!reason?.trim())throw new Error('A correction reason is required.');const {error}=await client.from('naf_payment_ledger').update({amount:Number(amount),paid_at:new Date(date+'T12:00:00').toISOString(),payment_method:method,reference_number:reference||null,note:[row.note,`Edited: ${reason}`].filter(Boolean).join(' | ')}).eq('id',row.id);if(error)throw error;showAppNotice('Payment updated. Approved totals recalculated.');}else{const reason=prompt('Reason for deleting this payment (required):');if(!reason?.trim())return;if(!confirm('Delete this payment? The approved total will decrease. Audit record will be kept.'))return;const {error}=await client.from('naf_payment_ledger').delete().eq('id',row.id);if(error)throw error;showAppNotice('Payment deleted. Audit record retained; totals recalculated.');}await loadNafPaymentLedger();}catch(err){moduleError('Payment history action failed',err);}});
   $('nafRefreshLedger').addEventListener('click',()=>loadNafPaymentLedger().catch(err=>moduleError('Could not refresh payment history',err)));
   $('nafManualDate').value=new Date().toISOString().slice(0,10);
+
+
+  // Print only the selected Super Admin report section.
+  window.printAdminSection = function(sectionId, title){
+    const section = document.getElementById(sectionId);
+    if(!section){ moduleError('Print section not found', new Error(sectionId)); return; }
+    document.querySelectorAll('.admin-print-target').forEach(el=>el.classList.remove('admin-print-target'));
+    section.classList.add('admin-print-target');
+    document.body.classList.add('admin-printing');
+    const oldTitle = document.title;
+    document.title = title || 'NAF POS Report';
+    const cleanup = ()=>{
+      document.body.classList.remove('admin-printing');
+      section.classList.remove('admin-print-target');
+      document.title = oldTitle;
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup, {once:true});
+    window.print();
+    setTimeout(()=>{ if(document.body.classList.contains('admin-printing')) cleanup(); }, 1500);
+  };
 
   async function loadAdminSubscriptionPanel(){await Promise.all([loadAdminSubscriptionSettings(),loadAdminPlans(),loadAdminPaymentRequests(),loadAdminRestaurants(),loadNafPaymentLedger()]);}
   $('refreshAdminRestaurants').addEventListener('click',loadAdminRestaurants);$('refreshPaymentRequests').addEventListener('click',loadAdminPaymentRequests);
