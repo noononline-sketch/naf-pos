@@ -1219,20 +1219,41 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
     currentSubscription=row;
     return row;
   }
-  function updateSubscriptionRequestAvailability(accessRow){
+  function updateSubscriptionRequestAvailability(accessRow,pendingRequest=null){
     const button=$("openSubscriptionRequest");
     const note=$("subscriptionManagementNote");
     const active=accessRow?.can_access===true;
-    const suspended=String(accessRow?.subscription_status||"").toLowerCase()==="suspended";
-    if(button) button.hidden=!!(currentCashier || currentManager || !activeRestaurant || suspended);
-    if(button) button.textContent=active
-      ? "RENEW / CHANGE PLAN"
+    const status=String(accessRow?.subscription_status||"").toLowerCase();
+    const suspended=status==="suspended";
+    const trial=status==="trial";
+    const lifetime=String(currentSubscriptionDetails?.plan_code||"").toLowerCase()==="admin_lifetime_free";
+    const pending=String(pendingRequest?.status||"").toLowerCase()==="pending";
+    const allowed=trial || !active;
+    if(button) button.hidden=!!(currentCashier || currentManager || !activeRestaurant || suspended || lifetime || (active&&!allowed) || pending);
+    if(button) button.textContent=trial
+      ? "CHOOSE A PAID PLAN"
       : "VIEW PLANS & REQUEST SUBSCRIPTION";
     if(note) note.textContent=suspended
       ? "This account is suspended. Contact NAF POS Super Admin for assistance."
-      : active
-        ? "Your subscription is active. Monthly and Yearly customers can submit a renewal payment before the expiry date. Once Super Admin approves it, the new period will be added after the current expiry date. Admin Lifetime Free does not require renewal."
-        : "Your subscription has expired. Choose a plan and submit your payment receipt for Super Admin review.";
+      : lifetime
+        ? "Your Admin Lifetime Free subscription does not expire and does not require payment."
+        : pending
+          ? "Your payment request is waiting for Super Admin review. You cannot submit another request until it is approved or rejected."
+          : trial
+            ? "Your Free Trial is active. You may choose Monthly or Yearly and submit payment at any time. The paid plan starts after Super Admin approves your request."
+            : active
+              ? "Your paid subscription is active. You cannot select another plan or submit a payment request until it expires."
+              : "Your subscription has expired. Choose a plan and submit your payment receipt for Super Admin review.";
+  }
+
+  async function getLatestSubscriptionPaymentRequest(restaurantId){
+    const {data,error}=await client.from("naf_payment_requests")
+      .select("id,status,created_at,rejection_reason")
+      .eq("restaurant_id",restaurantId)
+      .order("created_at",{ascending:false})
+      .limit(1);
+    if(error) throw error;
+    return data?.[0]||null;
   }
 
   async function checkSubscriptionAccess(restaurantId){
@@ -1279,12 +1300,29 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
     e.preventDefault();
     if(currentCashier||currentManager||!activeRestaurant){showAppNotice("Only the restaurant owner can submit a subscription payment.");return;}
     try{
-      const accessRow=await getRestaurantSubscriptionAccess(activeRestaurant.id);
-      if(String(accessRow?.subscription_status||"").toLowerCase()==="suspended"){
+      const [accessRow,pendingRequest]=await Promise.all([
+        getRestaurantSubscriptionAccess(activeRestaurant.id),
+        getLatestSubscriptionPaymentRequest(activeRestaurant.id)
+      ]);
+      const status=String(accessRow?.subscription_status||"").toLowerCase();
+      if(status==="suspended"){
         showAppNotice("This account was suspended by NAF POS Super Admin. Please contact Super Admin; payment submission is disabled.");
         return;
       }
+      if(String(pendingRequest?.status||"").toLowerCase()==="pending"){
+        showAppNotice("A payment request is already pending. Please wait for Super Admin to approve or reject it.");
+        return;
+      }
       await loadCustomerSubscriptionDetails(activeRestaurant.id);
+      const lifetime=String(currentSubscriptionDetails?.plan_code||"").toLowerCase()==="admin_lifetime_free";
+      if(lifetime){
+        showAppNotice("Admin Lifetime Free does not require a paid subscription.");
+        return;
+      }
+      if(accessRow?.can_access===true && status!=="trial"){
+        showAppNotice("Your paid subscription is active. You can submit another plan request only after it expires.");
+        return;
+      }
     }catch(err){moduleError("Could not verify subscription before payment",err);return;}
     const plan=subscriptionPlansCache.find(p=>p.id===$("subscriptionPlanSelect").value);
     const file=$("subscriptionReceipt").files[0];
@@ -1298,8 +1336,11 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
       const {data:{user},error:userError}=await client.auth.getUser();if(userError)throw userError;
       const ins=await client.from("naf_payment_requests").insert({restaurant_id:activeRestaurant.id,plan_id:plan.id,owner_user_id:user.id,amount:Number(plan.price),currency:plan.currency,transaction_reference:$("subscriptionReference").value.trim()||null,receipt_path:path,status:"pending"});
       if(ins.error)throw ins.error;
-      if ($("subscriptionGateStatus")) $("subscriptionGateStatus").textContent ="Payment request submitted. Waiting for Super Admin review.";
+      if ($("subscriptionGateStatus")) $("subscriptionGateStatus").textContent ="Payment request submitted successfully. Your Free Trial remains active while Super Admin reviews your request. You cannot submit another request until this one is approved or rejected.";
       $("subscriptionPaymentForm").reset();
+      $("subscriptionPaymentForm").hidden=true;
+      const currentAccess=await getRestaurantSubscriptionAccess(activeRestaurant.id);
+      updateSubscriptionRequestAvailability(currentAccess,{status:"pending"});
     }catch(err){moduleError("Could not submit payment request",err);}
   });
   $("subscriptionBackHome")?.addEventListener("click",async()=>{
@@ -1621,28 +1662,49 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
     if(!activeRestaurant || isNafSuperAdmin) return;
     try{
       await loadCustomerSubscriptionDetails(activeRestaurant.id);
-      const accessRow=await getRestaurantSubscriptionAccess(activeRestaurant.id);
-      updateSubscriptionRequestAvailability(accessRow);
+      const [accessRow,pendingRequest]=await Promise.all([
+        getRestaurantSubscriptionAccess(activeRestaurant.id),
+        getLatestSubscriptionPaymentRequest(activeRestaurant.id)
+      ]);
+      updateSubscriptionRequestAvailability(accessRow,pendingRequest);
     }catch(err){ moduleError("Could not refresh subscription details",err); }
   }
     $("openSubscriptionRequest")?.addEventListener("click",async()=>{
     if(currentCashier || currentManager || !activeRestaurant){showAppNotice("Only the restaurant owner can manage subscription requests.");return;}
     try{
-      const details=await loadCustomerSubscriptionDetails(activeRestaurant.id);
-      const accessRow=await getRestaurantSubscriptionAccess(activeRestaurant.id);
-      updateSubscriptionRequestAvailability(accessRow);
-      if(String(accessRow?.subscription_status||"").toLowerCase()==="suspended"){
+      await loadCustomerSubscriptionDetails(activeRestaurant.id);
+      const [accessRow,pendingRequest]=await Promise.all([
+        getRestaurantSubscriptionAccess(activeRestaurant.id),
+        getLatestSubscriptionPaymentRequest(activeRestaurant.id)
+      ]);
+      updateSubscriptionRequestAvailability(accessRow,pendingRequest);
+      const status=String(accessRow?.subscription_status||"").toLowerCase();
+      const trial=status==="trial";
+      const lifetime=String(currentSubscriptionDetails?.plan_code||"").toLowerCase()==="admin_lifetime_free";
+      if(status==="suspended"){
         showAppNotice("This account is suspended. Please contact NAF POS Super Admin.");
+        return;
+      }
+      if(lifetime){
+        showAppNotice("Admin Lifetime Free does not require a paid subscription.");
+        return;
+      }
+      if(String(pendingRequest?.status||"").toLowerCase()==="pending"){
+        showAppNotice("Your payment request is waiting for Super Admin review. Please wait for approval or rejection.");
+        return;
+      }
+      if(accessRow?.can_access===true && !trial){
+        showAppNotice("Your paid subscription is active. You can choose another plan after it expires.");
         return;
       }
       await loadSubscriptionPublicData();
       showSubscriptionGate("","Choose a plan and submit your payment receipt for review.");
-      if ($("subscriptionGateMessage")) $("subscriptionGateMessage").textContent = accessRow?.can_access===true
-        ? "Your current subscription is still active. You may renew now. If Super Admin approves the payment, the new period will begin after your current expiry date."
+      if ($("subscriptionGateMessage")) $("subscriptionGateMessage").textContent = trial
+        ? "Your Free Trial is active. You may choose Monthly or Yearly now. Your paid subscription will start after Super Admin approves your payment."
         : "Your subscription has expired. Choose a plan and submit your payment receipt for Super Admin review.";
       $("subscriptionPaymentForm").hidden=false;
       $("subscriptionPaymentForm").dataset.restaurantId=activeRestaurant.id;
-      if($("subscriptionGateTitle")) $("subscriptionGateTitle").textContent=accessRow?.can_access===true?"Renew Subscription":"Subscription Required";
+      if($("subscriptionGateTitle")) $("subscriptionGateTitle").textContent=trial?"Choose a Paid Plan":"Subscription Required";
     }catch(err){moduleError("Could not load subscription plans",err);}
   });
 
