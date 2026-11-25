@@ -3171,19 +3171,6 @@ button,.btn,.menu-btn,.pos-action,.logout,.tab{font-size:15px}
       if(profilesRes.error)throw profilesRes.error;
       const planMap=new Map((plansRes.data||[]).map(p=>[p.id,p]));
       const profileMap=new Map((profilesRes.data||[]).map(p=>[p.id,p]));
-
-      // Auth emails are private and cannot be read from the browser. Retrieve only
-      // the restaurant owners' emails through a Super-Admin-verified Edge Function.
-      const ownerIds=[...new Set((restaurants||[]).map(r=>r.owner_id).filter(Boolean))];
-      const {data:{session},error:sessionError}=await client.auth.getSession();
-      if(sessionError)throw sessionError;
-      if(!session?.access_token)throw new Error('Please sign in again.');
-      const {data:ownerContactData,error:ownerContactError}=await client.functions.invoke(
-        'naf-admin-owner-contacts',
-        {body:{owner_ids:ownerIds},headers:{Authorization:'Bearer '+session.access_token}}
-      );
-      if(ownerContactError)throw ownerContactError;
-      const ownerEmailMap=new Map((ownerContactData?.owners||[]).map(x=>[x.id,x.email||'']));
       const today=new Date();today.setHours(0,0,0,0);
       const fmtDate=v=>{if(!v)return '—';const d=new Date(v);return Number.isNaN(d.getTime())?'—':d.toLocaleDateString();};
       const daysLeft=v=>{if(!v)return null;const d=new Date(v);if(Number.isNaN(d.getTime()))return null;d.setHours(0,0,0,0);return Math.ceil((d-today)/86400000);};
@@ -3203,13 +3190,12 @@ button,.btn,.menu-btn,.pos-action,.logout,.tab{font-size:15px}
         const left=isOwnSuperAdminRestaurant?'Unlimited':daysLeft(expiry);
         const owner=profileMap.get(r.owner_id);
         const ownerLabel=owner?.full_name||'Owner profile unavailable';
-        const ownerPhone=owner?.phone||r.phone||'No phone';
-        const ownerEmail=ownerEmailMap.get(r.owner_id)||'No email';
+        const ownerPhone=owner?.phone||r.phone||'—';
         const started=isOwnSuperAdminRestaurant?(r.created_at):(sub?.started_at||sub?.trial_started_at||sub?.created_at);
         const planDetails=isOwnSuperAdminRestaurant?'<br><small style="color:#15803d;font-weight:800">No payment · No expiry · Lifetime access</small>':(plan?`<br><small>${safeText(plan.currency||r.currency||'')} ${Number(plan.price||0).toFixed(2)} / ${safeText(String(plan.duration_days||''))} days</small>`:'');
         const daysText=isOwnSuperAdminRestaurant?'Unlimited':(left===null?'—':left<0?`${Math.abs(left)} days overdue`:`${left} days`);
         const actions=isOwnSuperAdminRestaurant?'<span style="color:#15803d;font-weight:800">Protected account</span>':(sub?(rawStatus==='suspended'||expired?`<button class="approve" data-sub-activate="${safeText(r.id)}">Activate</button>`:`<button class="del" data-sub-suspend="${safeText(r.id)}">Suspend</button>`):'—')+` <button class="edit" data-sub-extend="${safeText(r.id)}">+30 days</button> <button class="del" data-restaurant-delete="${safeText(r.id)}" data-restaurant-name="${safeText(r.name)}">DELETE</button>`;
-        return `<tr><td><b>${safeText(r.name)}</b><br><small>${safeText(r.email||'No email')} · ${safeText(r.phone||'No phone')}</small></td><td>${safeText(ownerLabel)}<br><small>${safeText(ownerEmail)} · ${safeText(ownerPhone)}</small></td><td><span class="sub-status-pill ${statusClass}">${safeText(statusLabel)}</span></td><td>${safeText(planName)}${planDetails}</td><td>${safeText(fmtDate(started))}</td><td>${isOwnSuperAdminRestaurant?'<b style="color:#15803d">No expiry</b>':safeText(fmtDate(expiry))}</td><td>${safeText(daysText)}</td><td>${safeText(r.currency||plan?.currency||'—')}</td><td><small>${safeText(r.owner_id||'')}</small></td><td>${actions}</td></tr>`;
+        return `<tr><td><b>${safeText(r.name)}</b><br><small>${safeText(r.email||'No email')} · ${safeText(r.phone||'No phone')}</small></td><td>${safeText(ownerLabel)}<br><small>${safeText(ownerPhone)}</small></td><td><span class="sub-status-pill ${statusClass}">${safeText(statusLabel)}</span></td><td>${safeText(planName)}${planDetails}</td><td>${safeText(fmtDate(started))}</td><td>${isOwnSuperAdminRestaurant?'<b style="color:#15803d">No expiry</b>':safeText(fmtDate(expiry))}</td><td>${safeText(daysText)}</td><td>${safeText(r.currency||plan?.currency||'—')}</td><td><small>${safeText(r.owner_id||'')}</small></td><td>${actions}</td></tr>`;
       }).join('')||'<tr><td colspan="10">No restaurant accounts.</td></tr>';
       window.nafAdminRestaurants=restaurants||[];
       window.nafAdminSubs=subs||[];
