@@ -3163,14 +3163,9 @@ button,.btn,.menu-btn,.pos-action,.logout,.tab{font-size:15px}
       if(error)throw error;
       const {data:subs,error:subError}=await client.from('naf_subscriptions').select('id,restaurant_id,status,plan_id,started_at,expires_at,trial_started_at,trial_expires_at,created_at,updated_at');
       if(subError)throw subError;
-      const [plansRes,profilesRes]=await Promise.all([
-        client.from('naf_subscription_plans').select('id,plan_name,duration_days,price,currency'),
-        client.from('profiles').select('id,full_name,phone')
-      ]);
+      const plansRes=await client.from('naf_subscription_plans').select('id,plan_name,duration_days,price,currency');
       if(plansRes.error)throw plansRes.error;
-      if(profilesRes.error)throw profilesRes.error;
       const planMap=new Map((plansRes.data||[]).map(p=>[p.id,p]));
-      const profileMap=new Map((profilesRes.data||[]).map(p=>[p.id,p]));
 
       // Auth emails are private and cannot be read from the browser. Retrieve only
       // the restaurant owners' emails through a Super-Admin-verified Edge Function.
@@ -3183,7 +3178,7 @@ button,.btn,.menu-btn,.pos-action,.logout,.tab{font-size:15px}
         {body:{owner_ids:ownerIds},headers:{Authorization:'Bearer '+session.access_token}}
       );
       if(ownerContactError)throw ownerContactError;
-      const ownerEmailMap=new Map((ownerContactData?.owners||[]).map(x=>[x.id,x.email||'']));
+      const ownerContactMap=new Map((ownerContactData?.owners||[]).map(x=>[x.id,x]));
       const today=new Date();today.setHours(0,0,0,0);
       const fmtDate=v=>{if(!v)return '—';const d=new Date(v);return Number.isNaN(d.getTime())?'—':d.toLocaleDateString();};
       const daysLeft=v=>{if(!v)return null;const d=new Date(v);if(Number.isNaN(d.getTime()))return null;d.setHours(0,0,0,0);return Math.ceil((d-today)/86400000);};
@@ -3201,10 +3196,10 @@ button,.btn,.menu-btn,.pos-action,.logout,.tab{font-size:15px}
         const statusLabel=isOwnSuperAdminRestaurant?'SUPER ADMIN':(!sub?'MISSING':expired?'EXPIRED':rawStatus.toUpperCase());
         const statusClass=isOwnSuperAdminRestaurant||isActive?'active':isTrial?'trial':(rawStatus==='suspended'||expired||rawStatus==='expired'?'suspended':'pending');
         const left=isOwnSuperAdminRestaurant?'Unlimited':daysLeft(expiry);
-        const owner=profileMap.get(r.owner_id);
+        const owner=ownerContactMap.get(r.owner_id);
         const ownerLabel=owner?.full_name||'Owner profile unavailable';
         const ownerPhone=owner?.phone||r.phone||'No phone';
-        const ownerEmail=ownerEmailMap.get(r.owner_id)||'No email';
+        const ownerEmail=owner?.email||r.email||'No email';
         const started=isOwnSuperAdminRestaurant?(r.created_at):(sub?.started_at||sub?.trial_started_at||sub?.created_at);
         const planDetails=isOwnSuperAdminRestaurant?'<br><small style="color:#15803d;font-weight:800">No payment · No expiry · Lifetime access</small>':(plan?`<br><small>${safeText(plan.currency||r.currency||'')} ${Number(plan.price||0).toFixed(2)} / ${safeText(String(plan.duration_days||''))} days</small>`:'');
         const daysText=isOwnSuperAdminRestaurant?'Unlimited':(left===null?'—':left<0?`${Math.abs(left)} days overdue`:`${left} days`);
