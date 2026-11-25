@@ -541,45 +541,57 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
 
 
 
-/* Super Admin report date selectors and clean print header. */
+/* Super Admin report date selectors and detached, reliable print layout. */
 .admin-print-dates{display:flex;gap:7px;align-items:end;flex-wrap:wrap}
 .admin-print-dates label{display:grid;gap:3px;font-size:10px;font-weight:800;color:#657087}
 .admin-print-dates input{height:35px;border:1px solid var(--line);border-radius:8px;padding:0 7px;font:inherit;color:var(--ink);background:#fff}
-.admin-print-heading{display:none}
+.admin-print-root{display:none}
+.admin-print-heading{display:block;margin:0 0 12px;padding:0 0 9px;border-bottom:2px solid #c99a20}
+.admin-print-heading h2{font-size:18pt;margin:0 0 5px;color:#17243a}
+.admin-print-heading p{font-size:9pt;margin:0;color:#596579}
 @media print{
-  body.admin-printing .admin-print-heading{display:block;margin:0 0 12px;padding:0 0 9px;border-bottom:2px solid #c99a20}
-  body.admin-printing .admin-print-heading h2{font-size:18pt;margin:0 0 5px;color:#17243a}
-  body.admin-printing .admin-print-heading p{font-size:9pt;margin:0;color:#596579}
-  body.admin-printing .admin-print-target tr[hidden]{display:none!important}
-}
-\n/* Super Admin section printing: print only the selected report. */
-@media print{
-  body.admin-printing *{visibility:hidden!important}
-  body.admin-printing .admin-print-target,
-  body.admin-printing .admin-print-target *{visibility:visible!important}
-  body.admin-printing .admin-print-target{position:absolute!important;left:0!important;top:0!important;width:100%!important;max-width:none!important;margin:0!important;padding:10mm!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:#fff!important}
+  @page{size:A4 landscape;margin:10mm}
+  html,body{background:#fff!important;padding:0!important;margin:0!important;min-height:0!important;height:auto!important;overflow:visible!important}
+  body.admin-printing>*:not(.admin-print-root){display:none!important}
+  body.admin-printing>.admin-print-root{
+    display:block!important;position:static!important;visibility:visible!important;
+    width:100%!important;height:auto!important;max-width:none!important;
+    margin:0!important;padding:0!important;overflow:visible!important;
+    background:#fff!important
+  }
+  body.admin-printing .admin-print-root,
+  body.admin-printing .admin-print-root *{visibility:visible!important}
+  body.admin-printing .admin-print-target{
+    display:block!important;position:static!important;left:auto!important;top:auto!important;
+    width:100%!important;max-width:none!important;height:auto!important;max-height:none!important;
+    margin:0!important;padding:0!important;border:0!important;border-radius:0!important;
+    box-shadow:none!important;overflow:visible!important;background:#fff!important;
+    color:#111!important
+  }
   body.admin-printing .admin-print-target .no-print,
   body.admin-printing .admin-print-target button{display:none!important}
   body.admin-printing .admin-print-target .module-table-wrap,
   body.admin-printing .admin-print-target .admin-independent-scroll,
-  body.admin-printing .admin-print-target .subscription-table-scroll{max-height:none!important;overflow:visible!important;border:0!important}
-  body.admin-printing .admin-print-target table{width:100%!important;min-width:0!important;border-collapse:collapse!important}
+  body.admin-printing .admin-print-target .subscription-table-scroll{
+    display:block!important;max-height:none!important;height:auto!important;
+    overflow:visible!important;border:0!important
+  }
+  body.admin-printing .admin-print-target table{
+    display:table!important;width:100%!important;min-width:0!important;
+    border-collapse:collapse!important;table-layout:auto!important
+  }
+  body.admin-printing .admin-print-target thead{display:table-header-group!important}
+  body.admin-printing .admin-print-target tbody{display:table-row-group!important}
+  body.admin-printing .admin-print-target tr{display:table-row!important;break-inside:avoid;page-break-inside:avoid}
   body.admin-printing .admin-print-target th,
-  body.admin-printing .admin-print-target td{font-size:9pt!important;padding:6px!important;border:1px solid #d8dee8!important;color:#111!important}
+  body.admin-printing .admin-print-target td{
+    display:table-cell!important;font-size:9pt!important;padding:6px!important;
+    border:1px solid #d8dee8!important;color:#111!important;white-space:normal!important
+  }
   body.admin-printing .admin-print-target thead th{position:static!important;background:#eef2f7!important}
-  body.admin-printing .admin-print-target tr{break-inside:avoid}
-  @page{size:A4 landscape;margin:10mm}
-}
-
-
-/* Dashboard KPI tiles and activity items are real, keyboard-accessible navigation targets. */
-.dashboard-clickable{cursor:pointer;transition:transform .14s ease,border-color .14s ease,box-shadow .14s ease}
-.stat.dashboard-clickable:hover,.overview-metric.dashboard-clickable:hover,.activity-row.dashboard-clickable:hover{
-  border-color:var(--gold);box-shadow:0 5px 16px #18223512;transform:translateY(-1px)
-}
-.dashboard-clickable:focus-visible{outline:3px solid #e5b94f88;outline-offset:2px}
-
-</style>
+  body.admin-printing .admin-print-target .admin-print-heading{display:block!important}
+  body.admin-printing .admin-print-target .subscription-searchbar{display:none!important}
+}</style>
 
 <style id="naf-readable-fonts">
 /* Readability update: larger text across login, dashboard, POS and management pages. */
@@ -3281,7 +3293,8 @@ button,.btn,.menu-btn,.pos-action,.logout,.tab{font-size:15px}
   $('nafManualDate').value=new Date().toISOString().slice(0,10);
 
 
-  // Print only the selected Super Admin report, with its own optional date range.
+  // Print a detached copy of only the selected Super Admin report.
+  // Detaching it from hidden page panels prevents blank print previews.
   window.printAdminSection = function(sectionId, title){
     const section = document.getElementById(sectionId);
     if(!section){ moduleError('Print section not found', new Error(sectionId)); return; }
@@ -3298,24 +3311,28 @@ button,.btn,.menu-btn,.pos-action,.logout,.tab{font-size:15px}
       return;
     }
 
-    const table = section.querySelector('table');
+    const printRoot = document.createElement('div');
+    printRoot.className = 'admin-print-root';
+    const clone = section.cloneNode(true);
+    clone.classList.add('admin-print-target');
+    clone.querySelectorAll('.no-print, button').forEach(el=>el.remove());
+
+    const table = clone.querySelector('table');
     const tbody = table?.tBodies?.[0];
-    const rows = tbody ? [...tbody.rows] : [];
-    const originalHidden = rows.map(row => row.hidden);
     const dateColumn = sectionId === 'nafUpcomingPrintSection' ? 2
       : sectionId === 'nafApprovedHistoryPrintSection' ? 0 : -1;
     const parseCellDate = (value) => {
       const text = (value || '').trim();
-      if(!text || text === '—' || /no expiry|unlimited/i.test(text)) return null;
+      if(!text || text === '—' || /no expiry|unlimited|no subscriptions|no approved payments/i.test(text)) return null;
       const parsed = new Date(text);
       return Number.isNaN(parsed.getTime()) ? null : new Date(parsed.getFullYear(),parsed.getMonth(),parsed.getDate());
     };
     const fromDate = fromValue ? new Date(fromValue+'T00:00:00') : null;
     const toDate = toValue ? new Date(toValue+'T23:59:59') : null;
 
-    rows.forEach((row,index) => {
-      let match = true;
-      if(fromDate || toDate){
+    if(tbody && (fromDate || toDate)){
+      [...tbody.rows].forEach(row=>{
+        let match = true;
         if(dateColumn >= 0){
           const date = parseCellDate(row.cells[dateColumn]?.textContent);
           match = !!date && (!fromDate || date >= fromDate) && (!toDate || date <= toDate);
@@ -3325,9 +3342,9 @@ button,.btn,.menu-btn,.pos-action,.logout,.tab{font-size:15px}
           const candidates = [startDate,expiryDate].filter(Boolean);
           match = candidates.some(date => (!fromDate || date >= fromDate) && (!toDate || date <= toDate));
         }
-      }
-      row.hidden = !match;
-    });
+        if(!match) row.remove();
+      });
+    }
 
     const header = document.createElement('div');
     header.className = 'admin-print-heading';
@@ -3335,27 +3352,25 @@ button,.btn,.menu-btn,.pos-action,.logout,.tab{font-size:15px}
       ? `Date range: ${fromValue || 'Any'} – ${toValue || 'Any'}`
       : 'Date range: All dates';
     header.innerHTML = `<h2>${safeText(title || 'NAF POS Report')}</h2><p>${safeText(rangeText)} · Printed: ${safeText(new Date().toLocaleString())}</p>`;
-    section.insertBefore(header, section.firstChild);
+    clone.insertBefore(header, clone.firstChild);
+    printRoot.appendChild(clone);
+    document.body.appendChild(printRoot);
 
-    document.querySelectorAll('.admin-print-target').forEach(el=>el.classList.remove('admin-print-target'));
-    section.classList.add('admin-print-target');
-    document.body.classList.add('admin-printing');
     const oldTitle = document.title;
     document.title = title || 'NAF POS Report';
+    document.body.classList.add('admin-printing');
     let cleaned = false;
     const cleanup = ()=>{
       if(cleaned) return;
       cleaned = true;
       document.body.classList.remove('admin-printing');
-      section.classList.remove('admin-print-target');
-      header.remove();
-      rows.forEach((row,index)=>row.hidden=originalHidden[index]);
+      printRoot.remove();
       document.title = oldTitle;
       window.removeEventListener('afterprint', cleanup);
     };
     window.addEventListener('afterprint', cleanup, {once:true});
     window.print();
-    setTimeout(cleanup, 2500);
+    setTimeout(cleanup, 5000);
   };
 
   async function loadAdminSubscriptionPanel(){await Promise.all([loadAdminSubscriptionSettings(),loadAdminPlans(),loadAdminPaymentRequests(),loadAdminRestaurants(),loadNafPaymentLedger()]);}
