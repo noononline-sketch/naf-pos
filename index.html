@@ -558,6 +558,14 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
   @page{size:A4 landscape;margin:10mm}
 }
 
+
+/* Dashboard KPI tiles and activity items are real, keyboard-accessible navigation targets. */
+.dashboard-clickable{cursor:pointer;transition:transform .14s ease,border-color .14s ease,box-shadow .14s ease}
+.stat.dashboard-clickable:hover,.overview-metric.dashboard-clickable:hover,.activity-row.dashboard-clickable:hover{
+  border-color:var(--gold);box-shadow:0 5px 16px #18223512;transform:translateY(-1px)
+}
+.dashboard-clickable:focus-visible{outline:3px solid #e5b94f88;outline-offset:2px}
+
 </style>
 </head>
 <body>
@@ -670,24 +678,24 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
         <h3>Manager Dashboard</h3><p class="module-note">Welcome. You can manage daily restaurant operations, purchases, menu, customers, suppliers and sales history. Financial reports and owner-only settings are not available to Manager accounts.</p>
       </section>
       <section class="stats">
-        <article class="stat"><div class="stathead">Budget <span class="staticon">◈</span></div><div class="statvalue" id="totalBudget">SAR 0.00</div><div class="statnote">Total allocated budget</div></article>
-        <article class="stat"><div class="stathead">Purchase Cost <span class="staticon">▣</span></div><div class="statvalue" id="purchaseCost">SAR 0.00</div><div class="statnote">Recorded purchases</div></article>
-        <article class="stat"><div class="stathead">Expense <span class="staticon">↘</span></div><div class="statvalue" id="totalExpenses">SAR 0.00</div><div class="statnote">Recorded expenses</div></article>
-        <article class="stat"><div class="stathead">Budget Balance <span class="staticon">◉</span></div><div class="statvalue" id="budgetBalance">SAR 0.00</div><div class="statnote">Budget − purchases − expenses</div></article>
-        <article class="stat"><div class="stathead">Total Sale <span class="staticon">↗</span></div><div class="statvalue" id="totalSales">SAR 0.00</div><div class="statnote">Completed orders only</div></article>
+        <article class="stat dashboard-clickable" role="button" tabindex="0" data-dashboard-page="budget" title="Open Budget"><div class="stathead">Budget <span class="staticon">◈</span></div><div class="statvalue" id="totalBudget">SAR 0.00</div><div class="statnote">Total allocated budget</div></article>
+        <article class="stat dashboard-clickable" role="button" tabindex="0" data-dashboard-page="purchases" title="Open Purchases"><div class="stathead">Purchase Cost <span class="staticon">▣</span></div><div class="statvalue" id="purchaseCost">SAR 0.00</div><div class="statnote">Recorded purchases</div></article>
+        <article class="stat dashboard-clickable" role="button" tabindex="0" data-dashboard-page="expenses" title="Open Expenses"><div class="stathead">Expense <span class="staticon">↘</span></div><div class="statvalue" id="totalExpenses">SAR 0.00</div><div class="statnote">Recorded expenses</div></article>
+        <article class="stat dashboard-clickable" role="button" tabindex="0" data-dashboard-page="budget" title="Open Budget"><div class="stathead">Budget Balance <span class="staticon">◉</span></div><div class="statvalue" id="budgetBalance">SAR 0.00</div><div class="statnote">Budget − purchases − expenses</div></article>
+        <article class="stat dashboard-clickable" role="button" tabindex="0" data-dashboard-page="sales-history" title="Open Sales History"><div class="stathead">Total Sale <span class="staticon">↗</span></div><div class="statvalue" id="totalSales">SAR 0.00</div><div class="statnote">Completed orders only</div></article>
       </section>
       <section class="lowergrid dashboard-details">
         <article class="dashcard"><div class="dash-section-head"><h3>Recent Activity</h3><button class="link" id="refreshDashboardBtn" type="button">Refresh</button></div><p>Latest sales, purchases and expenses from this restaurant.</p><div id="recentSales" class="activity-list"><div class="empty">Loading recent activity…</div></div></article>
         <article class="dashcard"><h3>Quick Overview</h3><p>Live totals loaded from Supabase for this restaurant.</p><div class="overview-grid">
-          <div class="overview-metric"><span>Total Sales</span><b id="overviewSales">—</b></div>
-          <div class="overview-metric"><span>Purchase Cost</span><b id="overviewPurchases">—</b></div>
-          <div class="overview-metric"><span>Total Expenses</span><b id="overviewExpenses">—</b></div>
-          <div class="overview-metric"><span>Net Profit</span><b id="overviewNetProfit">—</b></div>
-          <div class="overview-metric"><span>Current Purchase Stock</span><b id="overviewCurrentPurchaseStock">—</b><small id="overviewCurrentPurchaseStockNote">Remaining stock lines</small></div>
-          <div class="overview-metric"><span>Purchase Used</span><b id="overviewPurchaseUsed">—</b><small id="overviewPurchaseUsedNote">Usage records in selected period</small></div>
-          <div class="overview-metric"><span>Stock Usage Value</span><b id="overviewStockUsageValue">—</b><small>Cost value of items used in selected period</small></div>
-          <div class="overview-metric"><span>Remaining Stock Value</span><b id="overviewRemainingStockValue">—</b><small>Cost value of current remaining stock</small></div>
-          <div class="overview-metric"><span>Pending Payments</span><b id="overviewPendingPayments">—</b></div>
+          <div class="overview-metric dashboard-clickable" role="button" tabindex="0" data-dashboard-page="sales-history" title="Open Sales History"><span>Total Sales</span><b id="overviewSales">—</b></div>
+          <div class="overview-metric dashboard-clickable" role="button" tabindex="0" data-dashboard-page="purchases" title="Open Purchases"><span>Purchase Cost</span><b id="overviewPurchases">—</b></div>
+          <div class="overview-metric dashboard-clickable" role="button" tabindex="0" data-dashboard-page="expenses" title="Open Expenses"><span>Total Expenses</span><b id="overviewExpenses">—</b></div>
+          <div class="overview-metric dashboard-clickable" role="button" tabindex="0" data-dashboard-page="reports" title="Open Reports"><span>Net Profit</span><b id="overviewNetProfit">—</b></div>
+          <div class="overview-metric dashboard-clickable" role="button" tabindex="0" data-dashboard-page="purchases" title="Open Purchases"><span>Current Purchase Stock</span><b id="overviewCurrentPurchaseStock">—</b><small id="overviewCurrentPurchaseStockNote">Remaining stock lines</small></div>
+          <div class="overview-metric dashboard-clickable" role="button" tabindex="0" data-dashboard-page="purchases" title="Open Purchases"><span>Purchase Used</span><b id="overviewPurchaseUsed">—</b><small id="overviewPurchaseUsedNote">Usage records in selected period</small></div>
+          <div class="overview-metric dashboard-clickable" role="button" tabindex="0" data-dashboard-page="purchases" title="Open Purchases"><span>Stock Usage Value</span><b id="overviewStockUsageValue">—</b><small>Cost value of items used in selected period</small></div>
+          <div class="overview-metric dashboard-clickable" role="button" tabindex="0" data-dashboard-page="purchases" title="Open Purchases"><span>Remaining Stock Value</span><b id="overviewRemainingStockValue">—</b><small>Cost value of current remaining stock</small></div>
+          <div class="overview-metric dashboard-clickable" role="button" tabindex="0" data-dashboard-page="sales-history" title="Open Sales History"><span>Pending Payments</span><b id="overviewPendingPayments">—</b></div>
         </div><div class="muted" id="restaurantInfo">Loading restaurant details…</div></article>
       </section>
       </div>
@@ -1605,7 +1613,7 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
       (profiles.data||[]).forEach(x=>actorNames[x.id]=x.full_name||"Staff");
       (cashiers.data||[]).forEach(x=>actorNames[x.auth_user_id]=x.name||actorNames[x.auth_user_id]||"Cashier");
     }
-    $("recentSales").innerHTML=activity.length?activity.map(x=>`<div class="activity-row"><div class="activity-dot">${x.icon}</div><div class="activity-main"><b>${safeText(x.kind)} · ${safeText(x.title)}</b><small>${safeText(x.detail)} · By: ${safeText(actorNames[x.actorId]||"Staff not recorded")} · ${safeText(x.at?new Date(x.at).toLocaleString():"Time unavailable")}</small></div><div class="activity-amount">${fmt(x.amount)}</div></div>`).join(""):'<div class="empty">No recent sales, purchases or expenses.</div>';
+    $("recentSales").innerHTML=activity.length?activity.map(x=>`<div class="activity-row dashboard-clickable" role="button" tabindex="0" data-dashboard-page="${x.kind==="Sale"?"sales-history":x.kind==="Purchase"?"purchases":"expenses"}" title="Open ${safeText(x.kind)} page"><div class="activity-dot">${x.icon}</div><div class="activity-main"><b>${safeText(x.kind)} · ${safeText(x.title)}</b><small>${safeText(x.detail)} · By: ${safeText(actorNames[x.actorId]||"Staff not recorded")} · ${safeText(x.at?new Date(x.at).toLocaleString():"Time unavailable")}</small></div><div class="activity-amount">${fmt(x.amount)}</div></div>`).join(""):'<div class="empty">No recent sales, purchases or expenses.</div>';
   }
   $("refreshDashboardBtn")?.addEventListener("click",refreshDashboardData);
   $("applyDashboardDates")?.addEventListener("click",()=>{refreshDashboardData();updateDashboardPurchaseStock();});
@@ -1676,6 +1684,27 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
     if (page === "settings") loadSettings();
     if (page === "support") loadSupportMessages();
   }
+
+
+  // Dashboard navigation: KPI cards, Quick Overview tiles and Recent Activity.
+  // All navigation passes through showPage(), which applies the existing role restrictions.
+  function openDashboardDestination(target){
+    const page = target?.dataset?.dashboardPage;
+    if(!page) return;
+    showPage(page);
+    window.scrollTo({top:0,behavior:"smooth"});
+  }
+  document.addEventListener("click", event => {
+    const target = event.target.closest("[data-dashboard-page]");
+    if(target) openDashboardDestination(target);
+  });
+  document.addEventListener("keydown", event => {
+    if(event.key !== "Enter" && event.key !== " ") return;
+    const target = event.target.closest("[data-dashboard-page]");
+    if(!target) return;
+    event.preventDefault();
+    openDashboardDestination(target);
+  });
 
   window.nafGoHome = function(){ try { showPage("dashboard"); window.scrollTo({top:0,behavior:"auto"}); } catch(e) {} };
   async function refreshCustomerSubscriptionCard(){
