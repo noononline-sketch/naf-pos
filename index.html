@@ -941,7 +941,7 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
         </div>
         <div class="module-card">
           <h3>Subscription Management</h3>
-          <p class="module-note" id="subscriptionManagementNote">View available plans and submit a payment receipt when your current subscription has expired. Only the restaurant owner can submit a payment request.</p>
+          <p class="module-note" id="subscriptionManagementNote">View available plans and submit a renewal payment before or after expiry. Only the restaurant owner can submit a payment request.</p>
           <div class="module-actions"><button type="button" class="menu-btn" id="openSubscriptionRequest">VIEW PLANS & REQUEST SUBSCRIPTION</button></div>
         </div>
       </section>
@@ -1139,6 +1139,7 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
   let lastInvoice = null;
   let isNafSuperAdmin = false;
   let currentSubscription = null;
+  let currentSubscriptionDetails = null;
   let subscriptionPlansCache = [];
   let subscriptionSettingsCache = null;
 
@@ -1194,6 +1195,7 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
     const {data,error}=await client.rpc("naf_my_subscription_details",{p_restaurant_id:restaurantId});
     if(error) throw new Error("Could not load subscription details: "+error.message);
     const row=Array.isArray(data)?data[0]:data;
+    currentSubscriptionDetails=row||null;
     if(!row){
       if ($("customerSubStatus")) $("customerSubStatus").textContent ="Not found";
       if ($("customerSubPlan")) $("customerSubPlan").textContent ="—";
@@ -1221,10 +1223,16 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
     const button=$("openSubscriptionRequest");
     const note=$("subscriptionManagementNote");
     const active=accessRow?.can_access===true;
-    if(button) button.hidden=active || currentCashier || !activeRestaurant;
-    if(note) note.textContent=active
-      ? "Your subscription is active. You cannot select or pay for another plan until the current plan expires."
-      : "Your subscription has expired. You can now choose a new plan and submit your payment receipt for review.";
+    const suspended=String(accessRow?.subscription_status||"").toLowerCase()==="suspended";
+    if(button) button.hidden=!!(currentCashier || currentManager || !activeRestaurant || suspended);
+    if(button) button.textContent=active
+      ? "RENEW / CHANGE PLAN"
+      : "VIEW PLANS & REQUEST SUBSCRIPTION";
+    if(note) note.textContent=suspended
+      ? "This account is suspended. Contact NAF POS Super Admin for assistance."
+      : active
+        ? "Your subscription is active. Monthly and Yearly customers can submit a renewal payment before the expiry date. Once Super Admin approves it, the new period will be added after the current expiry date. Admin Lifetime Free does not require renewal."
+        : "Your subscription has expired. Choose a plan and submit your payment receipt for Super Admin review.";
   }
 
   async function checkSubscriptionAccess(restaurantId){
@@ -1276,12 +1284,7 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
         showAppNotice("This account was suspended by NAF POS Super Admin. Please contact Super Admin; payment submission is disabled.");
         return;
       }
-      if(accessRow?.can_access===true){
-        hideSubscriptionGate();
-        showAppNotice("Your current subscription is still active. You can choose another plan only after it expires.");
-        updateSubscriptionRequestAvailability(accessRow);
-        return;
-      }
+      await loadCustomerSubscriptionDetails(activeRestaurant.id);
     }catch(err){moduleError("Could not verify subscription before payment",err);return;}
     const plan=subscriptionPlansCache.find(p=>p.id===$("subscriptionPlanSelect").value);
     const file=$("subscriptionReceipt").files[0];
@@ -1625,17 +1628,21 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
     $("openSubscriptionRequest")?.addEventListener("click",async()=>{
     if(currentCashier || currentManager || !activeRestaurant){showAppNotice("Only the restaurant owner can manage subscription requests.");return;}
     try{
+      const details=await loadCustomerSubscriptionDetails(activeRestaurant.id);
       const accessRow=await getRestaurantSubscriptionAccess(activeRestaurant.id);
       updateSubscriptionRequestAvailability(accessRow);
-      if(accessRow?.can_access===true){
-        showAppNotice("Your current plan is active. A new plan can be selected only after the expiry date.");
+      if(String(accessRow?.subscription_status||"").toLowerCase()==="suspended"){
+        showAppNotice("This account is suspended. Please contact NAF POS Super Admin.");
         return;
       }
       await loadSubscriptionPublicData();
-      showSubscriptionGate("","Choose a subscription plan and submit your payment receipt for review.");
-      if ($("subscriptionGateMessage")) $("subscriptionGateMessage").textContent ="Your current subscription has expired. Choose a new plan and submit your payment receipt for review.";
+      showSubscriptionGate("","Choose a plan and submit your payment receipt for review.");
+      if ($("subscriptionGateMessage")) $("subscriptionGateMessage").textContent = accessRow?.can_access===true
+        ? "Your current subscription is still active. You may renew now. If Super Admin approves the payment, the new period will begin after your current expiry date."
+        : "Your subscription has expired. Choose a plan and submit your payment receipt for Super Admin review.";
       $("subscriptionPaymentForm").hidden=false;
       $("subscriptionPaymentForm").dataset.restaurantId=activeRestaurant.id;
+      if($("subscriptionGateTitle")) $("subscriptionGateTitle").textContent=accessRow?.can_access===true?"Renew Subscription":"Subscription Required";
     }catch(err){moduleError("Could not load subscription plans",err);}
   });
 
