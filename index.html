@@ -539,7 +539,20 @@ button,.navitem,.category-chip,.menu-btn,.logout,.pos-action{
 }
 
 
-/* Super Admin section printing: print only the selected report. */
+
+
+/* Super Admin report date selectors and clean print header. */
+.admin-print-dates{display:flex;gap:7px;align-items:end;flex-wrap:wrap}
+.admin-print-dates label{display:grid;gap:3px;font-size:10px;font-weight:800;color:#657087}
+.admin-print-dates input{height:35px;border:1px solid var(--line);border-radius:8px;padding:0 7px;font:inherit;color:var(--ink);background:#fff}
+.admin-print-heading{display:none}
+@media print{
+  body.admin-printing .admin-print-heading{display:block;margin:0 0 12px;padding:0 0 9px;border-bottom:2px solid #c99a20}
+  body.admin-printing .admin-print-heading h2{font-size:18pt;margin:0 0 5px;color:#17243a}
+  body.admin-printing .admin-print-heading p{font-size:9pt;margin:0;color:#596579}
+  body.admin-printing .admin-print-target tr[hidden]{display:none!important}
+}
+\n/* Super Admin section printing: print only the selected report. */
 @media print{
   body.admin-printing *{visibility:hidden!important}
   body.admin-printing .admin-print-target,
@@ -965,11 +978,11 @@ button,.btn,.menu-btn,.pos-action,.logout,.tab{font-size:15px}
               <div class="module-field full"><label>NOTE</label><input id="nafManualNote" maxlength="500" placeholder="Optional note"></div>
             </div><div class="module-actions"><button class="menu-btn" type="submit">SAVE APPROVED PAYMENT</button></div></form>
           </div>
-          <div class="module-card" id="nafUpcomingPrintSection"><div class="module-toolbar"><h3 style="margin:0">Upcoming Subscription Dates</h3><div class="module-actions" style="margin:0"><span class="module-note">Next 30 days</span><button class="menu-btn secondary no-print" type="button" onclick="printAdminSection('nafUpcomingPrintSection','Upcoming Subscription Dates')">PRINT</button></div></div><div id="nafUpcomingSubscriptionsScroll" class="module-table-wrap admin-independent-scroll"><table class="module-table"><thead><tr><th>RESTAURANT</th><th>PLAN STATUS</th><th>EXPIRES</th><th>DAYS LEFT</th></tr></thead><tbody id="nafUpcomingPayments"><tr><td colspan="4">Loading…</td></tr></tbody></table></div></div>
-          <div class="module-card" id="nafApprovedHistoryPrintSection"><div class="module-toolbar"><h3 style="margin:0">Approved Payment History</h3><div class="module-actions" style="margin:0"><button class="menu-btn secondary no-print" id="nafRefreshLedger" type="button">REFRESH HISTORY</button><button class="menu-btn secondary no-print" type="button" onclick="printAdminSection('nafApprovedHistoryPrintSection','Approved Payment History')">PRINT</button></div></div>
+          <div class="module-card" id="nafUpcomingPrintSection"><div class="module-toolbar"><h3 style="margin:0">Upcoming Subscription Dates</h3><div class="module-actions" style="margin:0"><span class="module-note">Next 30 days</span><div class="admin-print-dates no-print"><label>From <input type="date" id="nafUpcomingFrom"></label><label>To <input type="date" id="nafUpcomingTo"></label></div><button class="menu-btn secondary no-print" type="button" onclick="printAdminSection('nafUpcomingPrintSection','Upcoming Subscription Dates')">PRINT</button></div></div><div id="nafUpcomingSubscriptionsScroll" class="module-table-wrap admin-independent-scroll"><table class="module-table"><thead><tr><th>RESTAURANT</th><th>PLAN STATUS</th><th>EXPIRES</th><th>DAYS LEFT</th></tr></thead><tbody id="nafUpcomingPayments"><tr><td colspan="4">Loading…</td></tr></tbody></table></div></div>
+          <div class="module-card" id="nafApprovedHistoryPrintSection"><div class="module-toolbar"><h3 style="margin:0">Approved Payment History</h3><div class="module-actions" style="margin:0"><button class="menu-btn secondary no-print" id="nafRefreshLedger" type="button">REFRESH HISTORY</button><div class="admin-print-dates no-print"><label>From <input type="date" id="nafPaymentFrom"></label><label>To <input type="date" id="nafPaymentTo"></label></div><button class="menu-btn secondary no-print" type="button" onclick="printAdminSection('nafApprovedHistoryPrintSection','Approved Payment History')">PRINT</button></div></div>
           <div class="module-table-wrap"><table class="module-table"><thead><tr><th>DATE</th><th>RESTAURANT</th><th>AMOUNT</th><th>METHOD</th><th>REFERENCE</th><th>SOURCE</th><th>ACTIONS</th></tr></thead><tbody id="nafPaymentLedgerRows"><tr><td colspan="7">Loading…</td></tr></tbody></table></div></div>
         </section>
-        <div class="module-card" id="adminSubscriptionsCard"><div class="module-toolbar"><div><b>Restaurant Subscriptions · Full Details</b><p class="module-note">Owner, plan, subscription dates, remaining days and account status.</p></div><div class="module-actions" style="margin:0"><button class="menu-btn secondary no-print" id="refreshAdminRestaurants" type="button">REFRESH</button><button class="menu-btn secondary no-print" type="button" onclick="printAdminSection('adminSubscriptionsCard','Restaurant Subscriptions - Full Details')">PRINT</button></div></div><div class="subscription-searchbar"><label for="adminSubscriptionSearch">SEARCH RESTAURANTS</label><input id="adminSubscriptionSearch" type="search" placeholder="Search restaurant, owner, email, phone, status or plan…"><span id="adminSubscriptionCount">0 restaurants</span></div><div class="module-table-wrap subscription-table-scroll"><table class="module-table"><thead><tr><th>RESTAURANT / CONTACT</th><th>OWNER</th><th>STATUS</th><th>PLAN</th><th>STARTED</th><th>EXPIRES</th><th>DAYS LEFT</th><th>CURRENCY</th><th>OWNER ID</th><th>ACTION</th></tr></thead><tbody id="adminRestaurantRows"><tr><td colspan="10">Press Refresh to load authorized data.</td></tr></tbody></table></div><div class="subscription-legend"><span class="sub-legend trial">TRIAL</span><span class="sub-legend active">ACTIVE</span><span class="sub-legend suspended">SUSPENDED / EXPIRED</span></div></div>
+        <div class="module-card" id="adminSubscriptionsCard"><div class="module-toolbar"><div><b>Restaurant Subscriptions · Full Details</b><p class="module-note">Owner, plan, subscription dates, remaining days and account status.</p></div><div class="module-actions" style="margin:0"><button class="menu-btn secondary no-print" id="refreshAdminRestaurants" type="button">REFRESH</button><div class="admin-print-dates no-print"><label>From <input type="date" id="nafSubsFrom"></label><label>To <input type="date" id="nafSubsTo"></label></div><button class="menu-btn secondary no-print" type="button" onclick="printAdminSection('adminSubscriptionsCard','Restaurant Subscriptions - Full Details')">PRINT</button></div></div><div class="subscription-searchbar"><label for="adminSubscriptionSearch">SEARCH RESTAURANTS</label><input id="adminSubscriptionSearch" type="search" placeholder="Search restaurant, owner, email, phone, status or plan…"><span id="adminSubscriptionCount">0 restaurants</span></div><div class="module-table-wrap subscription-table-scroll"><table class="module-table"><thead><tr><th>RESTAURANT / CONTACT</th><th>OWNER</th><th>STATUS</th><th>PLAN</th><th>STARTED</th><th>EXPIRES</th><th>DAYS LEFT</th><th>CURRENCY</th><th>OWNER ID</th><th>ACTION</th></tr></thead><tbody id="adminRestaurantRows"><tr><td colspan="10">Press Refresh to load authorized data.</td></tr></tbody></table></div><div class="subscription-legend"><span class="sub-legend trial">TRIAL</span><span class="sub-legend active">ACTIVE</span><span class="sub-legend suspended">SUSPENDED / EXPIRED</span></div></div>
       </section>
       <section id="employeesPage" class="pagepanel">
         <div class="module-card"><h3 id="employeeFormTitle">Add Employee</h3><form id="employeeForm"><div class="module-form">
@@ -3268,24 +3281,81 @@ button,.btn,.menu-btn,.pos-action,.logout,.tab{font-size:15px}
   $('nafManualDate').value=new Date().toISOString().slice(0,10);
 
 
-  // Print only the selected Super Admin report section.
+  // Print only the selected Super Admin report, with its own optional date range.
   window.printAdminSection = function(sectionId, title){
     const section = document.getElementById(sectionId);
     if(!section){ moduleError('Print section not found', new Error(sectionId)); return; }
+
+    const dateIds = sectionId === 'nafUpcomingPrintSection'
+      ? ['nafUpcomingFrom','nafUpcomingTo']
+      : sectionId === 'nafApprovedHistoryPrintSection'
+        ? ['nafPaymentFrom','nafPaymentTo']
+        : ['nafSubsFrom','nafSubsTo'];
+    const fromValue = document.getElementById(dateIds[0])?.value || '';
+    const toValue = document.getElementById(dateIds[1])?.value || '';
+    if(fromValue && toValue && fromValue > toValue){
+      showAppNotice('The From date must be before the To date.');
+      return;
+    }
+
+    const table = section.querySelector('table');
+    const tbody = table?.tBodies?.[0];
+    const rows = tbody ? [...tbody.rows] : [];
+    const originalHidden = rows.map(row => row.hidden);
+    const dateColumn = sectionId === 'nafUpcomingPrintSection' ? 2
+      : sectionId === 'nafApprovedHistoryPrintSection' ? 0 : -1;
+    const parseCellDate = (value) => {
+      const text = (value || '').trim();
+      if(!text || text === '—' || /no expiry|unlimited/i.test(text)) return null;
+      const parsed = new Date(text);
+      return Number.isNaN(parsed.getTime()) ? null : new Date(parsed.getFullYear(),parsed.getMonth(),parsed.getDate());
+    };
+    const fromDate = fromValue ? new Date(fromValue+'T00:00:00') : null;
+    const toDate = toValue ? new Date(toValue+'T23:59:59') : null;
+
+    rows.forEach((row,index) => {
+      let match = true;
+      if(fromDate || toDate){
+        if(dateColumn >= 0){
+          const date = parseCellDate(row.cells[dateColumn]?.textContent);
+          match = !!date && (!fromDate || date >= fromDate) && (!toDate || date <= toDate);
+        } else {
+          const startDate = parseCellDate(row.cells[4]?.textContent);
+          const expiryDate = parseCellDate(row.cells[5]?.textContent);
+          const candidates = [startDate,expiryDate].filter(Boolean);
+          match = candidates.some(date => (!fromDate || date >= fromDate) && (!toDate || date <= toDate));
+        }
+      }
+      row.hidden = !match;
+    });
+
+    const header = document.createElement('div');
+    header.className = 'admin-print-heading';
+    const rangeText = fromValue || toValue
+      ? `Date range: ${fromValue || 'Any'} – ${toValue || 'Any'}`
+      : 'Date range: All dates';
+    header.innerHTML = `<h2>${safeText(title || 'NAF POS Report')}</h2><p>${safeText(rangeText)} · Printed: ${safeText(new Date().toLocaleString())}</p>`;
+    section.insertBefore(header, section.firstChild);
+
     document.querySelectorAll('.admin-print-target').forEach(el=>el.classList.remove('admin-print-target'));
     section.classList.add('admin-print-target');
     document.body.classList.add('admin-printing');
     const oldTitle = document.title;
     document.title = title || 'NAF POS Report';
+    let cleaned = false;
     const cleanup = ()=>{
+      if(cleaned) return;
+      cleaned = true;
       document.body.classList.remove('admin-printing');
       section.classList.remove('admin-print-target');
+      header.remove();
+      rows.forEach((row,index)=>row.hidden=originalHidden[index]);
       document.title = oldTitle;
       window.removeEventListener('afterprint', cleanup);
     };
     window.addEventListener('afterprint', cleanup, {once:true});
     window.print();
-    setTimeout(()=>{ if(document.body.classList.contains('admin-printing')) cleanup(); }, 1500);
+    setTimeout(cleanup, 2500);
   };
 
   async function loadAdminSubscriptionPanel(){await Promise.all([loadAdminSubscriptionSettings(),loadAdminPlans(),loadAdminPaymentRequests(),loadAdminRestaurants(),loadNafPaymentLedger()]);}
