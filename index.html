@@ -3208,7 +3208,8 @@ button,.btn,.menu-btn,.pos-action,.logout,.tab{font-size:15px}
         const left=isOwnSuperAdminRestaurant?'Unlimited':daysLeft(expiry);
         const owner=profileMap.get(r.owner_id);
         const ownerLabel=owner?.full_name||'Owner profile unavailable';
-        const ownerPhone=owner?.phone||'—';\n        const ownerEmail=owner?.email||'—';
+        const ownerPhone=owner?.phone||'—';
+        const ownerEmail=owner?.email||'—';
         const started=isOwnSuperAdminRestaurant?(r.created_at):(sub?.started_at||sub?.trial_started_at||sub?.created_at);
         const planDetails=isOwnSuperAdminRestaurant?'<br><small style="color:#15803d;font-weight:800">No payment · No expiry · Lifetime access</small>':(plan?`<br><small>${safeText(plan.currency||r.currency||'')} ${Number(plan.price||0).toFixed(2)} / ${safeText(String(plan.duration_days||''))} days</small>`:'');
         const daysText=isOwnSuperAdminRestaurant?'Unlimited':(left===null?'—':left<0?`${Math.abs(left)} days overdue`:`${left} days`);
